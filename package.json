@@ -1,0 +1,23 @@
+{
+  "name": "trainr",
+  "version": "0.19.0",
+  "scripts": {
+    "test": "node test.cjs",
+    "start": "node serve.cjs",
+    "test:v5": "node test-v5.cjs",
+    "test:v6": "node test-v6.cjs",
+    "test:v7": "node test-v7.cjs",
+    "test:v8": "node test-v8.cjs",
+    "test:v15": "node test-v15.cjs",
+    "test:v16": "node test-v16.cjs",
+    "test:v17": "node test-v17.cjs",
+    "test:migration": "node test-v19-migration.cjs",
+    "test:v18": "node test-v18.cjs",
+    "test:v19": "node test-v19.cjs",
+    "test:v20": "node test-v20.cjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  },
+  "private": true
+}

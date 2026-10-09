@@ -1,0 +1,22 @@
+body{isolation:isolate}
+/* V7: composed movement. At most ten visible surfaces float; no JS idle loop. */
+.motion-atmosphere{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:-1;contain:strict}.motion-atmosphere i{position:absolute;width:min(75vw,680px);height:min(75vw,680px);border-radius:50%;background:radial-gradient(circle,#bfd78655,transparent 68%);left:-22%;top:5%;transform:translateY(var(--scroll-drift,0px))}.motion-atmosphere i+i{left:auto;right:-25%;top:38%;background:radial-gradient(circle,#79b39b35,transparent 68%)}.motion-active .motion-atmosphere i{animation:atmosphere-drift 23s ease-in-out infinite}.motion-active .motion-atmosphere i+i{animation-delay:-11s;animation-direction:reverse}
+@keyframes atmosphere-drift{50%{transform:translate(45px,calc(28px + var(--scroll-drift,0px))) scale(1.08)}}
+.motion-float{animation:surface-float 7s ease-in-out infinite;animation-delay:var(--motion-phase,0s)}
+@keyframes surface-float{0%,100%{translate:0 0}50%{translate:0 -4px}}
+.dynamic-card,.training-ticket,.block{transform:perspective(900px) rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg)) translateY(var(--lift,0px));transition:transform .24s cubic-bezier(.2,.8,.2,1),box-shadow .24s,border-color .24s}
+.motion-float:hover,.motion-float:focus-within{animation-play-state:paused}
+.motion-active .panel{position:relative}.motion-active .panel::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 0 1px #c9dd9560;animation:panel-breathe 8s ease-in-out infinite}.panel:not(.motion-visible)::before{animation-play-state:paused}
+@keyframes panel-breathe{50%{opacity:.25;transform:scale(.998)}}
+.motion-active .training-ticket .mini-pitch{animation:pitch-float 9s ease-in-out infinite}.motion-active .training-ticket:before{content:'';position:absolute;inset:-50%;background:linear-gradient(110deg,transparent 35%,#e8ffb416 48%,transparent 62%);pointer-events:none;animation:ticket-sheen 12s ease-in-out infinite}.training-ticket{isolation:isolate}.training-ticket>*{position:relative}.training-ticket .mini-pitch{position:absolute}
+@keyframes ticket-sheen{0%,25%{transform:translateX(-30%) rotate(-12deg)}75%,100%{transform:translateX(30%) rotate(-12deg)}}
+.motion-active .nav-icon{transition:rotate .35s,scale .35s}.motion-active #mainNav button:hover .nav-icon{rotate:-12deg;scale:1.18}.motion-active #mainNav .active .nav-icon{animation:nav-pop .4s cubic-bezier(.2,1.5,.4,1)}
+.motion-active .tag,.motion-active .equipment-pills span{transition:translate .25s,background .25s}.motion-active .tag:hover,.motion-active .equipment-pills span:hover{translate:0 -2px}.motion-active details[open]>summary{animation:summary-spring .4s ease-out}
+@keyframes summary-spring{50%{translate:3px 0}}
+.motion-active .favorite-button[aria-pressed=true]{animation:heart-pop .4s cubic-bezier(.2,1.5,.4,1)}@keyframes heart-pop{50%{scale:1.2;rotate:-10deg}}
+.motion-active dialog[open]::backdrop{animation:backdrop-in .35s ease-out}@keyframes backdrop-in{from{opacity:0}to{opacity:1}}
+.motion-active .timer-progress>div{position:relative;overflow:hidden}.motion-active .timer-running .timer-progress>div:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,#fff9,transparent);animation:progress-sweep 3s ease-in-out infinite}@keyframes progress-sweep{from{translate:-100% 0}to{translate:100% 0}}
+body:not(.motion-active) .motion-atmosphere i,body:not(.motion-active) .panel::before{animation:none!important}.quiet-motion .dynamic-card,.quiet-motion .training-ticket,.quiet-motion .block{transform:none!important;translate:none!important;scale:none!important;rotate:none!important}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.dynamic-card,.training-ticket,.block{transform:none!important;translate:none!important;scale:none!important;rotate:none!important}}
+@media(max-width:600px){.motion-atmosphere i{width:500px;height:500px}.motion-active .panel::before{animation:none}.dynamic-card,.training-ticket,.block{--tilt-x:0deg!important;--tilt-y:0deg!important;--lift:0px!important}}
+@media print{.motion-atmosphere{display:none!important}*,*::before,*::after{animation:none!important;transform:none!important;translate:none!important}}

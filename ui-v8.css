@@ -1,0 +1,17 @@
+/* V8: scene actors, camera and cinematic transitions. Reduced motion and the switch turn all of it off. */
+.pitch-scene .actor-ball{display:none;fill:#fff;stroke:#184638;stroke-width:2}
+.pitch-scene.motion-on .actor-ball{display:block}
+.pitch-scene.motion-on .pitch-ball-static,.pitch-scene.motion-on .pitch-route{display:none}
+.pitch-scene .cam{transform-origin:0 0}
+.pitch-scene.motion-on .scene-active-player circle{stroke-width:2}
+.pitch-large.motion-on .is-moving circle{stroke:#fff;stroke-width:3}
+.preview-controls.player-controls{flex-wrap:wrap}.preview-controls.player-controls #previewPlay{min-width:128px}
+.rate-group{display:inline-flex;gap:4px}.rate-group button{min-width:44px;min-height:44px;border-radius:12px;font-weight:800;font-size:12px;color:#2a4f40;transition:background .2s,transform .2s}.rate-group button[aria-pressed=true]{background:#184f40;color:#e8ffb4}
+#previewScrub{flex:1 1 55%;min-width:0;accent-color:#2f7d5f;min-height:32px}.preview-time{font-variant-numeric:tabular-nums;font-size:11px;color:var(--muted)}
+.kw{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.12em;margin-bottom:-.12em}.kw>span{display:inline-block;will-change:transform}
+.scene-playing .scene-step-label{fill:#e8ffb4}
+.dynamic-card .pitch-scene svg{transform-origin:50% 50%}
+@supports (animation-timeline:view()){.dynamic-card .pitch-scene svg{animation:card-scene-push linear both;animation-timeline:view();animation-range:entry 0% cover 45%}@keyframes card-scene-push{from{transform:scale(1.14) translateY(6%);opacity:.5}to{transform:none;opacity:1}}}
+.quiet-motion .actor-ball{display:none!important}
+@media(prefers-reduced-motion:reduce){.actor-ball{display:none!important}.dynamic-card .pitch-scene svg{animation:none!important}}
+@media print{.actor-ball{display:none!important}}
