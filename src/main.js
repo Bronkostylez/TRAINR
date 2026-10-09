@@ -109,3 +109,20 @@ initUpdates();
 if (info.source === 'v2') toast('Deine Daten aus TRAINR V20 wurden übernommen. Die alten Daten bleiben unverändert.', { ms: 6000 });
 if (info.problem === 'invalid-v3' || info.problem === 'invalid-v2') toast('Gespeicherte Daten waren ungültig und wurden gesichert, nicht überschrieben. Details unter „Mehr“.', { ms: 8000 });
 window.__trainr = { store, timer, version: '21.0.0' }; // für Tests und Fehlersuche
+
+// ---------- Wischen zwischen den Haupt-Tabs (nur Touch, nur schmale Bildschirme) ----------
+{
+  let sw = null;
+  const blocked = t => !t.closest || t.closest('input, textarea, select, .chips, .seg, .board-wrap, .editor-pitch, .blocks, .pitch-scene, input[type=range], dialog, .seg-progress');
+  addEventListener('touchstart', ev => {
+    if (innerWidth >= 1024 || ev.touches.length !== 1 || anyOpen() || !store.get().teams.length || blocked(ev.target)) { sw = null; return; }
+    sw = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, t: performance.now() };
+  }, { passive: true });
+  addEventListener('touchend', ev => {
+    if (!sw) return;
+    const dx = ev.changedTouches[0].clientX - sw.x, dy = ev.changedTouches[0].clientY - sw.y, dt = performance.now() - sw.t; sw = null;
+    if (Math.abs(dx) < 80 || Math.abs(dy) > Math.abs(dx) * .6 || dt > 700) return;
+    const i = TAB_ORDER.indexOf(currentView()?.tab), next = TAB_ORDER[i + (dx < 0 ? 1 : -1)];
+    if (i >= 0 && next) { haptic('tap'); go(next); }
+  }, { passive: true });
+}
