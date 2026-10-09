@@ -4,7 +4,8 @@
   "scripts": {
     "start": "node serve.cjs",
     "test": "playwright test",
-    "test:headed": "playwright test --headed"
+    "test:headed": "playwright test --headed",
+    "test:perf": "playwright test tests/performance.spec.cjs --workers 1"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0"

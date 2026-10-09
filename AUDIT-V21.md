@@ -168,3 +168,146 @@ Desktop ≥ 1024 px: Navigationsleiste links, Bibliothek + Planer nebeneinander 
 - „Teilen“ = Web-Share-API mit Datei bzw. Download; keine Server-Links.
 - Der Link auf die öffentliche GitHub-Pages-App in der Info-Seite bleibt als reiner Text/Link erhalten (keine Veröffentlichung).
 - `README.md` bleibt unverändert, auch wenn es danach veraltet ist.
+
+---
+
+# Abschlussbericht V21 (9. Oktober 2026)
+
+## 1. Ergebnis in Kürze
+
+TRAINR 21.0.0 ist lokal auf dem Branch `v21-rebuild` fertig gebaut und getestet. Nichts wurde hochgeladen, gepusht oder veröffentlicht. `main` und der Tag `v20-final` zeigen unverändert auf V20. Zusätzlich liegt eine Zip-Sicherung unter `C:\Users\Tyler\Documents\TRAINR-V20-Sicherung-2026-10-09.zip`.
+
+- **37 von 37 Playwright-Tests bestanden.** Die Suite lief zweimal hintereinander ohne Fehler (Chrome 154, Windows 11).
+- Alle V20-Funktionen sind enthalten oder bewusst ersetzt. Der vollständige Abgleich steht in `INVENTAR-V21.md`. Keine Fähigkeit ist ersatzlos entfallen.
+- Datenmigration geprüft: Ein echtes Service-Worker-Update von V20 (aus dem Git-Tag ausgeliefert) auf V21 übernimmt Pläne, Merkliste und Varianten. `trainr-v2`, `trainr-ui-v4`, `trainr-adapt-v1` und `keeperboard-v1` bleiben byte-genau unverändert.
+
+Starten: `node serve.cjs`, dann http://localhost:8765 öffnen. Testen: `npm test` (alles), `npm run test:perf` (Leistungsmessung allein).
+
+## 2. Architekturentscheidungen
+
+| Entscheidung | Begründung |
+|---|---|
+| Native ES-Module ohne Build-Schritt und ohne Laufzeit-Abhängigkeiten | Der Startweg `node serve.cjs` bleibt; nichts muss kompiliert werden; offline einfach |
+| Ein Store (`src/core/store.js`), alle Änderungen über `update(label, fn)` | Automatisches Rückgängig/Wiederholen (40 Stufen), Validierung vor jedem Speichern, gebündeltes Speichern (120 ms, Flush bei `pagehide`) |
+| Schema V3 unter neuem Schlüssel `trainr-v21`; alte Schlüssel nur lesen | Rückweg zu V20 bleibt möglich; kein Datenverlust durch Migration |
+| Ungültige Daten werden unter `trainr-v21-recovery-<Zeit>` gesichert | Behebt das V20-Risiko, dass fehlerhafte Daten beim nächsten Speichern überschrieben wurden |
+| Ansichten als kleine Module (`src/views/*`) mit Router, Event-Delegation ohne doppelte Listener | Ersetzt 19 sich gegenseitig überschreibende Skripte |
+| Eine Motion-Schicht (`src/ui/motion.js`) mit 3 Stufen; CSS über `html[data-motion]` | `prefers-reduced-motion` und der Schalter greifen überall gleich |
+| Ein Dokumentmodell für PDF, PNG und Druck (`src/exports/doc.js`) | Gleicher Inhalt in allen Formaten; PDF mit echtem Text statt gerasterter Bilder |
+| Platzskizzen und Choreografie aus V20 als Module übernommen | Bewährte 40 Aufbau-Arten; nur bereinigt |
+
+Dateistruktur: `index.html`, `styles/` (tokens, app, print), `src/core` (Logik), `src/data` (Katalog, Ergänzungen, Quellen), `src/scene` (Skizzen, Animation), `src/ui` (Shell-Bausteine), `src/views` (Ansichten), `src/exports`, `sw.js`, `manifest.webmanifest`, `tests/`. Die alten Dateien `app.js`, `app-ui.*`, `ui-v4…ui-v20.*`, `ui-next.*`, `coach-tools.js`, `editor.js`, `drill-scenes.js`, `scene-motion.js`, `drills.js` und `test*.cjs` wurden entfernt. Sie liegen weiter im Tag `v20-final` und in der Zip-Sicherung.
+
+Version 21.0.0 steht einheitlich in `version.json`, `package.json`, `package-lock.json`, `sw.js`, `index.html`, `src/core/util.js` und `src/main.js`.
+
+## 3. Neue Funktionen und Designentscheidungen
+
+**Neu:**
+- Mehrere Mannschaften, wechselbar über den Chip oben.
+- Taktikboard: Spieler frei bewegen, lila Keeper für beide Teams, Ball, Hütchen, Lauf-, Pass- und Dribbelpfeile, 5 Formationen, mehrere Boards, Bild-Export.
+- Planassistent mit 4 Strategien, Begründung je Block, Alternativen, Neu würfeln und Übernahme wahlweise neu oder in die aktuelle Einheit.
+- Vorlagen.
+- Globales Rückgängig/Wiederholen.
+- Bewertungen, Notizen, Zuletzt, Zufall, ähnliche Übungen und Schwierigkeitsstufen für Übungen.
+- Packliste.
+- PDF mit echtem Text in 4 Layouts × 2 Stilen, Teilen per Systemmenü, Einheit als importierbare `.trainr.json`.
+- Timer: Ring, Vorwarnung, Auto-Weiter, +1 Min, Fokusmodus, Wake Lock, Wiederherstellung nach Neuladen.
+- Dunkelmodus, Vereinsfarbe, Schriftgröße, Signaltöne.
+- Kontexthilfe (?) in jeder Ansicht und eine kurze Einführung.
+- Eigene Übungen löschen; Katalogübung als eigene Übung anpassen.
+- Backup im V20-Format als Rückweg.
+
+**Design:**
+- Rasengrün und Lime als Markenkern.
+- Torwart-Lila `#9154d9` ist fest in den Tokens und wird von Theme und Vereinsfarbe nie überschrieben.
+- Bottom-Tabs mit gleitender Markierung; ab 1024 px eine Seitenleiste.
+- Bottom-Sheets mit Griff und Wischen zum Schließen; ab 760 px zentrierte Dialoge.
+- Touch-Ziele in der Regel 44–58 px.
+- Kompakte Übungskarten auf dem Handy (Skizze links).
+- Rein dekorative V20-Effekte (Halo, Tilt, Schweben, Kinetic Type, Count-up, Iris) sind zugunsten von Ruhe und Leistung entfallen.
+
+**Übungskatalog:**
+- Alle 100 bisherigen Übungen haben jetzt ein Ziel, 2–3 übungsspezifische Coaching-Punkte, einen Sicherheitshinweis und 1–2 Quellen mit Angabe, was die Quelle belegt.
+- 24 Aufbau-Beschreibungen mit vorher generischem Text (z. B. „passend zur Aufgabe“) wurden konkretisiert.
+- 2 Dubletten sind archiviert und bleiben in alten Plänen erhalten.
+- 7 neue Übungen sind direkt aus den geprüften Quellen abgeleitet und eigenständig formuliert: Pass-Feld, Pass-Feld mit Nummern, Pass-Feld zum Abschluss, Turnier 2 gegen 2, First-Touch-Duell, 6 gegen 6 auf Dribbeltore, Ballhalten 10 gegen 4.
+- Ergebnis: 105 aktive Übungen, 107 IDs insgesamt.
+- Alle 8 Quellseiten wurden am 9. Oktober 2026 abgerufen und gelesen (siehe `SOURCES.md`).
+
+## 4. Inventar-Abgleich
+
+Siehe `INVENTAR-V21.md`. Zusammenfassung: Von 80 V20-Nutzerfunktionen (F-01 bis F-122) und 21 Regeln bzw. Datenflüssen (14 × S, 7 × D) sind alle enthalten. 4 Punkte sind bewusst anders gelöst (🔁): Online-Badge → Toast, Katalog-Hinweis → Migrationshinweis, Shared-Element-Übergang → Sheet-Animation, dekorative Effekte → reduziertes Motion-Set. Die mit 🟡 markierten Punkte sind umgesetzt, aber nicht vollständig automatisch getestet.
+
+## 5. Tatsächlich ausgeführte Tests
+
+`npx playwright test` mit 37 Tests in 11 Dateien. Alle bestanden, zweimal hintereinander.
+
+| Datei | Inhalt |
+|---|---|
+| onboarding | Onboarding inkl. Fehlerfällen, Profil ändern, Neuladen; Bambini + Torwart ohne Torwart-Spezialisierung |
+| library | Suche, Filter, Archiv, Merkliste, Detail, Quellenlinks (https, noopener), Bewertung, Notiz, Variante, Blättern, Zufall; Katalogregeln: 107 IDs, Ziel, Coaching und Quelle überall, keine Kopfbälle, Falltechnik nur ab D-Jugend, kein Keeper für Bambini |
+| planner | Minuten, ↑↓, Undo/Redo (Knopf und Tastatur), Spieler je Einheit und je Block, ungültige Eingaben, Entfernen mit Rückgängig, Tauschen; Sortieren mit Zeiger und Tastatur; Desktop-Drag-&-Drop aus der Bibliothek; Assistent mit Alternativen, Check, Gruppen, Packliste, Ziel, Notizen, Duplizieren, Vorlagen, Löschen; Hinzufügen bei laufendem Timer |
+| training | Timer mit Uhr-Mock: Start, Pause, Weiterlaufen bei Ansichtswechsel, Vorschau, Nächster Block, Blockende, Zurücksetzen, Sprung; Vorwarnung und Auto-Weiter; leerer Plan |
+| exports | PDF in allen 8 Layout- und Stil-Kombinationen (Header, Helvetica, echter Text, xref-Offsets geprüft), PNG, Text, CSV (BOM, Formelschutz), Druck-HTML, TRAINR-Datei und Import; Backup, Wiederherstellen, V20-Format, Import eines V20-Backups inkl. Varianten, 4 Ablehnungsfälle |
+| custom-teams-board | Eigene Übung mit Material und Animation (lila Keeper), Bearbeiten, Verwenden, Löschen mit Rückgängig; mehrere Mannschaften; Taktikboard: Setzen, Ziehen, Pfeil, Formation, Rückgängig, Bild-Export |
+| migration | V20-Daten → V21 vollständig; alte Schlüssel byte-genau; zweiter Start liest V21; ungültige V2- und V3-Daten werden gesichert; nur UI-Daten |
+| motion-offline | Schalter Voll/Aus/Reduziert (keine laufenden Animationen); `prefers-reduced-motion` hat Vorrang, auch beim Wechsel zur Laufzeit; offline: Cache, Neuladen, Planen, Detail, PDF, Taktikboard, neuer Seitenaufruf |
+| update | **Echtes V20 → V21-Update** über den Service Worker (V20 aus Git-Tag ausgeliefert, V20-Update-Leiste bedient): Daten migriert, alte Schlüssel unverändert, alter Cache entfernt, offline lauffähig; V21 → 21.0.1: Hinweis, manuelle Prüfung, Sperre bei laufendem Timer, Daten bleiben |
+| layout | 360/390/768/1280 px, hell und dunkel: 6 Ansichten und 4 Sheets, kein horizontaler Overflow, keine JS-Fehler |
+| assistant-gestures | Assistent-Matrix: 6336 Kombinationen, davon 5244 gültige Vorschläge und 1092 begründet abgelehnt; keine Falltechnik, Alter und Gruppen passen, kein Keeper für Bambini/F-Jugend, Minutensumme exakt; Tab-Wischen; alte Adressen; Zurück-Taste schließt Sheets |
+| performance | siehe Abschnitt 6 |
+
+Während der Arbeit gefundene und behobene Fehler:
+- Doppelte Event-Listener nach Neuzeichnen (ein Tipp öffnete 3 Sheets).
+- Planer-Feld kollidierte mit der Tab-Markierung.
+- Icons ohne Größe erzeugten horizontalen Overflow bei 360 px.
+- Desktop-Grid lief bei 1280 px über.
+- Im Animationseditor ging eine getippte Schritt-Erklärung verloren.
+- Planer-Unterreiter brachen bei 360 px um.
+- Langsames Öffnen der Bibliothek (Punktwerte zwischengespeichert, Karten in Etappen gezeichnet).
+- Kartenanimationen liefen hinter offenen Sheets weiter.
+
+## 6. Leistung (gemessen, Chrome, CDP-Drosselung CPU 4× und ~1,6 Mbit/s bei 150 ms Latenz)
+
+Isolierter Lauf (`npm run test:perf`), zwei Messungen:
+
+| Messung | Werte |
+|---|---|
+| Erster Besuch bis bedienbar | 3,4 s / 3,7 s |
+| Wiederholter Besuch (aus dem Cache) bis bedienbar | 0,34 s / 0,41 s |
+| Wechsel zu „Übungen“ | 1,0 s / 1,1 s |
+| Wechsel zu Planen, Training, Heute | 0,12–0,43 s |
+| Scrollen der Bibliothek, Frame-Dauer | Median 13,9 ms, p95 27,8 ms |
+| Detail öffnen | 1,1 s / 1,5 s (ohne Konkurrenz ca. 0,45 s) |
+
+Im parallelen Volllauf (4 Browser gleichzeitig) maß derselbe Test bis zu 13,5 s für den Wechsel zu „Übungen“. Das ist Ressourcenkonkurrenz, keine Regression; der isolierte Wert bleibt maßgeblich. **Nicht real gemessen:** auf einem echten, schwachen Smartphone.
+
+## 7. Screenshots
+
+84 Screenshots liegen lokal in `screenshots/` (nicht in Git), Namensschema `<Breite>-<hell|dunkel>-<Nr>-<Ansicht>.png`:
+- Onboarding, Heute, Übungen, Planen, Training, Mehr, Taktikboard,
+- Detail-Sheet, Assistent, Export mit Vorschau, Block-Editor,
+- jeweils bei 360, 390, 768 und 1280 px, hell und dunkel.
+
+Selbst angesehen habe ich: 360 Heute und Planen, 360 dunkel Training, 768 dunkel Detail, 1280 Planen sowie während der Entwicklung 390 px aller Ansichten. Erneut erzeugen: `npx playwright test tests/layout.spec.cjs`.
+
+## 8. Bekannte Fehler, Risiken, nicht getestete Bereiche
+
+- **Nicht getestet:** physisches Handy, iOS/Safari, Firefox, echte Installation als App, Ton bei gesperrtem Bildschirm, Vibration, Wake Lock, natives Teilen-Menü, echter Druckdialog, Screenreader (NVDA/VoiceOver), Wischen zum Schließen der Sheets mit echtem Finger.
+- **Skizzen:** Bei großen Spielformen (z. B. 6 gegen 6, 10 gegen 4) zeigt die Skizze höchstens 5 Spieler je Team. Sie bleibt ein schematischer Aufbau.
+- **Fachlich:** Die Übungsinhalte sind redaktionell geprüft und mit Quellen belegt, aber nicht von einem externen Trainer abgenommen. Maße, Minuten und Altersgrenzen sind Vorschläge.
+- **README.md** blieb wie verlangt unverändert und ist dadurch veraltet: Es beschreibt Stufe 5 und nennt `test-v5.cjs`, das es nicht mehr gibt.
+- `serve.cjs` lauscht wie bisher nur auf 127.0.0.1. Ein Handy im WLAN erreicht den lokalen Server deshalb nicht.
+- Zwischen einer Änderung und dem Speichern liegen 120 ms. Beim Schließen der Seite wird sofort gespeichert; bei einem harten Absturz innerhalb dieses Fensters könnte die letzte Änderung fehlen.
+- Toasts mit „Rückgängig“ bleiben 6 s sichtbar und können auf kleinen Bildschirmen kurz Bedienelemente überdecken.
+- Die Packliste wird nur für die laufende Sitzung abgehakt (wie in V20). Das ist bewusst so, aber eine mögliche Verwechslung.
+- Wer nach V21 zu V20 zurückkehrt, sieht dort den V20-Stand vom Migrationszeitpunkt. Für den Rückweg mit späteren Änderungen gibt es das Backup im V20-Format.
+
+## 9. Nächste sinnvolle Verbesserungen
+
+1. Test auf echten Geräten (Android/Chrome, iPhone/Safari) inkl. Installation, Ton und Wake Lock.
+2. Kalender- und Saisonplanung (`IDEEN-V21.md`). Das Datenmodell hat dafür schon ein Feld `date`.
+3. Fachliche Durchsicht des Katalogs durch eine qualifizierte Trainerin oder einen qualifizierten Trainer, besonders Torwart und Falltechnik.
+4. Skizzen für große Spielformen mit allen Spielern.
+5. Barrierefreiheit mit Screenreader prüfen; Fokusführung in Sheets verfeinern.
+6. Optional: Teilen per Link/QR ohne Server (`IDEEN-V21.md`).
