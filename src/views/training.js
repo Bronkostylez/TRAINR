@@ -11,7 +11,7 @@ import { go } from '../ui/router.js';
 import { pulse } from '../ui/motion.js';
 import { openDetail } from './detail.js';
 
-const R = 46, C = 2 * Math.PI * R;
+const R = 47, C = 2 * Math.PI * R;
 let player = null, playerKey = '', unsub = null, focus = false;
 
 export const trainingView = {

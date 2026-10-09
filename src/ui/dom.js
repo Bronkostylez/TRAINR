@@ -2,11 +2,18 @@
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
-/** Ereignis-Delegation: on(root, 'click', '[data-x]', (ev, el) => …) */
+/** Ereignis-Delegation: on(root, 'click', '[data-x]', (ev, el) => …).
+ * Idempotent: ein erneuter Aufruf mit gleicher Wurzel, Ereignis und Selektor ersetzt den vorigen Handler,
+ * damit Ansichten beim Neuzeichnen keine doppelten Listener ansammeln. */
+const delegated = new WeakMap();
 export function on(root, type, selector, fn, opts) {
+  let m = delegated.get(root); if (!m) delegated.set(root, m = new Map());
+  const key = type + '|' + selector;
+  const prev = m.get(key); if (prev) root.removeEventListener(type, prev.handler, prev.opts);
   const handler = ev => { const el = ev.target.closest?.(selector); if (el && root.contains(el)) fn(ev, el); };
   root.addEventListener(type, handler, opts);
-  return () => root.removeEventListener(type, handler, opts);
+  m.set(key, { handler, opts });
+  return () => { root.removeEventListener(type, handler, opts); m.delete(key); };
 }
 
 export function el(html) {
@@ -73,3 +80,4 @@ const P = {
 export function icon(name, cls = '') {
   return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[name] || ''}</svg>`;
 }
+

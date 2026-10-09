@@ -11,7 +11,7 @@ function container() {
 /** toast('Text', {action:'Rückgängig', onAction, ms}) */
 export function toast(msg, { action, onAction, ms = 4200 } = {}) {
   const c = container();
-  while (c.children.length >= 2) c.firstElementChild.remove();
+  while (c.children.length >= 1) c.firstElementChild.remove();
   const t = document.createElement('div');
   t.className = 'toast';
   t.innerHTML = `<span class="grow">${esc(msg)}</span>${action ? `<button type="button">${esc(action)}</button>` : ''}`;
