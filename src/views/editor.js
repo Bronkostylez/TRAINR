@@ -82,7 +82,9 @@ export function openEditor(id = null, prefill = null) {
   svg.addEventListener('pointermove', ev => { if (dragging) place(ev); });
   svg.addEventListener('pointerup', () => { dragging = false; });
   svg.addEventListener('keydown', ev => { const d = { ArrowLeft: [-5, 0], ArrowRight: [5, 0], ArrowUp: [0, -5], ArrowDown: [0, 5] }[ev.key]; if (!d || !anim) return; ev.preventDefault(); read(); const p = anim.frames[frame].points[actor]; p[0] = clamp(p[0] + d[0], 25, 295); p[1] = clamp(p[1] + d[1], 25, 165); paint(); });
-  on(b, 'click', '[data-actor]', (_, x) => { actor = Number(x.dataset.actor); paint(); });
+  on(b, 'click', '[data-actor]', (_, x) => { read(); actor = Number(x.dataset.actor); paint(); });
+  $('#ed-cap', b).addEventListener('input', read);
+  $('#ed-sec', b).addEventListener('change', read);
   $('#ed-fprev', b).onclick = () => { read(); frame--; paint(); };
   $('#ed-fnext', b).onclick = () => { read(); frame++; paint(); };
   $('#ed-fadd', b).onclick = () => { read(); if (anim.frames.length >= 20) return toast('Maximal 20 Schritte.'); anim.frames.splice(frame + 1, 0, deepClone(anim.frames[frame])); anim.frames[frame + 1].caption = `Schritt ${frame + 2}`; frame++; paint(); };
