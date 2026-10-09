@@ -37,7 +37,7 @@ export function openSheet({ title = '', body = '', foot = '', wide = false, labe
       if (closed) return; closed = true;
       const i = stack.indexOf(api); if (i >= 0) stack.splice(i, 1);
       if (!fromHistory) { ignorePop++; history.back(); }
-      const finish = () => { if (d.open) d.close(); d.remove(); onClose?.(); };
+      const finish = () => { if (d.open) d.close(); d.remove(); onClose?.(); document.dispatchEvent(new CustomEvent('trainr:sheet', { detail: { open: stack.length > 0 } })); };
       if (full()) { d.classList.add('closing'); setTimeout(finish, 200); } else finish();
     },
   };
@@ -53,6 +53,7 @@ export function openSheet({ title = '', body = '', foot = '', wide = false, labe
   stack.push(api);
   history.pushState({ ...(history.state || {}), sheet: stack.length }, '');
   d.showModal();
+  document.dispatchEvent(new CustomEvent('trainr:sheet', { detail: { open: true } }));
   // Fokus auf den Inhalt, nicht automatisch auf den Schließen-Knopf
   const first = d.querySelector('.sheet-body [autofocus]') || d.querySelector('.sheet-body');
   first?.setAttribute('tabindex', first.getAttribute('tabindex') ?? '-1');

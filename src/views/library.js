@@ -15,6 +15,8 @@ import { openDetail } from './detail.js';
 const DEFAULT = () => ({ q: '', scope: 'all', tags: [], type: 'team', age: 'team', material: 'all', level: 0, maxMin: 0, sort: 'fit', archived: false });
 let F = DEFAULT();
 let animator = null;
+const idle = fn => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 120 }) : setTimeout(fn, 16));
+const cancelIdle = id => (window.cancelIdleCallback ? cancelIdleCallback(id) : clearTimeout(id));
 
 function ageFilter(s, p) { return F.age === 'team' ? planAge(s, p) : F.age === 'all' ? null : F.age; }
 function typeFilter(s, p) { const t = F.type === 'team' ? planType(s, p) : F.type; return F.type === 'team' && t === 'both' ? null : t === 'all' ? null : t; }
@@ -36,8 +38,9 @@ export function filtered(s) {
     if (q && !`${e.name} ${e.tag} ${e.description} ${e.goal || ''} ${e.equipment.map(a => a[0]).join(' ')} ${m.note || ''}`.toLowerCase().includes(q)) return false;
     return true;
   });
+  const memo = new Map(), pts = e => { if (!memo.has(e.id)) memo.set(e.id, score(s, p, e).pts); return memo.get(e.id); };
   const sorters = {
-    fit: (a, b) => score(s, p, b).pts - score(s, p, a).pts || a.name.localeCompare(b.name),
+    fit: (a, b) => pts(b) - pts(a) || a.name.localeCompare(b.name),
     az: (a, b) => a.name.localeCompare(b.name),
     short: (a, b) => effective(s, a).minutes - effective(s, b).minutes || a.name.localeCompare(b.name),
     rating: (a, b) => (meta(s, b.id).rating || 0) - (meta(s, a.id).rating || 0) || a.name.localeCompare(b.name),
@@ -125,9 +128,20 @@ export const libraryView = {
   paintList(first = false) {
     const s = store.get(), p = currentPlan(s), list = filtered(s), grid = $('#lib-grid', this.root);
     $('#lib-count', this.root).textContent = `${plural(list.length, 'Übung', 'Übungen')} · ${allExercises(s).length} gesamt`;
-    grid.innerHTML = list.length ? list.map(e => card(s, p, e)).join('') : `<div class="empty" style="grid-column:1/-1"><h3>${F.scope === 'fav' ? 'Noch nichts gemerkt' : F.scope === 'own' ? 'Noch keine eigene Übung' : F.scope === 'recent' ? 'Noch nichts genutzt' : 'Keine passende Übung'}</h3><p>${F.scope === 'fav' ? 'Tippe auf das Herz einer Übung.' : F.scope === 'own' ? 'Lege mit „Eigene“ deine erste Übung an.' : 'Filter lockern oder zurücksetzen. Bambini bekommen keine festen Torwartübungen.'}</p><button class="btn" type="button" data-reset>Filter zurücksetzen</button></div>`;
+    cancelIdle(this.chunk);
+    const FIRST = 12;
+    grid.innerHTML = list.length ? list.slice(0, FIRST).map(e => card(s, p, e)).join('') : `<div class="empty" style="grid-column:1/-1"><h3>${F.scope === 'fav' ? 'Noch nichts gemerkt' : F.scope === 'own' ? 'Noch keine eigene Übung' : F.scope === 'recent' ? 'Noch nichts genutzt' : 'Keine passende Übung'}</h3><p>${F.scope === 'fav' ? 'Tippe auf das Herz einer Übung.' : F.scope === 'own' ? 'Lege mit „Eigene“ deine erste Übung an.' : 'Filter lockern oder zurücksetzen. Bambini bekommen keine festen Torwartübungen.'}</p><button class="btn" type="button" data-reset>Filter zurücksetzen</button></div>`;
     animator?.observe();
     if (first) stagger(grid.querySelectorAll('.drill'), { max: 6 });
+    // Restliche Karten in Etappen nachzeichnen, damit die Ansicht sofort reagiert.
+    let i = FIRST;
+    const more = () => {
+      if (!grid.isConnected || i >= list.length) return;
+      grid.insertAdjacentHTML('beforeend', list.slice(i, i + 16).map(e => card(s, p, e)).join(''));
+      i += 16; animator?.observe();
+      this.chunk = idle(more);
+    };
+    this.chunk = idle(more);
   },
   random() {
     const s = store.get(), p = currentPlan(s), list = filtered(s).filter(e => e.tag !== 'Falltechnik' && fit(s, e, p.people));

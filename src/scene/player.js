@@ -55,8 +55,9 @@ export function cardAnimator(root, resolve) {
   const running = new Map(), visible = new Set(), MAX = 3;
   const stop = sc => { const r = running.get(sc); if (r) { clearTimeout(r.t); r.tl.destroy(); running.delete(sc); } };
   const pump = () => {
-    for (const sc of [...running.keys()]) if (!visible.has(sc) || !sc.isConnected || !full() || document.hidden) stop(sc);
-    if (!full() || document.hidden) return;
+    const blocked = !full() || document.hidden || !!document.querySelector('dialog[open]');
+    for (const sc of [...running.keys()]) if (blocked || !visible.has(sc) || !sc.isConnected) stop(sc);
+    if (blocked) return;
     for (const sc of visible) {
       if (running.size >= MAX) break;
       if (running.has(sc) || !sc.isConnected) continue;
@@ -74,10 +75,11 @@ export function cardAnimator(root, resolve) {
   const off = onChange(pump);
   const vis = () => pump();
   document.addEventListener('visibilitychange', vis);
+  document.addEventListener('trainr:sheet', vis);
   return {
     observe() { io.disconnect(); visible.clear(); for (const sc of [...running.keys()]) stop(sc); root.querySelectorAll('.pitch-scene').forEach(sc => io.observe(sc)); },
     pause() { for (const sc of [...running.keys()]) stop(sc); },
     resume: pump,
-    destroy() { io.disconnect(); for (const sc of [...running.keys()]) stop(sc); off(); document.removeEventListener('visibilitychange', vis); },
+    destroy() { io.disconnect(); for (const sc of [...running.keys()]) stop(sc); off(); document.removeEventListener('visibilitychange', vis); document.removeEventListener('trainr:sheet', vis); },
   };
 }
