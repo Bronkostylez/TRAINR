@@ -1,6 +1,30 @@
-const CACHE='keeperboard-v20.0.0';
-const FILES=['./','./index.html','./app.js?v=20.0.0','./app-ui.js?v=20.0.0','./app-ui.css?v=20.0.0','./ui-v4.js?v=20.0.0','./ui-v4.css?v=20.0.0','./ui-v5.js?v=20.0.0','./ui-v5.css?v=20.0.0','./drill-scenes.js?v=20.0.0','./ui-v6.js?v=20.0.0','./ui-v6.css?v=20.0.0','./ui-v7.js?v=20.0.0','./ui-v7.css?v=20.0.0','./ui-v8.js?v=20.0.0','./ui-v8.css?v=20.0.0','./scene-motion.js?v=20.0.0','./drills.js?v=20.0.0','./manifest.webmanifest','./icon.svg','./editor.js?v=20.0.0','./ui-next.js?v=20.0.0','./ui-next.css?v=20.0.0','./ui-v16.js?v=20.0.0','./ui-v16.css?v=20.0.0','./coach-tools.js?v=20.0.0','./ui-v18.js?v=20.0.0','./ui-v18.css?v=20.0.0','./ui-v19.js?v=20.0.0','./ui-v19.css?v=20.0.0','./ui-v20.js?v=20.0.0','./ui-v20.css?v=20.0.0'];
-self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(async()=>{const keys=await caches.keys();if(keys.some(k=>/^keeperboard-v[1-6][.]/.test(k)))await self.skipWaiting();})));
-self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting();});
-self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('keeperboard-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-self.addEventListener('fetch',event=>{if(event.request.method!=='GET'||new URL(event.request.url).origin!==self.location.origin)return;const url=new URL(event.request.url);if(url.pathname.endsWith('/version.json'))return;event.respondWith((async()=>{try{if(url.searchParams.has('v')){const ready=await caches.match(event.request);if(ready)return ready;}const response=await fetch(event.request);return response;}catch{const cached=await caches.match(event.request);return cached||(event.request.mode==='navigate'?await caches.match('./index.html'):Response.error());}})());});
+// TRAINR Service Worker. Precache der App-Hülle; neue Versionen warten, bis der Nutzer aktualisiert.
+const VERSION = '21.0.0';
+const CACHE = 'trainr-v' + VERSION;
+const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './icon-maskable.png',
+  './src/core/assistant.js','./src/core/migrate.js','./src/core/planning.js','./src/core/schema.js','./src/core/store.js','./src/core/timer.js','./src/core/util.js','./src/data/drill-meta.js','./src/data/drills.js','./src/exports/doc.js','./src/exports/pdf.js','./src/exports/share.js','./src/exports/sheet.js','./src/main.js','./src/scene/motion.js','./src/scene/pitch.js','./src/scene/player.js','./src/ui/actions.js','./src/ui/dom.js','./src/ui/feedback.js','./src/ui/help.js','./src/ui/material.js','./src/ui/motion.js','./src/ui/router.js','./src/ui/sheet.js','./src/ui/sortable.js','./src/ui/update.js','./src/views/blocks.js','./src/views/detail.js','./src/views/editor.js','./src/views/library.js','./src/views/more.js','./src/views/onboarding.js','./src/views/plan.js','./src/views/tactics.js','./src/views/today.js','./src/views/training.js','./styles/app.css','./styles/print.css','./styles/tokens.css'];
+
+self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))));
+self.addEventListener('message', event => { if (event.data?.type === 'SKIP_WAITING') self.skipWaiting(); });
+self.addEventListener('activate', event => event.waitUntil(
+  caches.keys().then(keys => Promise.all(keys.filter(k => (k.startsWith('keeperboard-') || k.startsWith('trainr-')) && k !== CACHE).map(k => caches.delete(k))))
+    .then(() => self.clients.claim())));
+
+self.addEventListener('fetch', event => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin || url.pathname.endsWith('/version.json')) return;
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    if (req.mode === 'navigate') {
+      const shell = await cache.match('./index.html');
+      if (shell) return shell;
+      try { return await fetch(req); } catch { return Response.error(); }
+    }
+    const hit = await cache.match(req, { ignoreSearch: true });
+    if (hit) return hit;
+    try { return await fetch(req); }
+    catch { return Response.error(); }
+  })());
+});
