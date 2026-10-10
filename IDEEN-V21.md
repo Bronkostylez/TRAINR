@@ -4,7 +4,7 @@ Größere Ideen, die in V21 nicht oder nur in einer Grundform umgesetzt werden. 
 
 | Idee | Nutzen | Aufwand | Anmerkung |
 |---|---|---|---|
-| Kalender mit Wochen- und Saisonansicht, Serien (z. B. „jeden Dienstag“), ICS-Export | Einheiten mit Datum planen, Saisonüberblick | L | In der Rückfrage für V21 bewusst zurückgestellt. Das V21-Datenmodell lässt ein optionales Datum je Einheit zu, damit das später ohne Migration ergänzt werden kann. |
+| ~~Kalender mit Wochen- und Saisonansicht, Serien, ICS-Export~~ | – | – | **Umgesetzt in 21.1:** Monat/Liste/Rückblick, Serien aus Trainingszeiten, Erinnerungen, Nachbereitung, Ausfälle, ICS. Offen: Push-Erinnerungen bei geschlossener App (bräuchte Server). |
 | Geräteübergreifende Synchronisierung (Ende-zu-Ende-verschlüsselt) | Pläne auf Handy und Laptop gleich | XL | Braucht Server/Konto – widerspricht aktuell „lokal, ohne Konto“. |
 | Teilen per Link/QR ohne Server (Plan komprimiert in URL-Fragment) | Co-Trainer bekommt Plan ohne Datei | M | Datenmenge begrenzt; eigene Übungen mit Animation werden lang. Kandidat für V21.x. |
 | Sprachansagen im Trainingsmodus (`speechSynthesis`) | Blockwechsel ohne Blick aufs Handy | S–M | Offline-Stimmen je Gerät unterschiedlich; Qualität schwer testbar. |
@@ -19,4 +19,4 @@ Größere Ideen, die in V21 nicht oder nur in einer Grundform umgesetzt werden. 
 | Hintergrund-Alarm über Notifications/Push | Ton auch bei gesperrtem Bildschirm | L | Ohne Server nur eingeschränkt möglich (Notification Triggers sind nicht standardisiert). |
 | Smartwatch-Begleiter | Timer am Handgelenk | XL | Plattformspezifisch. |
 | Lernpfade/Curriculum je Altersklasse (z. B. 8-Wochen-Block) | Rote Linie über Wochen | L | Inhalte bräuchten fachliche Prüfung durch qualifizierte Trainer. |
-| Statistiken (meistgenutzte Übungen, Kategorien-Verteilung je Monat) | Selbstreflexion | M | Lokal berechenbar; Grundform „zuletzt benutzt“ kommt in V21. |
+| ~~Statistiken (meistgenutzte Übungen, Kategorien-Verteilung je Monat)~~ | – | – | **Umgesetzt in 21.2:** Schwerpunkte je Übung (mehrere, 19 in 4 Bereichen), Wochen-/Monatsrückblick mit Minuten je Schwerpunkt, Vergleich zum Vorzeitraum, „lange nicht trainiert“. |

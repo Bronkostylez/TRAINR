@@ -1,12 +1,37 @@
 // Schematische Platzskizzen je Aufbau-Art (aus V20 übernommen und als Modul bereinigt).
 // Redaktionelle Aufbau-Schemata, keine Technikdemonstration und kein offizielles Übungsdiagramm.
 import { esc } from '../core/util.js';
-import { validAnimation } from '../core/schema.js';
+import { validAnimation, normAnimation } from '../core/schema.js';
 import { plan as motionPlan } from './motion.js';
+
+// ---- Elemente eigener Skizzen (Detail, Training, Druck und Editor zeichnen gleich)
+export const SKETCH_ITEMS = { a: 'Spieler', b: 'Gegner', k: 'Keeper', ball: 'Ball', cone: 'Hütchen', mini: 'Minitor', goal: 'Tor' };
+export const STATIC_KINDS = new Set(['cone', 'mini', 'goal']);
+/** Spieler und Gegner werden je Art durchnummeriert, Keeper heißen K. */
+export const sketchLabels = items => { const n = {}; return items.map(({ k }) => k === 'a' || k === 'b' ? String(n[k] = (n[k] || 0) + 1) : k === 'k' ? 'K' : ''); };
+export function sketchItem(k, x, y, label = '') {
+  if (k === 'cone') return `<path class="setup-cone" d="M${x - 5} ${y + 5}l5-11 5 11z"/>`;
+  if (k === 'goal') return `<rect class="setup-goal" x="${x - 5}" y="${y - 16}" width="10" height="32" rx="2"/>`;
+  if (k === 'mini') return `<rect class="setup-goal" x="${x - 4}" y="${y - 9}" width="8" height="18" rx="2"/>`;
+  if (k === 'ball') return `<circle class="sketch-ball" cx="${x}" cy="${y}" r="5"/>`;
+  return `<g class="pitch-player ${k === 'k' ? 'goalkeeper' : k === 'b' ? 'opponent' : ''}"><circle cx="${x}" cy="${y}" r="10"/><text x="${x}" y="${y + 3}">${esc(label)}</text></g>`;
+}
+/** Laufwege (Spieler) und Ballwege von einem Schritt zum nächsten als Pfeile. */
+export function sketchTrails(items, from, to) {
+  if (!from || !to) return '';
+  return items.map(({ k }, i) => {
+    const [x1, y1] = from[i], [x2, y2] = to[i], d = Math.hypot(x2 - x1, y2 - y1);
+    if (STATIC_KINDS.has(k) || d < 8) return '';
+    const cut = (k === 'ball' ? 7 : 12) / d, ex = x2 - (x2 - x1) * cut, ey = y2 - (y2 - y1) * cut;
+    return `<path class="sketch-trail ${k === 'ball' ? 'ball' : ''}" d="M${x1} ${y1}L${ex.toFixed(1)} ${ey.toFixed(1)}" marker-end="url(#sk-arrow-${k === 'ball' ? 'ball' : 'run'})"/>`;
+  }).join('');
+}
+export const SKETCH_DEFS = '<defs><marker id="sk-arrow-run" viewBox="0 0 6 6" refX="4" refY="3" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L6 3 0 6z" fill="#ffffff"/></marker><marker id="sk-arrow-ball" viewBox="0 0 6 6" refX="4" refY="3" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L6 3 0 6z" fill="#ffe58a"/></marker></defs>';
+export const SKETCH_FIELD = '<rect class="pitch-turf" x="1" y="1" width="318" height="188" rx="18"/><g class="pitch-stripes"><rect x="20" y="18" width="35" height="154"/><rect x="90" y="18" width="35" height="154"/><rect x="160" y="18" width="35" height="154"/><rect x="230" y="18" width="35" height="154"/></g><rect class="setup-boundary" x="20" y="18" width="280" height="154" rx="3"/><path class="setup-boundary" d="M160 18v154" opacity=".5"/>';
 
 /** Ablaufschritte: Bildunterschriften der eigenen Animation oder Sätze der Beschreibung. */
 export function stepsFor(e) {
-  if (e.custom && validAnimation(e.animation)) return e.animation.frames.map(f => f.caption);
+  if (e.custom && validAnimation(e.animation) && e.animation.frames.length > 1) return e.animation.frames.map(f => f.caption);
   if (Array.isArray(e.steps) && e.steps.length) return e.steps;
   return e.description.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map(s => s.trim()).filter(Boolean) || [e.description];
 }
@@ -79,6 +104,9 @@ export function drillPitch(e,large=false,step=0){
  return `<div class="pitch-scene scene-${sceneFor(e)} ${large?'pitch-large':''}" data-exercise="${esc(e.id)}" data-setup="${kind}" data-scene-step="${step}"><svg viewBox="0 0 320 190" role="img" aria-label="${esc(e.name)}: ${esc(name)}"><g class="cam"><rect class="pitch-turf" x="1" y="1" width="318" height="188" rx="18"/><g class="pitch-stripes"><rect x="20" y="18" width="35" height="154"/><rect x="90" y="18" width="35" height="154"/><rect x="160" y="18" width="35" height="154"/><rect x="230" y="18" width="35" height="154"/></g><rect class="setup-boundary" x="20" y="18" width="280" height="154" rx="3"/>${objects}${route?`<path class="pitch-route" d="${route}"/>`:''}${ps.map((p,i)=>`<g class="${large&&i===step%ps.length?'scene-active-player':''}" data-actor="p${i}" data-x="${p[0]}" data-y="${p[1]}" data-label="${esc(p[2])}" data-op="${p[3]?1:0}">${player(...p)}</g>`).join('')}<circle class="pitch-ball-static" cx="${ball[0]}" cy="${ball[1]}" r="5"/>${balls}</g><text class="scene-step-label" x="28" y="31">${large?'SCHRITT '+(step+1):'AUFBAU'}</text></svg><span class="scene-label">${esc(name)}</span></div>`;
 }
 function customPitch(e, large, step) {
-  const f = e.animation.frames[Math.min(step, e.animation.frames.length - 1)], ps = f.points.slice(0, 3), ball = f.points[3];
-  return `<div class="pitch-scene scene-custom ${large ? 'pitch-large' : ''}" data-exercise="${esc(e.id)}" data-setup="customAnimation" data-scene-step="${step}"><svg viewBox="0 0 320 190" role="img" aria-label="${esc(e.name)}: eigene schematische Animation"><g class="cam"><rect class="pitch-turf" x="1" y="1" width="318" height="188" rx="18"/><rect class="setup-boundary" x="20" y="18" width="280" height="154"/>${ps.map(([x, y], i) => `<g data-actor="p${i}" data-x="${x}" data-y="${y}" data-label="${i === 2 ? 'K' : i + 1}" data-op="0"><g class="pitch-player ${i === 2 ? 'goalkeeper' : ''}"><circle cx="${x}" cy="${y}" r="10"/><text x="${x}" y="${y + 3}">${i === 2 ? 'K' : i + 1}</text></g></g>`).join('')}<circle class="pitch-ball-static" cx="${ball[0]}" cy="${ball[1]}" r="5"/><circle class="actor-ball" data-actor="b0" data-x="${ball[0]}" data-y="${ball[1]}" cx="${ball[0]}" cy="${ball[1]}" r="5"/></g><text class="scene-step-label" x="28" y="31">${large ? 'SCHRITT ' + (step + 1) : 'AUFBAU'}</text></svg><span class="scene-label">${esc(e.name)} · eigene Animation</span></div>`;
+  const a = normAnimation(e.animation), i0 = Math.min(step, a.frames.length - 1), f = a.frames[i0], labels = sketchLabels(a.items), moving = a.frames.length > 1;
+  // Statische Elemente zuerst, damit Spieler und Ball darüber liegen.
+  const order = a.items.map((it, i) => i).sort((x, y) => STATIC_KINDS.has(a.items[y].k) - STATIC_KINDS.has(a.items[x].k));
+  const items = order.map(i => { const [x, y] = f.points[i], st = STATIC_KINDS.has(a.items[i].k); return st ? sketchItem(a.items[i].k, x, y) : `<g data-actor="i${i}" data-x="${x}" data-y="${y}">${sketchItem(a.items[i].k, x, y, labels[i])}</g>`; }).join('');
+  return `<div class="pitch-scene scene-custom ${large ? 'pitch-large' : ''}" data-exercise="${esc(e.id)}" data-setup="customAnimation" data-scene-step="${step}"><svg viewBox="0 0 320 190" role="img" aria-label="${esc(e.name)}: eigene schematische ${moving ? 'Animation' : 'Aufbauskizze'}">${SKETCH_DEFS}<g class="cam">${SKETCH_FIELD}<g class="sketch-trails">${sketchTrails(a.items, f.points, a.frames[i0 + 1]?.points)}</g>${items}</g>${moving ? `<text class="scene-step-label" x="28" y="31">${large ? 'SCHRITT ' + (i0 + 1) : 'AUFBAU'}</text>` : ''}</svg><span class="scene-label">${esc(e.name)} · eigene ${moving ? 'Animation' : 'Skizze'}</span></div>`;
 }

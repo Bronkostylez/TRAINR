@@ -3,32 +3,35 @@
 .app, .toasts, .update-bar, dialog, .fab, .sr-only { display: none !important; }
 html, body { background: #fff !important; color: #111 !important; font-size: 10.5pt; }
 #print-root { display: block !important; }
-.print-doc { font-family: Arial, Helvetica, sans-serif; line-height: 1.35; color: #12261f; }
-.print-doc .bar { background: #133e33; color: #d4f26b; font-weight: 800; font-size: 8pt; letter-spacing: 1.5px; padding: 4px 8px; margin-bottom: 8px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.print-doc { font-family: Arial, Helvetica, sans-serif; line-height: 1.35; color: #14130e; }
+.print-doc .bar { background: #14130e; color: #ffd400; font-weight: 800; font-size: 8pt; letter-spacing: 1.5px; padding: 4px 8px; margin-bottom: 8px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .print-doc.style-ink .bar { background: #000; color: #fff; }
 .print-doc h1 { font-size: 20pt; margin: 4px 0; }
 .print-doc header p { margin: 2px 0; color: #444; }
 .print-doc h2 { font-size: 12.5pt; margin: 14px 0 2px; display: flex; justify-content: space-between; gap: 12px; }
-.print-doc h2 span { color: #2f6e3f; font-size: 10pt; white-space: nowrap; }
-.print-doc .sub { font-weight: 700; color: #2f6e3f; margin: 0 0 4px; }
-.print-doc .pblock { break-inside: avoid; border-top: 1px solid #ccd5c6; padding-top: 4px; }
+.print-doc h2 span { color: #14130e; font-size: 10pt; white-space: nowrap; }
+.print-doc .sub { font-weight: 700; color: #14130e; margin: 0 0 4px; }
+.print-doc .pblock { break-inside: avoid; border-top: 1px solid #cfc9b9; padding-top: 4px; }
 .print-doc .pblock.keeper, .print-doc .coach.keeper, .print-doc tr.keeper td:first-child { border-left: 4pt solid #9154d9; padding-left: 6px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-.print-doc .card { border: 1px solid #ccd5c6; border-radius: 6px; padding: 8px 12px; margin: 10px 0; }
+.print-doc .card { border: 1px solid #cfc9b9; border-radius: 6px; padding: 8px 12px; margin: 10px 0; }
 .print-doc .psketch { width: 62%; margin: 6px 0; }
 .print-doc .psketch .pitch-scene { position: relative; aspect-ratio: 320/190; border-radius: 6px; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .print-doc .psketch svg { width: 100%; height: auto; display: block; }
-.print-doc .psketch .pitch-turf { fill: #1d5143; } .print-doc .psketch .setup-boundary { fill: none; stroke: #7fa88c; }
-.print-doc .psketch .pitch-player circle { fill: #d2ef79; stroke: #103b2e; stroke-width: 2; } .print-doc .psketch .pitch-player text { font: 800 9px Arial; text-anchor: middle; fill: #173f33; }
-.print-doc .psketch .pitch-player.opponent circle { fill: #f4f1e6; } .print-doc .psketch .pitch-player.goalkeeper circle { fill: #9154d9; stroke: #faf4ff; } .print-doc .psketch .pitch-player.goalkeeper text { fill: #fff; }
-.print-doc .psketch .setup-cone { fill: #f5a54a; } .print-doc .psketch .setup-goal { fill: none; stroke: #f7eed1; stroke-width: 2; } .print-doc .psketch .setup-zone rect { fill: #b6db7b22; stroke: #b6db7b; stroke-dasharray: 4 3; }
-.print-doc .psketch .setup-zone text, .print-doc .psketch .scene-step-label { font: 800 8px Arial; fill: #dcebd5; text-anchor: middle; } .print-doc .psketch .pitch-route { fill: none; stroke: #cce989; stroke-dasharray: 5 5; }
-.print-doc .psketch .pitch-ball-static { fill: #fff; stroke: #184638; stroke-width: 2; } .print-doc .psketch .actor-ball, .print-doc .psketch .scene-label { display: none; } .print-doc .psketch .setup-line { stroke: #f7cd85; stroke-width: 3; fill: none; }
+.print-doc .psketch .pitch-turf { fill: #2f6a3e; } .print-doc .psketch .setup-boundary { fill: none; stroke: #a9c7b0; }
+.print-doc .psketch .pitch-player circle { fill: #ffd400; stroke: #14130e; stroke-width: 2; } .print-doc .psketch .pitch-player text { font: 800 9px Arial; text-anchor: middle; fill: #14130e; }
+.print-doc .psketch .pitch-player.opponent circle { fill: #f6f3ea; } .print-doc .psketch .pitch-player.goalkeeper circle { fill: #9154d9; stroke: #faf4ff; } .print-doc .psketch .pitch-player.goalkeeper text { fill: #fff; }
+.print-doc .psketch .setup-cone { fill: #ff7a1a; } .print-doc .psketch .setup-goal { fill: none; stroke: #ffffff; stroke-width: 2; } .print-doc .psketch .setup-zone rect { fill: #ffd4001f; stroke: #ffd400; stroke-dasharray: 4 3; }
+.print-doc .psketch .setup-zone text, .print-doc .psketch .scene-step-label { font: 800 8px Arial; fill: #ffffff; text-anchor: middle; } .print-doc .psketch .pitch-route { fill: none; stroke: #ffffff; stroke-dasharray: 5 5; }
+.print-doc .psketch .pitch-ball-static, .print-doc .psketch .sketch-ball { fill: #fff; stroke: #14130e; stroke-width: 2; } .print-doc .psketch .actor-ball, .print-doc .psketch .scene-label { display: none; } .print-doc .psketch .setup-line { stroke: #ffffff; stroke-width: 3; fill: none; }
 .print-doc ol, .print-doc ul { margin: 2px 0 4px 18px; padding: 0; }
 .print-doc .src { font-size: 8pt; color: #555; overflow-wrap: anywhere; }
 .print-doc .warn { color: #9a3412; font-weight: 700; }
 .print-doc table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-.print-doc td { border-bottom: 1px solid #dde4d6; padding: 6px 4px; vertical-align: top; }
+.print-doc td { border-bottom: 1px solid #ddd8ca; padding: 6px 4px; vertical-align: top; }
 .print-doc td:first-child { width: 72px; font-weight: 700; color: #555; } .print-doc td:last-child { width: 60px; text-align: right; font-weight: 700; }
 .print-doc .coach h2 { font-size: 20pt; } .print-doc .coach li { font-size: 14pt; } .print-doc .coach { break-inside: avoid; margin-bottom: 10px; }
 .print-doc section { break-inside: avoid; margin-top: 12px; } .print-doc h3 { font-size: 11pt; margin: 8px 0 2px; }
 .print-doc .foot { font-size: 8pt; color: #555; margin-top: 12px; }
+.print-doc .psketch .sketch-trail { fill: none; stroke: #ffffff; stroke-width: 2; stroke-dasharray: 6 4; } .print-doc .psketch .sketch-trail.ball { stroke: #ffe58a; stroke-dasharray: 2 3; }
+.print-doc .ppause { margin: 4px 0 8px; font-weight: 700; color: #5a574d; text-align: center; letter-spacing: .02em; }
+.print-doc tr.pause td { color: #5a574d; font-style: italic; border-top: 1px dashed #cfc9b9; }

@@ -2,8 +2,9 @@
 import * as store from '../core/store.js';
 import {
   currentPlan, activeTeam, exercise, effective, fit, totalMinutes, timeline, slotOf, slotMinutes, slotLabel, planAge, planType,
-  check, packList, plansOfTeam, templates, blockPeople, AGES, TAGS,
+  check, packList, plansOfTeam, templates, blockPeople, foci, planFocus, focusMinutes, pauses, remapPauses, AGES,
 } from '../core/planning.js';
+import { focusSummary, focusBars, focusChips, focusOptions, openFocusPick, areaBar } from '../ui/focus.js';
 import { propose, STRATEGIES } from '../core/assistant.js';
 import { esc, uid, plural, clamp, integer, TYPE_SHORT } from '../core/util.js';
 import { LIMITS } from '../core/schema.js';
@@ -14,11 +15,13 @@ import { go } from '../ui/router.js';
 import { flip, stagger, pulse } from '../ui/motion.js';
 import { toast, haptic } from '../ui/feedback.js';
 import { undoToast, updatePlan, ensurePlan, duplicatePlan, blankPlan, addExercise, markUsed } from '../ui/actions.js';
-import { openBlockEditor, swapBlock, openAddSheet, changeMinutes, moveBlock, removeBlock } from './blocks.js';
+import { openBlockEditor, swapBlock, openAddSheet, changeMinutes, moveBlock, removeBlock, openPauseSheet, pauseLabel, movePause, removePause } from './blocks.js';
 import { materialType } from '../ui/material.js';
 import { openDetail } from './detail.js';
 import { card, filtered } from './library.js';
 import { cardAnimator } from '../scene/player.js';
+import { scheduleSheet, openEvent } from './calendar.js';
+import { upcoming, fmtDate, neglected } from '../core/calendar.js';
 
 const TABS = [['ablauf', 'Ablauf'], ['check', 'Check'], ['packliste', 'Packliste'], ['notizen', 'Notizen']];
 const packed = new Map(); // Packliste: abgehakt je Einheit (nur für diese Sitzung)
@@ -59,23 +62,26 @@ export const planView = {
   paint(reason) {
     const s = store.get(), p = currentPlan(s), team = activeTeam(s);
     if (!p || !team) return;
-    const slot = slotOf(s, p), total = totalMinutes(p), avail = slotMinutes(slot), over = avail && total > avail;
+    const slot = slotOf(s, p), total = totalMinutes(p, s), avail = slotMinutes(slot), over = avail && total > avail, ps = new Map(pauses(s, p).map(x => [x.afterId, x]));
+    const dates = upcoming(s).filter(ev => ev.planId === p.id), linked = dates[0], more = dates.length;
     const main = $('#plan-main', this.root);
     main.innerHTML = `
       <div class="plan-header">
         <div class="row between"><button class="btn sm" type="button" id="pl-switch" aria-haspopup="dialog">${icon('list')} ${plural(plansOfTeam(s).length, 'Einheit', 'Einheiten')}</button>
-          <div class="row" style="gap:2px"><button class="icon-btn" type="button" id="pl-undo" aria-label="Rückgängig" ${store.canUndo() ? '' : 'disabled'} title="${esc(store.undoLabel())}">${icon('undo')}</button><button class="icon-btn" type="button" id="pl-redo" aria-label="Wiederholen" ${store.canRedo() ? '' : 'disabled'}>${icon('redo')}</button><button class="icon-btn" type="button" id="pl-share" aria-label="Exportieren und teilen">${icon('share')}</button><button class="icon-btn" type="button" id="pl-more" aria-label="Weitere Aktionen">${icon('more')}</button></div></div>
+          <div class="row" style="gap:2px"><button class="icon-btn" type="button" id="pl-undo" aria-label="Rückgängig" ${store.canUndo() ? '' : 'disabled'} title="${esc(store.undoLabel())}">${icon('undo')}</button><button class="icon-btn" type="button" id="pl-redo" aria-label="Wiederholen" ${store.canRedo() ? '' : 'disabled'}>${icon('redo')}</button><button class="icon-btn" type="button" id="pl-cal" aria-label="Kalender öffnen" title="Kalender">${icon('calendar')}</button><button class="icon-btn" type="button" id="pl-share" aria-label="Exportieren und teilen">${icon('share')}</button><button class="icon-btn" type="button" id="pl-more" aria-label="Weitere Aktionen">${icon('more')}</button></div></div>
         <label class="sr-only" for="pl-name">Name der Einheit</label>
         <h1 id="h-planen" class="sr-only">Planen: ${esc(p.name)}</h1>
         <input class="plan-title" id="pl-name" maxlength="80" value="${esc(p.name)}" autocomplete="off">
         <div class="plan-facts">
           <button class="fact" type="button" id="pl-slot">${icon('clock')} ${slot ? esc(slotLabel(slot)) : 'Kein Termin'}</button>
           <span class="fact" style="padding:0 4px;cursor:default">${icon('users')}<span class="stepper" style="border:0"><button type="button" id="pl-pminus" aria-label="Ein Spieler weniger">−</button><input id="pl-people" type="number" min="1" max="100" value="${p.people}" aria-label="Spieler insgesamt ohne Trainer"><button type="button" id="pl-pplus" aria-label="Ein Spieler mehr">+</button></span></span>
-          <button class="fact" type="button" id="pl-focus">${icon('pin')} ${esc(p.focus === 'Alle' ? 'Kein Schwerpunkt' : p.focus)}</button>
+          <button class="fact" type="button" id="pl-focus">${icon('target')} ${esc(p.focus === 'Alle' ? 'Kein Schwerpunkt' : p.focus)}</button>
+          <button class="fact" type="button" id="pl-date" data-ev="${esc(linked?.id || '')}">${icon('calendar')} ${linked ? esc(fmtDate(linked.date, { relative: true })) + (more > 1 ? ` +${more - 1}` : '') : 'Im Kalender eintragen'}</button>
+          <button class="fact" type="button" id="pl-pause">${icon('pause')} ${esc(pauseLabel(s, p))}</button>
           <button class="fact" type="button" id="pl-age">${esc(planAge(s, p))}${p.age ? ' (nur diese Einheit)' : ''}</button>
         </div>
         <div class="budget" aria-label="Zeitbudget">
-          <div class="budget-bar" aria-hidden="true">${p.blocks.map(b => `<i style="width:${(b.minutes / Math.max(total, avail || 1)) * 100}%" class="${over ? 'over' : ''}"></i>`).join('')}</div>
+          <div class="budget-bar" aria-hidden="true">${p.blocks.map(b => `<i style="width:${(b.minutes / Math.max(total, avail || 1)) * 100}%" class="${over ? 'over' : ''}"></i>${ps.has(b.id) ? `<i class="pause" style="width:${(ps.get(b.id).minutes / Math.max(total, avail || 1)) * 100}%"></i>` : ''}`).join('')}</div>
           <div class="budget-label"><span>${total} Min geplant</span><span class="${over ? 'block-warn' : ''}">${avail ? (over ? `${total - avail} Min zu lang` : `${avail - total} Min frei von ${avail}`) : 'Kein Zeitrahmen'}</span></div>
         </div>
       </div>
@@ -89,8 +95,10 @@ export const planView = {
     const s = store.get(), p = currentPlan(s), body = $('#pl-body', this.root);
     if (this.sub === 'ablauf') {
       const tl = timeline(s, p);
+      const fm = planFocus(s, p);
       body.innerHTML = `
-        ${p.blocks.length ? `<ol class="blocks" id="pl-blocks" aria-label="Ablauf der Einheit">${tl.map(({ block: b, label }, i) => blockHtml(s, p, b, i, label)).join('')}</ol>` : ''}
+        ${p.blocks.length ? `<ol class="blocks" id="pl-blocks" aria-label="Ablauf der Einheit">${tl.map(({ block: b, label, pause }, i) => blockHtml(s, p, b, i, label) + (pause ? pauseHtml(p, pause) : '')).join('')}</ol>` : ''}
+        ${fm.list.length ? `<div class="focus-strip" style="margin:10px 0 0" aria-label="Schwerpunkte dieser Einheit"><div class="row between"><strong class="small">Das trainiert ihr</strong><button class="btn ghost sm" type="button" data-ptab="check">Details</button></div>${focusSummary(fm, { mark: p.focus, max: 5 })}</div>` : ''}
         <div class="drop-zone" id="pl-drop" style="margin-top:10px">${p.blocks.length ? 'Übungen hierher ziehen' : '<strong>Noch leer.</strong> Übungen hinzufügen, hierher ziehen oder den Assistenten fragen.'}</div>
         <div class="grid-2" style="margin-top:12px">
           <button class="btn primary lg" type="button" id="pl-add">${icon('plus')} Übung hinzufügen</button>
@@ -109,6 +117,9 @@ export const planView = {
       on(body, 'click', '[data-move]', (_, b) => { const l = $('#pl-blocks', body); flip(l, () => {}); moveBlock(b.dataset.move, Number(b.dataset.d)); });
       on(body, 'click', '[data-del]', (_, b) => removeBlock(b.dataset.del));
       on(body, 'click', '[data-show]', (_, b) => openDetail(b.dataset.show));
+      on(body, 'click', '[data-pmove]', (_, b) => { movePause(b.dataset.pmove, Number(b.dataset.d)); haptic('tap'); });
+      on(body, 'click', '[data-pdel]', (_, b) => removePause(b.dataset.pdel));
+      on(body, 'click', '[data-pedit]', () => openPauseSheet());
       $('#pl-add', body).onclick = openAddSheet;
       $('#pl-assist', body).onclick = () => this.assistant();
       $('#pl-train', body).onclick = () => go('training', 'start');
@@ -118,7 +129,8 @@ export const planView = {
       const items = check(s, p), tl = timeline(s, p);
       body.innerHTML = `
         <div class="card"><h2 style="font-size:1.1rem;margin-bottom:10px">Einheitencheck</h2><ul class="check-list">${items.map(c => `<li class="${c.level}">${esc(c.text)}</li>`).join('')}<li class="info">Tore sichern, Wege freihalten, Trinkpausen und Material prüfen.</li></ul></div>
-        ${p.blocks.length ? `<div class="card" style="margin-top:12px"><h2 style="font-size:1.1rem;margin-bottom:10px">Zeitplan</h2><div class="timeline">${tl.map(({ block: b, label }) => { const e = exercise(s, b.exerciseId), g = fit(s, e, blockPeople(p, b)); return `<div class="tl-item" style="cursor:default"><span class="tl-time">${label || '–'}</span><span><strong>${esc(e.name)}</strong><small>${g ? `${g} ${g > 1 ? 'Gruppen' : 'Gruppe'} à ${effective(s, e).min === effective(s, e).max ? effective(s, e).min : `${effective(s, e).min}–${effective(s, e).max}`}` : '⚠ Gruppen passen nicht'} · ${blockPeople(p, b)} Spieler</small></span><span class="min">${b.minutes}′</span></div>`; }).join('')}</div></div>` : ''}
+        ${p.blocks.length ? (() => { const fm = planFocus(s, p); return fm.list.length ? `<div class="card" style="margin-top:12px"><h2 style="font-size:1.1rem;margin-bottom:4px">Schwerpunkte</h2><p class="tiny" style="margin-top:0">Minuten je Schwerpunkt – eine Übung zählt für alle ihre Schwerpunkte. Bereiche nach Hauptschwerpunkt.</p>${areaBar(fm)}<div style="margin-top:10px">${focusBars(fm, { limit: 10 })}</div></div>` : ''; })() : ''}
+        ${p.blocks.length ? `<div class="card" style="margin-top:12px"><h2 style="font-size:1.1rem;margin-bottom:10px">Zeitplan</h2><div class="timeline">${tl.map(({ block: b, label, pause }) => { const e = exercise(s, b.exerciseId), g = fit(s, e, blockPeople(p, b)); return `<div class="tl-item" style="cursor:default"><span class="tl-time">${label || '–'}</span><span><strong>${esc(e.name)}</strong><small>${g ? `${g} ${g > 1 ? 'Gruppen' : 'Gruppe'} à ${effective(s, e).min === effective(s, e).max ? effective(s, e).min : `${effective(s, e).min}–${effective(s, e).max}`}` : '⚠ Gruppen passen nicht'} · ${blockPeople(p, b)} Spieler</small></span><span class="min">${b.minutes}′</span></div>${pause ? `<div class="tl-item pause-item" style="cursor:default"><span class="tl-time">${pause.label || '–'}</span><span><strong>Pause</strong><small>${esc(pause.why)}</small></span><span class="min">${pause.minutes}′</span></div>` : ''}`; }).join('')}</div></div>` : ''}
         <div class="card" style="margin-top:12px"><h2 style="font-size:1.1rem">Gruppen ohne Namen</h2><p class="small muted">Vergib Nummern an die Spieler. Keeper und Können vor Ort fair verteilen. Keine Rangfolge.</p>
           <div class="row"><label class="field grow" style="margin:0"><span>Gruppen</span><input class="input" id="gr-n" type="number" min="1" max="20" value="${Math.min(3, p.people)}"></label><button class="btn" type="button" id="gr-go" style="align-self:end">${icon('dice')} Mischen</button></div>
           <div id="gr-out" aria-live="polite" class="stack" style="margin-top:10px"></div></div>`;
@@ -154,10 +166,13 @@ export const planView = {
     $('#pl-undo', r).onclick = () => { const l = store.undo(); if (l) toast(`„${l}“ rückgängig.`); };
     $('#pl-redo', r).onclick = () => { const l = store.redo(); if (l) toast(`„${l}“ wiederhergestellt.`); };
     $('#pl-switch', r).onclick = () => this.plansSheet();
+    $('#pl-cal', r).onclick = () => go('kalender');
     $('#pl-share', r).onclick = () => import('../exports/sheet.js').then(m => m.openExport());
     $('#pl-more', r).onclick = () => this.moreSheet();
+    $('#pl-date', r).onclick = ev => (ev.currentTarget.dataset.ev ? openEvent(ev.currentTarget.dataset.ev) : scheduleSheet(p.id));
     $('#pl-slot', r).onclick = () => pick('Trainingstag', activeTeam(s).slots.map(x => [String(x.day), slotLabel(x)]), String(p.slot), v => updatePlan('Termin geändert', x => { x.slot = Number(v); }));
-    $('#pl-focus', r).onclick = () => pick('Schwerpunkt', [['Alle', 'Kein Schwerpunkt'], ...TAGS.map(t => [t, t])], p.focus, v => updatePlan('Schwerpunkt geändert', x => { x.focus = v; }));
+    $('#pl-focus', r).onclick = () => openFocusPick({ current: p.focus, hint: neglected(s), onPick: v => updatePlan('Schwerpunkt geändert', x => { x.focus = v; }) });
+    $('#pl-pause', r).onclick = () => openPauseSheet();
     $('#pl-age', r).onclick = () => pick('Altersklasse dieser Einheit', [['', `Wie Mannschaft (${activeTeam(s).age})`], ...AGES.map(a => [a, a])], p.age || '', v => updatePlan('Altersklasse geändert', x => { if (v) x.age = v; else delete x.age; }));
     on(r, 'click', '[data-ptab]', (_, b) => { this.sub = b.dataset.ptab; history.replaceState(history.state, '', `#planen/${this.sub}`); $$('[data-ptab]', r).forEach(x => { x.setAttribute('aria-selected', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); }); this.paintTab(); });
   },
@@ -193,7 +208,7 @@ export const planView = {
   plansSheet() {
     const paint = sh => {
       const s = store.get(), team = activeTeam(s), list = plansOfTeam(s);
-      sh.setBody(`<p class="small muted">${esc(team.name)} · ${plural(list.length, 'Einheit', 'Einheiten')}</p><div class="stack">${list.map(p => { const t = totalMinutes(p); return `
+      sh.setBody(`<p class="small muted">${esc(team.name)} · ${plural(list.length, 'Einheit', 'Einheiten')}</p><div class="stack">${list.map(p => { const t = totalMinutes(p, s); return `
         <button class="plan-card" type="button" data-pick="${p.id}" aria-current="${p.id === s.selectedPlanId}">
           <span class="row between"><strong>${esc(p.name)}</strong><span class="tiny">${t} Min · ${plural(p.blocks.length, 'Block', 'Blöcke')}</span></span>
           ${p.blocks.length ? `<span class="hero-bar" aria-hidden="true">${p.blocks.map(b => `<i style="width:${b.minutes / Math.max(1, t) * 100}%"></i>`).join('')}</span>` : '<span class="tiny">leer</span>'}
@@ -215,7 +230,7 @@ export const planView = {
     const paint = sh => {
       const s = store.get(), list = templates(s), p = currentPlan(s);
       sh.setBody(`<p class="small muted">Vorlagen sind wiederverwendbare Einheiten – unabhängig von Mannschaft und Termin. Aus einer Vorlage entsteht immer eine neue Einheit.</p>
-        ${list.length ? `<div class="stack">${list.map(t => `<div class="plan-card" style="cursor:default"><span class="row between"><strong>${esc(t.name)}</strong><span class="tiny">${totalMinutes(t)} Min · ${plural(t.blocks.length, 'Block', 'Blöcke')}</span></span><span class="row"><button class="btn sm primary" type="button" data-use="${t.id}">Verwenden</button><button class="btn sm danger" type="button" data-deltpl="${t.id}">${icon('trash')}<span class="sr-only">Vorlage löschen</span></button></span></div>`).join('')}</div>` : '<div class="empty"><h3>Noch keine Vorlage</h3><p>Speichere eine gelungene Einheit als Vorlage.</p></div>'}`);
+        ${list.length ? `<div class="stack">${list.map(t => `<div class="plan-card" style="cursor:default"><span class="row between"><strong>${esc(t.name)}</strong><span class="tiny">${totalMinutes(t, s)} Min · ${plural(t.blocks.length, 'Block', 'Blöcke')}</span></span><span class="row"><button class="btn sm primary" type="button" data-use="${t.id}">Verwenden</button><button class="btn sm danger" type="button" data-deltpl="${t.id}">${icon('trash')}<span class="sr-only">Vorlage löschen</span></button></span></div>`).join('')}</div>` : '<div class="empty"><h3>Noch keine Vorlage</h3><p>Speichere eine gelungene Einheit als Vorlage.</p></div>'}`);
       sh.setFoot(p.blocks.length ? `<button class="btn primary" type="button" id="tp-save">${icon('template')} „${esc(p.name.slice(0, 30))}“ als Vorlage speichern</button>` : '');
       sh.foot.querySelector('#tp-save')?.addEventListener('click', () => { duplicatePlan(p.id, { asTemplate: true }); undoToast('Als Vorlage gespeichert.'); paint(sh); });
     };
@@ -233,6 +248,7 @@ export const planView = {
     openSheet({
       title: 'Einheit', body: `<div class="list">
         <button class="list-item" type="button" data-a="copy">${icon('copy')}<span class="grow"><strong>Duplizieren</strong><small>Kopie dieser Einheit</small></span></button>
+        <button class="list-item" type="button" data-a="cal">${icon('calendar')}<span class="grow"><strong>Im Kalender eintragen</strong><small>Einem Trainingstermin zuordnen</small></span></button>
         <button class="list-item" type="button" data-a="tpl">${icon('template')}<span class="grow"><strong>Als Vorlage speichern</strong><small>Wiederverwenden für jede Mannschaft</small></span></button>
         ${others.map(t => `<button class="list-item" type="button" data-a="team" data-team="${t.id}">${icon('team')}<span class="grow"><strong>Kopie für „${esc(t.name)}“</strong><small>${esc(t.age)} · ${esc(TYPE_SHORT[t.type])}</small></span></button>`).join('')}
         <button class="list-item" type="button" data-a="sharefile">${icon('share')}<span class="grow"><strong>Als Datei teilen</strong><small>Andere TRAINR-Nutzer können sie importieren</small></span></button>
@@ -241,8 +257,9 @@ export const planView = {
       onMount: sh => on(sh.body, 'click', '[data-a]', async (_, b) => {
         const a = b.dataset.a; sh.close();
         if (a === 'copy') { if (duplicatePlan(p.id)) undoToast('Kopie erstellt. Original bleibt erhalten.'); }
+        if (a === 'cal') setTimeout(() => scheduleSheet(p.id), 220);
         if (a === 'tpl') { if (duplicatePlan(p.id, { asTemplate: true })) undoToast('Als Vorlage gespeichert.'); }
-        if (a === 'team') { const t = s.teams.find(x => x.id === b.dataset.team); const c = { ...structuredClone(p), id: uid(), teamId: t.id, slot: t.slots[0].day, name: p.name, blocks: p.blocks.map(x => ({ ...x, id: uid() })) }; delete c.age; store.update('Kopie für andere Mannschaft', d => { d.plans.push(c); }); undoToast(`Kopie liegt bei „${t.name}“.`); }
+        if (a === 'team') { const t = s.teams.find(x => x.id === b.dataset.team); const ids = new Map(p.blocks.map(x => [x.id, uid()])); const c = { ...structuredClone(p), id: uid(), teamId: t.id, slot: t.slots[0].day, name: p.name, blocks: p.blocks.map(x => ({ ...x, id: ids.get(x.id) })) }; delete c.age; if (c.pauses) c.pauses = remapPauses(c.pauses, ids); store.update('Kopie für andere Mannschaft', d => { d.plans.push(c); }); undoToast(`Kopie liegt bei „${t.name}“.`); }
         if (a === 'sharefile') import('../exports/share.js').then(m => m.sharePlanFile(p.id));
         if (a === 'clear') { updatePlan('Blöcke entfernt', x => { x.blocks = []; }); undoToast('Alle Blöcke entfernt.'); }
         if (a === 'del') {
@@ -260,7 +277,7 @@ export const planView = {
 
   assistant() {
     const s = store.get(), team = activeTeam(s), p = currentPlan(s), slot = slotOf(s, p);
-    const f = { strategy: 'classic', focus: p.focus, minutes: clamp(slotMinutes(slot) || 60, 20, 150), people: Math.min(60, p.people), age: planAge(s, p), type: team.type, seed: 1 };
+    const f = { strategy: 'classic', focus: p.focus, minutes: clamp(slotMinutes(slot) || 60, 20, 150), people: Math.min(60, p.people), age: planAge(s, p), type: team.type, seed: 1, pauses: { count: p.pauses?.after ? p.pauses.after.length : p.pauses?.count ?? 'auto', minutes: p.pauses?.minutes || 2 } };
     let pr = null;
     const run = sh => {
       try { pr = propose(store.get(), f); sh.body.querySelector('#as-out').innerHTML = proposalHtml(store.get(), pr); sh.foot.querySelectorAll('button').forEach(b => { b.disabled = false; }); stagger(sh.body.querySelectorAll('.proposal-item')); }
@@ -271,10 +288,12 @@ export const planView = {
       body: `<p class="small muted">Regelbasiert und nachvollziehbar – keine KI, keine Datenübertragung. ${esc(TYPE_SHORT[team.type])} · nie Falltechnik automatisch.</p>
         <div class="field"><span>Strategie</span><div class="seg" role="radiogroup" aria-label="Strategie">${Object.entries(STRATEGIES).map(([k, v]) => `<button type="button" role="radio" data-st="${k}" aria-checked="${f.strategy === k}">${v.name}</button>`).join('')}</div><small class="tiny" id="as-why">${esc(STRATEGIES[f.strategy].why)}</small></div>
         <div class="grid-2">
-          <label class="field"><span>Schwerpunkt</span><select class="input" id="as-focus">${['Alle', ...TAGS.filter(t => t !== 'Falltechnik')].map(t => `<option ${f.focus === t ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+          <label class="field"><span>Schwerpunkt</span><select class="input" id="as-focus">${focusOptions(f.focus, { exclude: ['Falltechnik'] })}</select></label>
           <label class="field"><span>Altersklasse</span><select class="input" id="as-age">${AGES.map(a => `<option ${f.age === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
           <label class="field"><span>Minuten (inkl. Pausen)</span><input class="input" id="as-min" type="number" min="20" max="150" value="${f.minutes}"></label>
           <label class="field"><span>Spieler ohne Trainer</span><input class="input" id="as-people" type="number" min="1" max="60" value="${f.people}"></label>
+          <label class="field"><span>Pausen</span><select class="input" id="as-pz">${[['0', 'Keine'], ['auto', 'Automatisch'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4']].map(([v, t]) => `<option value="${v}" ${String(f.pauses.count) === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+          <label class="field"><span>Minuten je Pause</span><input class="input" id="as-pzm" type="number" min="1" max="15" value="${f.pauses.minutes}"></label>
         </div>
         <div id="as-out" aria-live="polite"></div>`,
       foot: `<button class="btn" type="button" id="as-reroll">${icon('dice')} Neu würfeln</button><button class="btn" type="button" data-apply="replace">In „${esc(p.name.slice(0, 20))}“ übernehmen</button><button class="btn primary" type="button" data-apply="new">Als neue Einheit</button>`,
@@ -285,6 +304,8 @@ export const planView = {
         $('#as-age', b).onchange = ev => { f.age = ev.target.value; run(sh); };
         $('#as-min', b).onchange = ev => { f.minutes = clamp(Number(ev.target.value) || 60, 20, 150); ev.target.value = f.minutes; run(sh); };
         $('#as-people', b).onchange = ev => { f.people = clamp(Number(ev.target.value) || 12, 1, 60); ev.target.value = f.people; run(sh); };
+        $('#as-pz', b).onchange = ev => { f.pauses.count = ev.target.value === 'auto' ? 'auto' : Number(ev.target.value); run(sh); };
+        $('#as-pzm', b).onchange = ev => { f.pauses.minutes = clamp(Number(ev.target.value) || 2, 1, 15); ev.target.value = f.pauses.minutes; run(sh); };
         $('#as-reroll', sh.foot).onclick = () => { f.seed = Math.floor(Math.random() * 1e6); run(sh); haptic('tap'); };
         on(b, 'click', '[data-alt]', (_, x) => { const i = Number(x.dataset.i), blk = pr.blocks[i], old = blk.exerciseId; blk.exerciseId = x.dataset.alt; blk.alternatives = blk.alternatives.map(a => (a === x.dataset.alt ? old : a)); blk.why = `${blk.phase}: von dir gewählte Alternative`; $('#as-out', b).innerHTML = proposalHtml(store.get(), pr); });
         on(b, 'click', '[data-view-ex]', (_, x) => openDetail(x.dataset.viewEx));
@@ -293,12 +314,12 @@ export const planView = {
           const blocks = pr.blocks.map(bb => ({ id: uid(), exerciseId: bb.exerciseId, minutes: bb.minutes }));
           if (x.dataset.apply === 'new') {
             if (store.get().plans.length >= LIMITS.plans) return toast(`Maximal ${LIMITS.plans} Einheiten.`);
-            const n = { ...blankPlan(store.get(), `${f.focus === 'Alle' ? 'Abwechslungsreich' : f.focus} · ${STRATEGIES[pr.strategy].name}`), people: f.people, focus: f.focus, blocks, notes: pr.notes.join(' ') };
+            const n = { ...blankPlan(store.get(), `${f.focus === 'Alle' ? 'Abwechslungsreich' : f.focus} · ${STRATEGIES[pr.strategy].name}`), people: f.people, focus: f.focus, blocks, notes: pr.notes.join(' '), pauses: pr.pauses || { count: 0, minutes: f.pauses.minutes } };
             if (f.age !== team.age) n.age = f.age;
             store.update('Vorschlag als neue Einheit', d => { d.plans.push(n); d.selectedPlanId = n.id; blocks.forEach(bb => markUsed(d, bb.exerciseId)); });
             undoToast('Neue Einheit übernommen. Bestehende bleiben erhalten.');
           } else {
-            updatePlan('Vorschlag übernommen', (x2, d) => { x2.blocks = blocks; x2.people = f.people; x2.focus = f.focus; if (f.age !== team.age) x2.age = f.age; else delete x2.age; blocks.forEach(bb => markUsed(d, bb.exerciseId)); });
+            updatePlan('Vorschlag übernommen', (x2, d) => { x2.blocks = blocks; x2.people = f.people; x2.focus = f.focus; x2.pauses = pr.pauses || { count: 0, minutes: f.pauses.minutes }; if (f.age !== team.age) x2.age = f.age; else delete x2.age; blocks.forEach(bb => markUsed(d, bb.exerciseId)); });
             undoToast('Vorschlag übernommen. Rückgängig stellt den alten Ablauf wieder her.');
           }
           sh.close();
@@ -318,7 +339,7 @@ function blockHtml(s, p, b, i, label) {
     <button class="block-handle" type="button" data-handle aria-label="Block ${i + 1} verschieben (Pfeiltasten)"><span class="num">${i + 1}</span>${icon('drag')}</button>
     <div class="block-main">
       <button class="title" type="button" data-edit="${b.id}" aria-label="${esc(e.name)} bearbeiten">${esc(e.name)}</button>
-      <div class="block-sub"><span>${label || ''}</span><span>${esc(e.tag)}</span><span>${n} Spieler${b.people ? ' (nur hier)' : ''}</span>${g ? `<span>${g} ${g > 1 ? 'Gruppen' : 'Gruppe'}</span>` : ''}${b.note ? `<span>${esc(b.note)}</span>` : ''}</div>
+      <div class="block-sub"><span>${label || ''}</span><span title="Kategorie: ${esc(e.tag)}">${esc(foci(e).slice(0, 2).join(' · ') || e.tag)}</span><span>${n} Spieler${b.people ? ' (nur hier)' : ''}</span>${g ? `<span>${g} ${g > 1 ? 'Gruppen' : 'Gruppe'}</span>` : ''}${b.note ? `<span>${esc(b.note)}</span>` : ''}</div>
       ${warn ? `<div class="block-sub block-warn">${esc(warn)}</div>` : ''}
     </div>
     <div class="block-actions">
@@ -332,17 +353,28 @@ function blockHtml(s, p, b, i, label) {
   </li>`;
 }
 
+function pauseHtml(p, x) {
+  const last = x.index >= p.blocks.length - 2, mine = !!p.pauses?.after;
+  return `<li class="pause-row" data-pause="${x.afterId}">
+    <span class="pause-ico" aria-hidden="true">${icon('pause')}</span>
+    <button class="pause-main" type="button" data-pedit title="Pausen einstellen"><strong>Trinkpause · ${x.minutes} Min</strong><small>${x.label ? `${x.label} · ` : ''}${esc(x.why)}${mine ? '' : ' · automatisch'}</small></button>
+    <span class="pause-actions"><button class="icon-btn" type="button" data-pmove="${x.afterId}" data-d="-1" aria-label="Pause früher" ${x.index === 0 ? 'disabled' : ''}>${icon('up')}</button><button class="icon-btn" type="button" data-pmove="${x.afterId}" data-d="1" aria-label="Pause später" ${last ? 'disabled' : ''}>${icon('down')}</button><button class="icon-btn" type="button" data-pdel="${x.afterId}" aria-label="Pause entfernen">${icon('close')}</button></span>
+  </li>`;
+}
+
 function proposalHtml(s, pr) {
   return `<div class="proposal" style="margin-top:12px">
-    <div class="row between"><strong>${pr.minutes} Min · ${esc(pr.age)} · ${pr.people} Spieler</strong><span class="tiny">${STRATEGIES[pr.strategy].name}</span></div>
+    <div class="row between"><strong>${pr.minutes} Min${pr.pauseCount ? ` (inkl. ${pr.pauseCount} ${pr.pauseCount === 1 ? 'Pause' : 'Pausen'})` : ''} · ${esc(pr.age)} · ${pr.people} Spieler</strong><span class="tiny">${STRATEGIES[pr.strategy].name}</span></div>
     ${pr.notes.map(n => `<p class="notice">${esc(n)}</p>`).join('')}
+    ${(() => { const fm = focusMinutes(pr.blocks.map(b => [exercise(s, b.exerciseId), b.minutes])); return fm.list.length ? `<div class="focus-strip" style="margin:8px 0">${focusSummary(fm, { mark: pr.focus, max: 5, link: false })}</div>` : ''; })()}
     ${pr.blocks.map((b, i) => { const e = exercise(s, b.exerciseId); return `<div class="proposal-item">
       <div class="row between"><span class="tag">${esc(b.phase)}</span><span class="tiny">${b.minutes} Min</span></div>
-      <strong>${esc(e.name)}</strong><span class="why">${esc(b.why)}</span>
+      <strong>${esc(e.name)}</strong>${focusChips(foci(e), { max: 3, mark: pr.focus })}<span class="why">${esc(b.why)}</span>
       <div class="alt-row"><button class="btn sm ghost" type="button" data-view-ex="${esc(e.id)}">${icon('info')} Ansehen</button>${b.alternatives.map(a => { const ae = exercise(s, a); return ae ? `<button class="chip" type="button" data-alt="${esc(a)}" data-i="${i}" title="Alternative wählen">${icon('swap')} ${esc(ae.name)}</button>` : ''; }).join('')}</div>
     </div>`; }).join('')}
-    <p class="tiny">Ein Vorschlag, keine Belastungsvorgabe. Gruppen, Können, Helfer und Material vor Ort prüfen. Trink- und Wechselpausen sind in den Minuten enthalten.</p></div>`;
+    <p class="tiny">Ein Vorschlag, keine Belastungsvorgabe. Gruppen, Können, Helfer und Material vor Ort prüfen. ${pr.pauseCount ? 'Eingeplante Pausen verteilt TRAINR im Ablauf; Wechsel und Erklären stecken in den Übungsminuten.' : 'Trink- und Wechselpausen sind in den Minuten enthalten.'}</p></div>`;
 }
+
 
 /** Kleines Auswahl-Sheet. */
 function pick(title, options, current, onPick) {

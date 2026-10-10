@@ -1,88 +1,118 @@
-/* TRAINR V21 – Design-Tokens. Torwart-Lila ist fest und wird von Theme und Vereinsfarbe nie überschrieben. */
+/* TRAINR – Design-Tokens „Spielbericht“: Papier, Tinte, Schiri-Gelb. Torwart-Lila ist fest und wird von Theme und Vereinsfarbe nie überschrieben. */
+@font-face {
+  font-family: "Archivo"; font-style: normal; font-display: swap;
+  font-weight: 100 900; font-stretch: 62% 125%;
+  src: url("fonts/archivo.woff2") format("woff2");
+}
+
 :root {
   --keeper: #9154d9;
   --keeper-ink: #ffffff;
-  --keeper-soft: #f1e9fc;
+  --keeper-soft: #efe6fb;
 
-  --brand: #133e33;
-  --brand-2: #1d5143;
-  --lime: #d4f26b;
-  --accent: var(--lime);
-  --on-accent: #133e33;
+  /* Signal = Schiri-Gelb (Vereinsfarbe kann es ersetzen), Fill = gewählte/primäre Flächen */
+  --signal: #ffd400;
+  --on-signal: #14130e;
+  --accent: var(--signal);
+  --on-accent: var(--on-signal);
+  --fill: #14130e;
+  --on-fill: #f6f3ea;
+  --brand: #14130e;
+  --brand-2: #14130e;
+  --red-card: #d62718;
 
-  --bg: #f3f4ee;
-  --bg-grad: radial-gradient(1200px 600px at 100% -10%, #e4efcf 0%, transparent 60%), radial-gradient(900px 500px at -10% 110%, #e3ece0 0%, transparent 55%);
-  --surface: #ffffff;
-  --surface-2: #f6f8f2;
-  --surface-3: #ecf1e3;
-  --ink: #12261f;
-  --ink-2: #4c6158;
-  --ink-3: #6f8178;
-  --line: #dde4d6;
-  --line-2: #c9d3c1;
-  --hero: #133e33;
-  --hero-ink: #ffffff;
-  --hero-muted: #b8d0c2;
-  --ok: #2f7a3e;
-  --ok-soft: #e6f3df;
-  --warn: #9a5b12;
-  --warn-soft: #fff1dc;
-  --danger: #a3301f;
-  --danger-soft: #fde8e4;
-  --focus: #6d9a1f;
-  --scrim: rgba(10, 30, 24, .45);
+  --bg: #efebe0;
+  --bg-grad: none;
+  --surface: #faf8f2;
+  --surface-2: #f4f1e8;
+  --surface-3: #e6e1d3;
+  --ink: #14130e;
+  --ink-2: #4a483f;
+  --ink-3: #747166;
+  --line: #d5cfbf;
+  --line-2: #b3ac9a;
+  --rule: #14130e;
+  --hero: #14130e;
+  --hero-ink: #f6f3ea;
+  --hero-muted: #a8a495;
+  --hero-line: rgba(246, 243, 234, .16);
+  --ok: #1d7036;
+  --ok-soft: #dfeedd;
+  --warn: #9a5800;
+  --warn-soft: #fbebc8;
+  --danger: #c0251a;
+  --danger-soft: #f8dfda;
+  --focus: #14130e;
+  --scrim: rgba(20, 19, 14, .5);
 
-  --pitch: #1d5143;
-  --pitch-2: #184638;
-  --pitch-line: #7fa88c;
-  --player: #d2ef79;
-  --player-ink: #173f33;
-  --opponent: #f4f1e6;
-  --opponent-ink: #2b2b2b;
-  --cone: #f5a54a;
+  --pitch: #2f6a3e;
+  --pitch-2: #2a5f37;
+  --pitch-line: rgba(255, 255, 255, .55);
+  --player: #ffd400;
+  --player-ink: #14130e;
+  --opponent: #f6f3ea;
+  --opponent-ink: #14130e;
+  --cone: #ff7a1a;
 
-  --r-xs: 8px; --r-sm: 12px; --r-md: 16px; --r-lg: 22px; --r-xl: 28px; --r-pill: 999px;
+  /* Schwerpunkt-Bereiche (Technik, Spielverständnis, Bewegung, Torwart) */
+  --f-technik: #1d7036; --f-technik-soft: #dfeedd;
+  --f-taktik: #1f5fae; --f-taktik-soft: #dde7f5;
+  --f-athletik: #c4500a; --f-athletik-soft: #fbe3d0;
+  --f-torwart: #9154d9; --f-torwart-soft: #efe6fb;
+  --f-none: #8a877b; --f-none-soft: #ebe7dc;
+
+  --r-xs: 2px; --r-sm: 3px; --r-md: 4px; --r-lg: 6px; --r-xl: 8px; --r-pill: 999px;
   --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px;
-  --shadow-1: 0 1px 2px rgba(16, 40, 30, .06), 0 2px 8px rgba(16, 40, 30, .05);
-  --shadow-2: 0 6px 24px rgba(16, 40, 30, .12), 0 2px 6px rgba(16, 40, 30, .06);
-  --shadow-3: 0 18px 50px rgba(10, 30, 24, .22);
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --shadow-1: none;
+  --shadow-2: 0 10px 30px rgba(20, 19, 14, .14);
+  --shadow-3: 0 22px 60px rgba(20, 19, 14, .28);
+  --font: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --cond: 72%;
+  --semi: 88%;
   --font-scale: 1;
   --touch: 48px;
-  --tabbar-h: 68px;
-  --appbar-h: 58px;
+  --tabbar-h: 64px;
+  --appbar-h: 56px;
   --ease-out: cubic-bezier(.16, 1, .3, 1);
   --ease-spring: cubic-bezier(.2, 1.3, .4, 1);
   --dur-1: 140ms; --dur-2: 240ms; --dur-3: 380ms;
   color-scheme: light;
 }
 
+/* Flutlicht: dunkles Stadion, Gelb leuchtet. */
 :root[data-theme="dark"] {
-  --brand: #d4f26b;
-  --brand-2: #b8db4f;
-  --on-accent: #10261e;
-  --bg: #0c1a15;
-  --bg-grad: radial-gradient(1100px 600px at 100% -10%, #1b3a2e 0%, transparent 60%), radial-gradient(900px 500px at -10% 110%, #132a22 0%, transparent 55%);
-  --surface: #13241e;
-  --surface-2: #182c25;
-  --surface-3: #1f372e;
-  --ink: #eaf2e6;
-  --ink-2: #b2c5ba;
-  --ink-3: #8ea397;
-  --line: #27403a;
-  --line-2: #33524a;
-  --hero: #18352b;
-  --hero-ink: #f3f8ef;
-  --hero-muted: #a9c3b5;
-  --ok: #8fd18a; --ok-soft: #1c3a26;
-  --warn: #f3bf6b; --warn-soft: #3a2c14;
-  --danger: #ff9b8a; --danger-soft: #3d1d18;
-  --focus: #d4f26b;
-  --scrim: rgba(0, 0, 0, .6);
-  --keeper-soft: #2c2140;
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, .3);
-  --shadow-2: 0 8px 28px rgba(0, 0, 0, .35);
-  --shadow-3: 0 18px 50px rgba(0, 0, 0, .5);
+  --fill: #ffd400;
+  --on-fill: #14130e;
+  --brand: #ffd400;
+  --brand-2: #ffd400;
+  --bg: #0e0e0b;
+  --surface: #171713;
+  --surface-2: #1d1d18;
+  --surface-3: #2a2922;
+  --ink: #f2efe5;
+  --ink-2: #bfbbad;
+  --ink-3: #8e8b7f;
+  --line: #2d2c25;
+  --line-2: #47453b;
+  --rule: #f2efe5;
+  --hero: #1b1b16;
+  --hero-ink: #f6f3ea;
+  --hero-muted: #a8a495;
+  --ok: #7dd08f; --ok-soft: #17301d;
+  --warn: #f5c060; --warn-soft: #36290f;
+  --danger: #ff8f80; --danger-soft: #3b1a15;
+  --focus: #ffd400;
+  --scrim: rgba(0, 0, 0, .65);
+  --keeper-soft: #2b2140;
+  --pitch: #24502f;
+  --pitch-2: #1f4729;
+  --f-technik: #7dd08f; --f-technik-soft: #17301d;
+  --f-taktik: #86b4f0; --f-taktik-soft: #16283f;
+  --f-athletik: #f5a764; --f-athletik-soft: #3a2513;
+  --f-torwart: #c39af0; --f-torwart-soft: #2b2140;
+  --f-none: #8e8b7f; --f-none-soft: #2a2922;
+  --shadow-2: 0 10px 30px rgba(0, 0, 0, .5);
+  --shadow-3: 0 22px 60px rgba(0, 0, 0, .65);
   color-scheme: dark;
 }
 

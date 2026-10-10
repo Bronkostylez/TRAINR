@@ -12,6 +12,7 @@ import { teamWizard, TEAM_COLORS } from './onboarding.js';
 import { showHelp, tour } from '../ui/help.js';
 import { go } from '../ui/router.js';
 import { downloadBlob } from '../exports/share.js';
+import { autoFill, resyncAuto } from '../core/calendar.js';
 
 const CLUB = [null, '#d4f26b', '#ffd23f', '#ff8a3d', '#ef4444', '#3b82f6', '#22c55e', '#e5e7eb'];
 
@@ -84,7 +85,7 @@ export function editTeam(id) {
     onDone: t => {
       store.update(team ? 'Mannschaft geändert' : 'Mannschaft angelegt', d => {
         const i = d.teams.findIndex(x => x.id === t.id);
-        if (i >= 0) d.teams[i] = t; else { d.teams.push(t); d.activeTeamId = t.id; const n = { id: uid(), teamId: t.id, name: 'Meine erste Einheit', people: 12, slot: t.slots[0].day, focus: 'Alle', notes: '', goal: '', blocks: [], date: null }; d.plans.push(n); d.selectedPlanId = n.id; }
+        if (i >= 0) { d.teams[i] = t; resyncAuto(d, team, t); } else { d.teams.push(t); d.activeTeamId = t.id; autoFill(d); const n = { id: uid(), teamId: t.id, name: 'Meine erste Einheit', people: 12, slot: t.slots[0].day, focus: 'Alle', notes: '', goal: '', blocks: [], date: null }; d.plans.push(n); d.selectedPlanId = n.id; }
         for (const p of d.plans) if (p.teamId === t.id && !t.slots.some(x => x.day === p.slot)) p.slot = t.slots[0].day;
       });
       sh.close();
@@ -96,10 +97,11 @@ export function editTeam(id) {
 async function deleteTeam(id) {
   const s = store.get(), t = s.teams.find(x => x.id === id), n = s.plans.filter(p => p.teamId === id && !p.template).length;
   if (s.teams.length <= 1) { toast('Die letzte Mannschaft kann nicht gelöscht werden.'); return; }
-  if (!(await confirmSheet({ title: `„${t.name}“ löschen?`, text: `Die Mannschaft und ${plural(n, 'ihre Einheit', 'ihre Einheiten')} werden gelöscht. Vorlagen und eigene Übungen bleiben. Rückgängig ist direkt danach möglich.`, ok: 'Löschen', danger: true }))) return;
+  if (!(await confirmSheet({ title: `„${t.name}“ löschen?`, text: `Die Mannschaft, ${plural(n, 'ihre Einheit', 'ihre Einheiten')} und ihre Kalendertermine werden gelöscht. Vorlagen und eigene Übungen bleiben. Rückgängig ist direkt danach möglich.`, ok: 'Löschen', danger: true }))) return;
   store.update('Mannschaft gelöscht', d => {
     d.teams = d.teams.filter(x => x.id !== id);
     d.plans = d.plans.filter(p => p.teamId !== id || p.template);
+    d.events = d.events.filter(ev => ev.teamId !== id);
     if (d.activeTeamId === id) d.activeTeamId = d.teams[0].id;
     if (!d.plans.some(p => p.id === d.selectedPlanId)) d.selectedPlanId = d.plans.find(p => !p.template && p.teamId === d.activeTeamId)?.id ?? null;
   });
@@ -125,6 +127,7 @@ export const moreView = {
         <div style="padding:12px 16px"><button class="btn block" type="button" id="m-newteam">${icon('plus')} Mannschaft hinzufügen</button></div></div></section>
 
       <section class="settings-group"><h2>Werkzeuge</h2><div class="list">
+        <button class="list-item" type="button" data-go="kalender">${icon('calendar')}<span class="grow"><strong>Kalender</strong><small>Termine, Serien, Erinnerungen und Rückblick</small></span>${icon('chevron')}</button>
         <button class="list-item" type="button" data-go="taktik">${icon('board')}<span class="grow"><strong>Taktikboard</strong><small>Spieler, Keeper (lila), Ball und Laufwege frei bewegen</small></span>${icon('chevron')}</button>
         <button class="list-item" type="button" data-go-plan="packliste">${icon('cone')}<span class="grow"><strong>Packliste</strong><small>Material der aktuellen Einheit abhaken</small></span>${icon('chevron')}</button>
         <button class="list-item" type="button" id="m-export">${icon('print')}<span class="grow"><strong>Export & Druck</strong><small>PDF, Bild, Text, CSV, Teilen</small></span>${icon('chevron')}</button></div></section>
@@ -133,7 +136,7 @@ export const moreView = {
         <div class="field"><span>Erscheinungsbild</span>${seg('theme', [['system', 'System'], ['light', 'Hell'], ['dark', 'Dunkel']])}</div>
         <div class="field"><span>Animationen</span>${seg('motion', [['full', 'Voll'], ['reduced', 'Reduziert'], ['off', 'Aus']])}<small class="tiny">„Weniger Bewegung“ im System hat immer Vorrang und begrenzt auf „Reduziert“.</small></div>
         <div class="field"><span>Schriftgröße</span>${seg('fontScale', [[90, 'Klein'], [100, 'Normal'], [115, 'Groß'], [130, 'Sehr groß']])}</div>
-        <div class="field"><span>Vereinsfarbe (Akzent)</span><div class="color-row">${CLUB.map(c => `<button type="button" class="swatch" data-club="${c || ''}" aria-pressed="${st.clubColor === c}" aria-label="${c ? `Akzentfarbe ${c}` : 'Standard (Lime)'}" style="background:${c || 'linear-gradient(135deg,#d4f26b 50%,#133e33 50%)'}"></button>`).join('')}</div><small class="tiny">Torwart-Elemente bleiben immer lila.</small></div>
+        <div class="field"><span>Vereinsfarbe (Akzent)</span><div class="color-row">${CLUB.map(c => `<button type="button" class="swatch" data-club="${c || ''}" aria-pressed="${st.clubColor === c}" aria-label="${c ? `Akzentfarbe ${c}` : 'Standard (Schiri-Gelb)'}" style="background:${c || 'linear-gradient(135deg,#ffd400 50%,#14130e 50%)'}"></button>`).join('')}</div><small class="tiny">Torwart-Elemente bleiben immer lila.</small></div>
       </div></section>
 
       <section class="settings-group"><h2>Bedienung & Training</h2><div class="settings-card">
@@ -145,7 +148,7 @@ export const moreView = {
       </div></section>
 
       <section class="settings-group"><h2>Daten</h2><div class="settings-card">
-        <p class="small muted" style="margin:12px 0">Einheiten, Mannschaften, eigene Übungen, Merkliste, Bewertungen, Notizen, Taktikboards und Einstellungen liegen nur im Speicher dieses Browsers. Kein Tracking, kein Server, keine Spielerdaten. Browserdaten löschen oder privater Modus kann alles entfernen.</p>
+        <p class="small muted" style="margin:12px 0">Einheiten, Kalendertermine, Mannschaften, eigene Übungen, Merkliste, Bewertungen, Notizen, Taktikboards und Einstellungen liegen nur im Speicher dieses Browsers. Kein Tracking, kein Server, keine Spielerdaten. Browserdaten löschen oder privater Modus kann alles entfernen.</p>
         <div class="grid-2" style="margin-bottom:12px"><button class="btn primary" type="button" id="m-backup">${icon('download')} Backup herunterladen</button><button class="btn" type="button" id="m-restore">${icon('upload')} Backup / Datei importieren</button></div>
         <details class="disclosure" style="margin-bottom:12px"><summary>Weitere Optionen</summary><div class="body">
           <button class="btn sm" type="button" id="m-backup-v20">${icon('download')} Backup im V20-Format (Rückweg)</button>

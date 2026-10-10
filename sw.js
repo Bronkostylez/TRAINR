@@ -1,8 +1,8 @@
 // TRAINR Service Worker. Precache der App-Hülle; neue Versionen warten, bis der Nutzer aktualisiert.
-const VERSION = '21.0.0';
+const VERSION = '21.4.0';
 const CACHE = 'trainr-v' + VERSION;
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './icon-maskable.png',
-  './src/core/assistant.js','./src/core/migrate.js','./src/core/planning.js','./src/core/schema.js','./src/core/store.js','./src/core/timer.js','./src/core/util.js','./src/data/drill-meta.js','./src/data/drills.js','./src/exports/doc.js','./src/exports/pdf.js','./src/exports/share.js','./src/exports/sheet.js','./src/main.js','./src/scene/motion.js','./src/scene/pitch.js','./src/scene/player.js','./src/ui/actions.js','./src/ui/dom.js','./src/ui/feedback.js','./src/ui/help.js','./src/ui/material.js','./src/ui/motion.js','./src/ui/router.js','./src/ui/sheet.js','./src/ui/sortable.js','./src/ui/update.js','./src/views/blocks.js','./src/views/detail.js','./src/views/editor.js','./src/views/library.js','./src/views/more.js','./src/views/onboarding.js','./src/views/plan.js','./src/views/tactics.js','./src/views/today.js','./src/views/training.js','./styles/app.css','./styles/print.css','./styles/tokens.css'];
+  './src/core/assistant.js','./src/core/calendar.js','./src/core/migrate.js','./src/core/planning.js','./src/core/schema.js','./src/core/store.js','./src/core/timer.js','./src/core/util.js','./src/data/drill-meta.js','./src/data/drills.js','./src/data/focus.js','./src/exports/doc.js','./src/exports/pdf.js','./src/exports/share.js','./src/exports/sheet.js','./src/main.js','./src/scene/motion.js','./src/scene/pitch.js','./src/scene/player.js','./src/ui/actions.js','./src/ui/dom.js','./src/ui/feedback.js','./src/ui/focus.js','./src/ui/help.js','./src/ui/material.js','./src/ui/motion.js','./src/ui/reminders.js','./src/ui/router.js','./src/ui/sheet.js','./src/ui/sortable.js','./src/ui/update.js','./src/views/blocks.js','./src/views/calendar.js','./src/views/detail.js','./src/views/editor.js','./src/views/library.js','./src/views/more.js','./src/views/onboarding.js','./src/views/plan.js','./src/views/tactics.js','./src/views/today.js','./src/views/training.js','./styles/app.css','./styles/print.css','./styles/tokens.css','./styles/fonts/archivo.woff2'];
 
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))));
 self.addEventListener('message', event => { if (event.data?.type === 'SKIP_WAITING') self.skipWaiting(); });
@@ -27,4 +27,15 @@ self.addEventListener('fetch', event => {
     try { return await fetch(req); }
     catch { return Response.error(); }
   })());
+});
+
+// Erinnerung angetippt: vorhandenes TRAINR-Fenster nach vorne holen und den Termin öffnen.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url || './#kalender', self.registration.scope).href;
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    const win = list.find(c => c.url.startsWith(self.registration.scope));
+    if (win) { win.postMessage({ type: 'open-event', id: url.split('/termin/')[1] || null }); return win.focus(); }
+    return self.clients.openWindow(url);
+  }));
 });

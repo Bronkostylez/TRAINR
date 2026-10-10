@@ -18,9 +18,14 @@ import { planView } from './views/plan.js';
 import { trainingView } from './views/training.js';
 import { moreView, teamSwitcher } from './views/more.js';
 import { tacticsView } from './views/tactics.js';
+import { calendarView, todaysTraining, reviewEvent } from './views/calendar.js';
+import { initReminders } from './ui/reminders.js';
+import { initFocusLinks } from './ui/focus.js';
+import { autoFill } from './core/calendar.js';
 
 const info = store.init();
 setResolver(id => exercise(store.get(), id));
+initFocusLinks();
 
 // ---------- Darstellung ----------
 const darkMq = matchMedia('(prefers-color-scheme: dark)');
@@ -29,10 +34,10 @@ function applySettings() {
   const s = store.get().settings, root = document.documentElement;
   root.dataset.theme = s.theme === 'system' ? (darkMq.matches ? 'dark' : 'light') : s.theme;
   root.style.setProperty('--font-scale', s.fontScale / 100);
-  if (s.clubColor) { root.style.setProperty('--accent', s.clubColor); root.style.setProperty('--on-accent', luminance(s.clubColor) > .4 ? '#10261e' : '#ffffff'); }
+  if (s.clubColor) { root.style.setProperty('--accent', s.clubColor); root.style.setProperty('--on-accent', luminance(s.clubColor) > .4 ? '#14130e' : '#ffffff'); }
   else { root.style.removeProperty('--accent'); root.style.removeProperty('--on-accent'); }
   setLevel(s.motion);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', root.dataset.theme === 'dark' ? '#0c1a15' : '#133e33');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', root.dataset.theme === 'dark' ? '#0e0e0b' : '#efebe0');
 }
 darkMq.addEventListener('change', applySettings);
 applySettings();
@@ -61,7 +66,7 @@ let scrollFrame = 0;
 addEventListener('scroll', () => { if (scrollFrame) return; scrollFrame = requestAnimationFrame(() => { scrollFrame = 0; $('#appbar').classList.toggle('scrolled', scrollY > 24); }); }, { passive: true });
 
 // ---------- Ansichten ----------
-[onboardingView, todayView, libraryView, planView, trainingView, moreView, tacticsView].forEach(register);
+[onboardingView, todayView, libraryView, planView, trainingView, moreView, tacticsView, calendarView].forEach(register);
 setGuard(id => (!store.get().teams.length && id !== 'mehr' ? 'onboarding' : store.get().teams.length && id === 'onboarding' ? 'heute' : id));
 
 store.subscribe((s, reason) => {
@@ -75,8 +80,14 @@ store.subscribe((s, reason) => {
 
 // ---------- Timer-Rückmeldungen (global, auch außerhalb der Trainingsansicht) ----------
 timer.setHooks({
-  onWarn: snap => { beep('warn'); haptic('warn'); toast(`Noch ${store.get().settings.warnSeconds} Sekunden: ${exercise(store.get(), snap.block.exerciseId)?.name || ''}`, { ms: 3000 }); },
-  onEnd: snap => { beep('end'); haptic('end'); toast(snap.hasNext ? (store.get().settings.autoAdvance ? 'Block fertig. Nächster Block startet gleich.' : 'Block fertig. Kurz sammeln, dann weiter.') : 'Training geschafft! Auslaufen und kurz besprechen.', snap.hasNext && !store.get().settings.autoAdvance ? { action: 'Weiter', onAction: () => timer.next({ autostart: true }) } : {}); syncChrome(); },
+  onWarn: snap => { beep('warn'); haptic('warn'); toast(`Noch ${store.get().settings.warnSeconds} Sekunden: ${snap.block.pause ? 'Pause' : exercise(store.get(), snap.block.exerciseId)?.name || ''}`, { ms: 3000 }); },
+  onEnd: snap => {
+    beep('end'); haptic('end');
+    const ev = !snap.hasNext && todaysTraining(store.get()); // letzter Block: heutigen Kalendertermin direkt nachbereiten
+    toast(snap.hasNext ? (snap.block.pause ? (store.get().settings.autoAdvance ? 'Pause vorbei. Weiter geht’s gleich.' : 'Pause vorbei. Alle zusammenholen.') : store.get().settings.autoAdvance ? 'Block fertig. Nächster Schritt startet gleich.' : 'Block fertig. Kurz sammeln, dann weiter.') : 'Training geschafft! Auslaufen und kurz besprechen.',
+      snap.hasNext && !store.get().settings.autoAdvance ? { action: 'Weiter', onAction: () => timer.next({ autostart: true }) } : ev ? { action: 'Nachbereiten', onAction: () => reviewEvent(ev.id), ms: 10000 } : {});
+    syncChrome();
+  },
   onAuto: () => { beep('start'); },
 });
 timer.subscribe(() => { const was = $('.tab-live-dot'); if (!!was !== timer.running()) syncChrome(); });
@@ -106,14 +117,19 @@ onMotion(() => syncChrome());
 syncChrome();
 start();
 initUpdates();
+// Automatische Trainingsserien: beim Start und bei Rückkehr in die App 8 Wochen voraus auffüllen.
+const fillSeries = () => { if (store.get().teams.length) store.update('Trainingsserie', d => { autoFill(d); }, { undo: false }); };
+fillSeries();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) fillSeries(); });
+initReminders(id => (id ? go('kalender', 'termin', id) : go('kalender')));
 if (info.source === 'v2') toast('Deine Daten aus TRAINR V20 wurden übernommen. Die alten Daten bleiben unverändert.', { ms: 6000 });
 if (info.problem === 'invalid-v3' || info.problem === 'invalid-v2') toast('Gespeicherte Daten waren ungültig und wurden gesichert, nicht überschrieben. Details unter „Mehr“.', { ms: 8000 });
-window.__trainr = { store, timer, version: '21.0.0' }; // für Tests und Fehlersuche
+window.__trainr = { store, timer, version: '21.4.0' }; // für Tests und Fehlersuche
 
 // ---------- Wischen zwischen den Haupt-Tabs (nur Touch, nur schmale Bildschirme) ----------
 {
   let sw = null;
-  const blocked = t => !t.closest || t.closest('input, textarea, select, .chips, .seg, .board-wrap, .editor-pitch, .blocks, .pitch-scene, input[type=range], dialog, .seg-progress');
+  const blocked = t => !t.closest || t.closest('input, textarea, select, .chips, .seg, .cal-grid, .board-wrap, .editor-pitch, .blocks, .pitch-scene, input[type=range], dialog, .seg-progress');
   addEventListener('touchstart', ev => {
     if (innerWidth >= 1024 || ev.touches.length !== 1 || anyOpen() || !store.get().teams.length || blocked(ev.target)) { sw = null; return; }
     sw = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, t: performance.now() };

@@ -1,6 +1,7 @@
 // Detail-Sheet einer Übung: Animation, Ziel, Ablauf, Coaching, Material, Varianten, Bewertung, Notiz, Quellen.
 import * as store from '../core/store.js';
-import { exercise, effective, fit, currentPlan, similar, meta, level, LEVEL_LABEL, planAge } from '../core/planning.js';
+import { exercise, effective, fit, currentPlan, similar, meta, level, LEVEL_LABEL, planAge, foci, FOCUS, AREAS, MAX_FOCI } from '../core/planning.js';
+import { focusChips } from '../ui/focus.js';
 import { TAG_VARIANTS } from '../data/drill-meta.js';
 import { esc, integer, uid, TYPE_SHORT, deepClone } from '../core/util.js';
 import { openSheet, confirmSheet } from '../ui/sheet.js';
@@ -52,6 +53,8 @@ export function openDetail(id, order = null) {
         <div class="stack">
           <div class="facts"><span>${icon('clock')} ${x.minutes} Min${m.variant ? ' · deine Variante' : ''}</span><span>${x.min === x.max ? x.min : `${x.min}–${x.max}`} Spieler / Gruppe</span><span>ab ${esc(e.ages[0])}</span><span class="${g ? '' : 'warn'}">${g ? `${g} ${g > 1 ? 'Gruppen' : 'Gruppe'} für ${n}` : `passt nicht zu ${n} Spielern`}</span></div>
           ${e.goal ? `<section><h3>Ziel</h3><p>${esc(e.goal)}</p></section>` : ''}
+          ${foci(e).length ? `<section class="detail-foci"><h3>Schwerpunkte <small class="tiny">antippen: passende Übungen</small></h3>${focusChips(foci(e), { link: true, mark: p?.focus })}
+            <ul class="foci-explain">${foci(e).map((k, i) => `<li><strong>${esc(k)}</strong>${i ? '' : ' <span class="tiny">Hauptschwerpunkt</span>'} – ${esc(FOCUS[k]?.hint || '')} <span class="tiny">· ${esc(AREAS[FOCUS[k]?.area]?.label || '')}</span></li>`).join('')}</ul></section>` : ''}
           <section><h3>Ablauf</h3><ol class="steps" id="d-steps"></ol></section>
           <section><h3>Coaching</h3>${Array.isArray(e.points) && e.points.length ? `<ul class="points">${e.points.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : `<p>${esc(e.coaching)}</p>`}
             ${Array.isArray(e.points) && e.points.length && e.safety ? `<p class="small muted">${esc(e.safety)}</p>` : ''}</section>
@@ -66,7 +69,7 @@ export function openDetail(id, order = null) {
             <label class="field"><span>Deine Notiz (keine Spielernamen)</span><textarea class="input" id="d-note" maxlength="1000" rows="3" placeholder="Was hat funktioniert? Was ändern?">${esc(m.note || '')}</textarea></label></section>
           <section><h3>Quellen</h3>${sourcesHtml(e)}
             <p class="tiny">Eigene Kurzfassung bzw. Variante, keine offizielle Übung des Verbands. Maße, Minuten, Altersgrenzen und Mengen sind redaktionelle Vorschläge, keine Normen. Belastung an Können, Platz und Gruppe anpassen.</p></section>
-          <section><h3>Ähnliche Übungen</h3><div class="stack">${similar(s, e, 3).map(o => `<button class="mini-drill" type="button" data-open="${esc(o.id)}">${drillPitch(o)}<span><strong>${esc(o.name)}</strong><br><small>${esc(o.tag)} · ${effective(s, o).minutes} Min</small></span></button>`).join('')}</div></section>
+          <section><h3>Ähnliche Übungen</h3><div class="stack">${similar(s, e, 3).map(o => `<button class="mini-drill" type="button" data-open="${esc(o.id)}">${drillPitch(o)}<span><strong>${esc(o.name)}</strong><br><small>${esc(foci(o).slice(0, 2).join(' · ') || o.tag)} · ${effective(s, o).minutes} Min</small></span></button>`).join('')}</div></section>
           <div class="row">
             ${e.custom ? `<button class="btn sm" type="button" id="d-edit">${icon('edit')} Bearbeiten</button><button class="btn sm danger" type="button" id="d-del">${icon('trash')} Löschen</button>` : `<button class="btn sm" type="button" id="d-copy">${icon('copy')} Als eigene Übung anpassen</button>`}
           </div>
@@ -149,5 +152,6 @@ export function openDetail(id, order = null) {
 function copyAsCustom(e) {
   const c = deepClone({ id: 'custom-' + uid(), name: `${e.name} (eigene)`.slice(0, 80), type: e.type, tag: e.tag, ages: e.ages, min: e.min, max: e.max, minutes: e.minutes, description: e.description, coaching: e.coaching, equipment: e.equipment, url: e.url || '', custom: true });
   if (e.goal) c.goal = e.goal;
+  if (foci(e).length) c.focus = foci(e).slice(0, MAX_FOCI);
   return c;
 }

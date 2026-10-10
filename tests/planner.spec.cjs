@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { watchErrors, onboard, state, plan, createSession, go } = require('./helpers.cjs');
+const { watchErrors, onboard, state, plan, planTotal, createSession, go } = require('./helpers.cjs');
 
 test('Planer: Einheit erstellen, Minuten, Reihenfolge, Teilnehmer, Undo/Redo, Entfernen', async ({ page }) => {
   const errors = watchErrors(page);
@@ -7,10 +7,10 @@ test('Planer: Einheit erstellen, Minuten, Reihenfolge, Teilnehmer, Undo/Redo, En
   await createSession(page);
   const p0 = await plan(page);
   expect(p0.blocks.length).toBeGreaterThanOrEqual(3);
-  const total = p0.blocks.reduce((a, b) => a + b.minutes, 0);
+  const total = await planTotal(page); // Übungen + automatisch eingeplante Pausen
   expect(total).toBe(90); // Trainingszeit 17:00–18:30
   await go(page, '#planen');
-  const blocks = page.locator('#pl-blocks > li');
+  const blocks = page.locator('#pl-blocks > li.block');
   await expect(blocks).toHaveCount(p0.blocks.length);
   // Minute +1
   await blocks.first().locator('[data-min][data-d="1"]').click();
@@ -70,8 +70,8 @@ test('Planer: Zeiger-Sortierung am Griff und Tastatur', async ({ page }) => {
   await createSession(page);
   await go(page, '#planen');
   const ids = (await plan(page)).blocks.map(b => b.id);
-  const h0 = page.locator('#pl-blocks > li').nth(0).locator('[data-handle]');
-  const h2 = page.locator('#pl-blocks > li').nth(2);
+  const h0 = page.locator('#pl-blocks > li.block').nth(0).locator('[data-handle]');
+  const h2 = page.locator('#pl-blocks > li.block').nth(2);
   const a = await h0.boundingBox(), b = await h2.boundingBox();
   await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
   await page.mouse.down();
@@ -80,7 +80,7 @@ test('Planer: Zeiger-Sortierung am Griff und Tastatur', async ({ page }) => {
   await page.mouse.up();
   await expect.poll(async () => (await plan(page)).blocks.map(x => x.id).indexOf(ids[0])).toBe(2);
   // Tastatur: Griff fokussieren, Pfeil hoch
-  await page.locator('#pl-blocks > li').nth(2).locator('[data-handle]').focus();
+  await page.locator('#pl-blocks > li.block').nth(2).locator('[data-handle]').focus();
   await page.keyboard.press('ArrowUp');
   await expect.poll(async () => (await plan(page)).blocks.map(x => x.id).indexOf(ids[0])).toBe(1);
 });
@@ -94,7 +94,7 @@ test('Planer Desktop: Drag & Drop aus der Bibliothek in den Ablauf', async ({ pa
   await page.locator('#plan-side .drill').first().dragTo(page.locator('#pl-drop'));
   await expect.poll(async () => (await plan(page)).blocks.map(b => b.exerciseId)).toContain(id);
   const id2 = await page.locator('#plan-side .drill').nth(1).getAttribute('data-id');
-  await page.locator('#plan-side .drill').nth(1).dragTo(page.locator('#pl-blocks > li').first(), { targetPosition: { x: 40, y: 5 } });
+  await page.locator('#plan-side .drill').nth(1).dragTo(page.locator('#pl-blocks > li.block').first(), { targetPosition: { x: 40, y: 5 } });
   await expect.poll(async () => (await plan(page)).blocks[0].exerciseId).toBe(id2);
 });
 
@@ -115,7 +115,7 @@ test('Planassistent, Check, Packliste, Notizen, Kopieren, Vorlagen, Löschen', a
   let s = await state(page);
   expect(s.plans.length).toBe(2);
   const p = s.plans.find(x => x.id === s.selectedPlanId);
-  expect(p.blocks.reduce((a, b) => a + b.minutes, 0)).toBe(90);
+  expect(await planTotal(page)).toBe(90);
   // Check
   await page.click('[data-ptab=check]');
   await expect(page.locator('.check-list')).toContainText('Gruppengrößen');

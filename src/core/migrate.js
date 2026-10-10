@@ -1,6 +1,6 @@
 // Überführt TRAINR V2–V20-Daten in das V21-Format. Liest nur – alte Schlüssel bleiben unverändert.
 // `keeperboard-v1` (Stufe 1) wird bewusst weder gelesen noch geschrieben.
-import { validateV2, validateV3, emptyV3, DEFAULT_SETTINGS } from './schema.js';
+import { validateV2, validateV3, emptyV3, DEFAULT_SETTINGS, toV1Animation } from './schema.js';
 import { uid, deepClone } from './util.js';
 
 export const KEY_V3 = 'trainr-v21';
@@ -111,7 +111,7 @@ export function toV2Backup(s) {
     return o;
   });
   if (!plans.length) plans.push({ id: uid(), name: 'Meine Einheit', blocks: [], people: 12, slot: team?.slots[0]?.day ?? null, focus: 'Alle' });
-  const custom = s.custom.map(e => { const c = deepClone(e); delete c.goal; return c; });
+  const custom = s.custom.map(e => { const c = deepClone(e); delete c.goal; if (c.animation) { const v1 = toV1Animation(c.animation); if (v1) c.animation = v1; else delete c.animation; } return c; });
   const variants = {};
   for (const [id, m] of Object.entries(s.exerciseMeta)) if (m.variant) variants[id] = m.variant;
   return { version: 2, profile: team ? { type: team.type, age: team.age, slots: deepClone(team.slots) } : null, custom, plans, selected: plans.some(p => p.id === s.selectedPlanId) ? s.selectedPlanId : plans[0].id, variants };

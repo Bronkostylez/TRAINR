@@ -10,14 +10,14 @@ import { shareFiles, downloadBlob } from '../exports/share.js';
 
 const VB = { w: 100, h: 64 };
 const KINDS = {
-  a: { name: 'Team A', fill: '#d2ef79', ink: '#173f33', r: 2.6 },
-  b: { name: 'Team B', fill: '#f4f1e6', ink: '#2b2b2b', r: 2.6 },
+  a: { name: 'Team A', fill: '#ffd400', ink: '#14130e', r: 2.6 },
+  b: { name: 'Team B', fill: '#f6f3ea', ink: '#2b2b2b', r: 2.6 },
   k: { name: 'Keeper A', fill: '#9154d9', ink: '#ffffff', r: 2.8 },
   kb: { name: 'Keeper B', fill: '#9154d9', ink: '#ffffff', r: 2.8, ring: true },
-  ball: { name: 'Ball', fill: '#ffffff', ink: '#184638', r: 1.4 },
-  cone: { name: 'Hütchen', fill: '#f5a54a', ink: '#70401d', r: 1.6 },
+  ball: { name: 'Ball', fill: '#ffffff', ink: '#14130e', r: 1.4 },
+  cone: { name: 'Hütchen', fill: '#ff7a1a', ink: '#6b2e05', r: 1.6 },
 };
-const ARROWS = { run: ['Lauf', '6 0', '#ffffff'], pass: ['Pass', '1.6 1.2', '#ffe58a'], dribble: ['Dribbling', '0.6 0.8', '#d2ef79'] };
+const ARROWS = { run: ['Lauf', '6 0', '#ffffff'], pass: ['Pass', '1.6 1.2', '#ffe58a'], dribble: ['Dribbling', '0.6 0.8', '#ffd400'] };
 const FORMATIONS = {
   '5er (1-2-2)': [[20, 28], [20, 44], [36, 20], [36, 44]], '7er (2-3-1)': [[22, 22], [22, 42], [34, 14], [34, 32], [34, 50], [44, 32]],
   '9er (3-3-2)': [[20, 16], [20, 32], [20, 48], [32, 14], [32, 32], [32, 50], [44, 24], [44, 40]],
@@ -36,7 +36,7 @@ function pitchSvg(kind) {
 }
 function token(it, i, sel) {
   const k = KINDS[it.kind], x = it.x, y = it.y * VB.h / 100;
-  const shape = it.kind === 'cone' ? `<path d="M${x - 1.6} ${y + 1.4}l1.6-3.2 1.6 3.2z" fill="${k.fill}" stroke="${k.ink}" stroke-width=".25"/>` : `<circle cx="${x}" cy="${y}" r="${k.r}" fill="${k.fill}" stroke="${k.ring ? '#ffffff' : '#103b2e'}" stroke-width="${k.ring ? .6 : .35}" ${k.ring ? 'stroke-dasharray=".9 .5"' : ''}/>`;
+  const shape = it.kind === 'cone' ? `<path d="M${x - 1.6} ${y + 1.4}l1.6-3.2 1.6 3.2z" fill="${k.fill}" stroke="${k.ink}" stroke-width=".25"/>` : `<circle cx="${x}" cy="${y}" r="${k.r}" fill="${k.fill}" stroke="${k.ring ? '#ffffff' : '#14130e'}" stroke-width="${k.ring ? .6 : .35}" ${k.ring ? 'stroke-dasharray=".9 .5"' : ''}/>`;
   const label = it.label ?? (it.kind === 'k' || it.kind === 'kb' ? 'K' : '');
   return `<g class="board-token ${sel === i ? 'selected' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${esc(k.name)}${label ? ' ' + esc(label) : ''}, ziehen zum Bewegen, Entf zum Löschen">${shape}${label ? `<text x="${x}" y="${y + .15}" fill="${k.ink}" font-family="Arial, sans-serif" font-weight="800" font-size="2.6" text-anchor="middle" dominant-baseline="central">${esc(label)}</text>` : ''}</g>`;
 }
@@ -47,7 +47,7 @@ function arrowSvg(a, i) {
 export function boardSvg(b, sel = -1, { forExport = false } = {}) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VB.w} ${VB.h}" ${forExport ? 'width="1600" height="1024"' : ''} role="img" aria-label="Taktikboard ${esc(b.name)}">
     <defs>${Object.entries(ARROWS).map(([k, [, , c]]) => `<marker id="ah-${k}" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L6 3 0 6z" fill="${c}"/></marker>`).join('')}</defs>
-    <rect width="100" height="64" fill="#1d5143"/>${[0, 1, 2, 3, 4, 5].map(i => `<rect x="${2 + i * 16}" y="2" width="8" height="60" fill="#ffffff08"/>`).join('')}
+    <rect width="100" height="64" fill="#2f6a3e"/>${[0, 1, 2, 3, 4, 5].map(i => `<rect x="${2 + i * 16}" y="2" width="8" height="60" fill="#ffffff08"/>`).join('')}
     ${pitchSvg(b.pitch)}<g id="bd-arrows">${b.arrows.map(arrowSvg).join('')}</g><g id="bd-items">${b.items.map((it, i) => token(it, i, sel)).join('')}</g><line id="bd-draft" stroke="#fff" stroke-width=".5" stroke-dasharray="1 1" visibility="hidden"/>
     ${forExport ? `<text x="2.5" y="63.2" font-size="1.6" fill="#ffffffb0" font-family="Arial">TRAINR · ${esc(b.name)}</text>` : ''}</svg>`;
 }
@@ -72,7 +72,7 @@ export const tacticsView = {
       <div class="stack" style="margin-bottom:8px;gap:8px"><input class="input" id="tb-name" maxlength="80" value="${esc(b.name)}" aria-label="Name des Boards" style="font-weight:800">
         <div class="seg" role="radiogroup" aria-label="Platz">${[['full', 'Ganzer Platz'], ['half', 'Halber'], ['small', 'Kleinfeld']].map(([k, t]) => `<button type="button" role="radio" data-pitch="${k}" aria-checked="${b.pitch === k}">${t}</button>`).join('')}</div></div>
       <div class="board-tools" role="toolbar" aria-label="Werkzeuge">
-        ${[['move', 'Bewegen', icon('drag')], ['a', 'Team A', '<i style="background:#d2ef79"></i>'], ['b', 'Team B', '<i style="background:#f4f1e6"></i>'], ['k', 'Keeper A', '<i style="background:#9154d9"></i>'], ['kb', 'Keeper B', '<i style="background:#9154d9;border:2px dashed #fff"></i>'], ['ball', 'Ball', '<i style="background:#fff;width:14px;height:14px"></i>'], ['cone', 'Hütchen', '<i style="background:#f5a54a;border-radius:3px;width:14px;height:14px;transform:rotate(45deg)"></i>'],
+        ${[['move', 'Bewegen', icon('drag')], ['a', 'Team A', '<i style="background:#ffd400"></i>'], ['b', 'Team B', '<i style="background:#f6f3ea"></i>'], ['k', 'Keeper A', '<i style="background:#9154d9"></i>'], ['kb', 'Keeper B', '<i style="background:#9154d9;border:2px dashed #fff"></i>'], ['ball', 'Ball', '<i style="background:#fff;width:14px;height:14px"></i>'], ['cone', 'Hütchen', '<i style="background:#ff7a1a;border-radius:3px;width:14px;height:14px;transform:rotate(45deg)"></i>'],
           ['run', 'Lauf', icon('arrow')], ['pass', 'Pass', icon('arrow')], ['dribble', 'Dribbling', icon('arrow')], ['erase', 'Löschen', icon('trash')]]
           .map(([k, t, ic]) => `<button class="tool" type="button" data-tool="${k}" aria-pressed="${tool === k}">${ic}<span>${t}</span></button>`).join('')}
       </div>

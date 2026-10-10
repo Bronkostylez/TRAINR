@@ -1,5 +1,5 @@
 // Ein gemeinsames Dokumentmodell für PDF, PNG und Druck. Layouts: detailed | compact | cards | coach.
-import { exercise, effective, fit, blockPeople, timeline, slotOf, slotLabel, planAge, teamOf, totalMinutes, requirements, check } from '../core/planning.js';
+import { exercise, effective, fit, blockPeople, timeline, slotOf, slotLabel, planAge, teamOf, totalMinutes, exerciseMinutes, pauses, requirements, check, foci, planFocus, keyFirst } from '../core/planning.js';
 import { LABELS, BRAND } from '../core/util.js';
 import { stepsFor } from '../scene/pitch.js';
 
@@ -15,11 +15,13 @@ const SAFETY = 'Spielerzahlen ohne Trainer. Minuten enthalten Erklären, Trinken
 
 /** Block-Daten für alle Layouts. */
 export function blocksData(s, p) {
-  return timeline(s, p).map(({ block: b, label }, i) => {
+  return timeline(s, p).map(({ block: b, label, pause }, i) => {
     const e = exercise(s, b.exerciseId), n = blockPeople(p, b), g = fit(s, e, n), x = effective(s, e), age = planAge(s, p);
     const src = Array.isArray(e.sources) && e.sources.length ? e.sources.map(z => `${z.title}: ${z.url}`).join(' · ') : e.url || 'Eigene Übung';
     return {
       i, b, e, n, g, label, num: String(i + 1).padStart(2, '0'), keeper: e.type === 'keeper',
+      pause: pause ? { minutes: pause.minutes, label: pause.label, text: `Trinkpause · ${pause.minutes} Min${pause.label ? ` (${pause.label})` : ''}` } : null,
+      foci: foci(e).join(', '), kind: foci(e).slice(0, 3).join(' · ') || e.tag,
       groups: g ? `${g} ${g > 1 ? 'parallele Gruppen' : 'Gruppe'} à ${x.min === x.max ? x.min : `${x.min}–${x.max}`}` : `ACHTUNG: ${n} Spieler passen nicht in Gruppen von ${x.min}–${x.max}`,
       material: e.equipment.map(([m, c]) => `${c} ${m}`).join(', '), points: Array.isArray(e.points) && e.points.length ? e.points : [e.coaching],
       steps: stepsFor(e), source: src, ageWarn: age && !e.ages.includes(age) ? `ACHTUNG: nicht für ${age} vorgesehen.` : '',
@@ -31,7 +33,9 @@ export function headerData(s, p) {
   const team = teamOf(s, p), slot = slotOf(s, p);
   return {
     title: p.name, team: team?.name || '', type: LABELS[team?.type] || '', age: planAge(s, p) || '', slot: slot ? slotLabel(slot) : '',
-    people: p.people, total: totalMinutes(p), goal: p.goal || '', notes: p.notes || '',
+    people: p.people, total: totalMinutes(p, s), goal: p.goal || '', notes: p.notes || '',
+    pauses: (() => { const ps = pauses(s, p); return ps.length ? `${exerciseMinutes(p)} Min Übungen + ${ps.length} ${ps.length === 1 ? 'Pause' : 'Pausen'} à ${ps[0].minutes} Min` : ''; })(),
+    focus: p.focus && p.focus !== 'Alle' ? p.focus : '', foci: keyFirst(planFocus(s, p).list, p.focus).slice(0, 5).map(o => `${o.key} (${o.minutes} Min)`).join(', '),
     material: Object.entries(requirements(s, p)).map(([n, c]) => `${c} ${n}`), checks: check(s, p).filter(c => c.level === 'warn').map(c => c.text),
   };
 }
@@ -45,27 +49,30 @@ export function buildDoc(s, p, layout = 'detailed') {
   const push = (k, text = '', o = {}) => out.push({ k, text, ...o });
   push('title', h.title);
   push('meta', [h.team, h.age, h.type].filter(Boolean).join(' · '));
-  push('meta', [h.slot, `${h.people} Spieler (ohne Trainer)`, `${h.total} Min`].filter(Boolean).join(' · '));
+  push('meta', [h.slot, `${h.people} Spieler (ohne Trainer)`, `${h.total} Min`, h.pauses].filter(Boolean).join(' · '));
   if (h.goal) push('p', `Ziel: ${h.goal}`, { bold: true });
+  if (h.foci) push('p', `Schwerpunkte: ${h.focus ? `${h.focus} · ` : ''}${h.foci}`, { size: 9.5 });
   if (layout === 'compact') {
     push('gap', '', { h: 8 });
     for (const d of B) {
       push('row', '', { cols: [d.label || d.num, `${d.keeper ? '◆ ' : ''}${d.e.name}`, `${d.b.minutes} Min`], keeper: d.keeper });
-      push('p', `${d.e.tag} · ${d.groups}${d.b.people ? ` · ${d.n} Spieler` : ''} · ${d.material}${d.b.note ? ` · ${d.b.note}` : ''}`, { size: 9, color: 'muted', indent: 62 });
+      push('p', `${d.kind} · ${d.groups}${d.b.people ? ` · ${d.n} Spieler` : ''} · ${d.material}${d.b.note ? ` · ${d.b.note}` : ''}`, { size: 9, color: 'muted', indent: 62 });
       if (d.ageWarn) push('p', d.ageWarn, { size: 9, color: 'warn', indent: 62 });
+      if (d.pause) push('row', '', { cols: [d.pause.label || '', '— Trinkpause —', `${d.pause.minutes} Min`], pause: true });
     }
   } else if (layout === 'coach') {
     for (const d of B) {
       push('h', `${d.num}  ${d.e.name}`, { size: 22, minutes: `${d.b.minutes} Min`, keeper: d.keeper, keep: 140 });
       push('p', `${d.groups}${d.b.note ? ` · ${d.b.note}` : ''}`, { size: 13, color: 'muted' });
       for (const t of d.points.slice(0, 3)) push('li', t, { size: 15 });
+      if (d.pause) push('p', `— ${d.pause.text} —`, { size: 13, bold: true, color: 'muted' });
       push('gap', '', { h: 10 });
     }
   } else {
     for (const d of B) {
       if (layout === 'cards') push('cardstart', '', { keeper: d.keeper, keep: 300 });
       push('h', `${d.num} · ${d.e.name}`, { minutes: `${d.label ? d.label + ' · ' : ''}${d.b.minutes} Min`, keeper: d.keeper, keep: 160 });
-      push('p', `${d.e.tag} · ${d.groups}${d.b.people ? ` · ${d.n} Spieler bei dieser Übung` : ''}`, { size: 9.5, bold: true, color: 'accent' });
+      push('p', `${d.kind} · ${d.groups}${d.b.people ? ` · ${d.n} Spieler bei dieser Übung` : ''}`, { size: 9.5, bold: true, color: 'accent' });
       if (d.e.goal) push('p', `Ziel: ${d.e.goal}`, { size: 10 });
       d.steps.forEach((t, k) => push('li', `${k + 1}. ${t}`, { size: 10, bullet: false }));
       push('p', 'Coaching', { size: 9.5, bold: true });
@@ -75,6 +82,7 @@ export function buildDoc(s, p, layout = 'detailed') {
       if (d.ageWarn) push('p', d.ageWarn, { size: 9.5, bold: true, color: 'warn' });
       push('p', `Quelle: ${d.source}`, { size: 8, color: 'muted' });
       if (layout === 'cards') push('cardend'); else push('gap', '', { h: 10 });
+      if (d.pause) { push('p', `— ${d.pause.text} —`, { size: 10, bold: true, color: 'muted' }); push('gap', '', { h: 6 }); }
     }
   }
   push('gap', '', { h: 6 });
@@ -124,7 +132,7 @@ export function layoutPages(doc, style = 'brand') {
   const W = PAGE.w, H = PAGE.h, M = PAGE.m, CW = W - 2 * M, pages = [];
   const C = style === 'ink'
     ? { ink: '#000000', muted: '#444444', accent: '#000000', warn: '#000000', bar: '#000000', barText: '#ffffff', keeper: '#5a2a99', soft: '#f2f2f2' }
-    : { ink: '#12261f', muted: '#52675a', accent: '#2f6e3f', warn: '#9a3412', bar: '#133e33', barText: '#d4f26b', keeper: '#9154d9', soft: '#eef3e6' };
+    : { ink: '#14130e', muted: '#5a574d', accent: '#14130e', warn: '#9a3412', bar: '#14130e', barText: '#ffd400', keeper: '#9154d9', soft: '#f1ede3' };
   let page, y;
   const newPage = () => {
     page = { ops: [] }; pages.push(page);
@@ -164,7 +172,7 @@ export function layoutPages(doc, style = 'brand') {
         if (el.keeper) page.ops.push({ t: 'rect', x: M - 10, y: y - 10, w: 4, h: 14, fill: C.keeper });
         page.ops.push({ t: 'text', x: M, y, s: 9.5, bold: true, color: C.muted, text: a });
         const nameLines = wrap(b, 11.5, true, CW - 62 - 60);
-        page.ops.push({ t: 'text', x: M + 62, y, s: 11.5, bold: true, color: C.ink, text: nameLines[0] });
+        page.ops.push({ t: 'text', x: M + 62, y, s: 11.5, bold: true, color: el.pause ? C.muted : C.ink, text: nameLines[0] });
         page.ops.push({ t: 'text', x: W - M - measure(c, 10.5, true), y, s: 10.5, bold: true, color: C.accent, text: c });
         for (const ln of nameLines.slice(1)) { y += 14; page.ops.push({ t: 'text', x: M + 62, y, s: 11.5, bold: true, color: C.ink, text: ln }); }
         y += 4; break;
@@ -188,17 +196,17 @@ export function layoutPages(doc, style = 'brand') {
 // ---------- Text & CSV (wie V20, ergänzt um Ziel und Notizen) ----------
 export function planText(s, p) {
   const h = headerData(s, p), B = blocksData(s, p);
-  return `${BRAND} · ${h.title}\n${[h.team, h.age, h.type].filter(Boolean).join(' · ')}\n${h.slot}\n${h.people} Spieler (ohne Trainer)\n${h.total} Minuten\n${h.goal ? `Ziel: ${h.goal}\n` : ''}\n` +
-    B.map(d => `${d.i + 1}. ${d.e.name} · ${d.b.minutes} Minuten${d.label ? ` (${d.label})` : ''}\n${d.b.people ? `${d.n} Spieler · ` : ''}${d.groups}\n${d.e.goal ? `Ziel: ${d.e.goal}\n` : ''}${d.e.description}\nCoaching: ${d.points.join(' ')}\nMaterial je Gruppe: ${d.material}\n${d.b.note ? `Notiz: ${d.b.note}\n` : ''}Quelle: ${d.source}\n${d.ageWarn ? d.ageWarn + '\n' : ''}`).join('\n') +
+  return `${BRAND} · ${h.title}\n${[h.team, h.age, h.type].filter(Boolean).join(' · ')}\n${h.slot}\n${h.people} Spieler (ohne Trainer)\n${h.total} Minuten${h.pauses ? ` (${h.pauses})` : ''}\n${h.goal ? `Ziel: ${h.goal}\n` : ''}${h.foci ? `Schwerpunkte: ${h.foci}\n` : ''}\n` +
+    B.map(d => `${d.i + 1}. ${d.e.name} · ${d.b.minutes} Minuten${d.label ? ` (${d.label})` : ''}\n${d.b.people ? `${d.n} Spieler · ` : ''}${d.groups}\n${d.e.goal ? `Ziel: ${d.e.goal}\n` : ''}${d.e.description}\nCoaching: ${d.points.join(' ')}\nMaterial je Gruppe: ${d.material}\n${d.b.note ? `Notiz: ${d.b.note}\n` : ''}Quelle: ${d.source}\n${d.ageWarn ? d.ageWarn + '\n' : ''}${d.pause ? `\n– ${d.pause.text} –\n` : ''}`).join('\n') +
     `\nMaterialübersicht (Höchstbedarf, parallele Gruppen):\n${h.material.join('\n') || '–'}\n${h.notes ? `\nCoaching-Ziel / Notizen:\n${h.notes}\n` : ''}\n${SAFETY}`;
 }
 
 export function planCsv(s, p) {
   const h = headerData(s, p), B = blocksData(s, p);
   const cell = v => { let x = String(v ?? ''); if (/^[=+@-]/.test(x)) x = "'" + x; return `"${x.replace(/"/g, '""')}"`; };
-  const rows = [['Plan', h.title], ['Mannschaft', h.team], ['Altersklasse', h.age], ['Trainingstag', h.slot], ['Spieler ohne Trainer', h.people], ['Ziel', h.goal],
-    ['Block', 'Zeit', 'Übung', 'Kategorie', 'Minuten', 'Spieler', 'Gruppen', 'Material je Gruppe', 'Beschreibung', 'Notiz', 'Quelle'],
-    ...B.map(d => [d.i + 1, d.label, d.e.name, d.e.tag, d.b.minutes, d.n, d.g || 'Anpassen', d.material, d.e.description, d.b.note || '', d.source]),
+  const rows = [['Plan', h.title], ['Mannschaft', h.team], ['Altersklasse', h.age], ['Trainingstag', h.slot], ['Spieler ohne Trainer', h.people], ['Ziel', h.goal], ['Schwerpunkte', h.foci],
+    ['Block', 'Zeit', 'Übung', 'Kategorie', 'Schwerpunkte', 'Minuten', 'Spieler', 'Gruppen', 'Material je Gruppe', 'Beschreibung', 'Notiz', 'Quelle'],
+    ...B.flatMap(d => [[d.i + 1, d.label, d.e.name, d.e.tag, d.foci, d.b.minutes, d.n, d.g || 'Anpassen', d.material, d.e.description, d.b.note || '', d.source], ...(d.pause ? [['Pause', d.pause.label || '', 'Trinkpause', '', '', d.pause.minutes, '', '', '', '', '', '']] : [])]),
     ['Material', 'Höchstbedarf'], ...Object.entries(requirements(s, p)),
     ['Hinweis', 'Keeper-Partner: zuspielendes Kind zählt mit, erwachsene Trainer zusätzlich; Mengen bei unpassender Gruppe vorläufig.']];
   return '﻿' + rows.map(r => r.map(cell).join(';')).join('\r\n');

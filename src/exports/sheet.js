@@ -70,12 +70,14 @@ export function openExport() {
 /** Druckansicht als HTML (mit Platzskizzen bei Übungskarten). */
 export function printHtml(s, p, layout = 'detailed', style = 'brand') {
   const h = headerData(s, p), B = blocksData(s, p);
-  const block = d => {
-    if (layout === 'compact') return `<tr class="${d.keeper ? 'keeper' : ''}"><td>${esc(d.label || d.num)}</td><td><strong>${esc(d.e.name)}</strong><br><small>${esc(d.e.tag)} · ${esc(d.groups)} · ${esc(d.material)}${d.b.note ? ` · ${esc(d.b.note)}` : ''}</small></td><td>${d.b.minutes} Min</td></tr>`;
+  const pause = d => (!d.pause ? '' : layout === 'compact' ? `<tr class="pause"><td>${esc(d.pause.label || '')}</td><td><em>Trinkpause</em></td><td>${d.pause.minutes} Min</td></tr>` : `<p class="ppause">— ${esc(d.pause.text)} —</p>`);
+  const block = d => one(d) + pause(d);
+  const one = d => {
+    if (layout === 'compact') return `<tr class="${d.keeper ? 'keeper' : ''}"><td>${esc(d.label || d.num)}</td><td><strong>${esc(d.e.name)}</strong><br><small>${esc(d.kind)} · ${esc(d.groups)} · ${esc(d.material)}${d.b.note ? ` · ${esc(d.b.note)}` : ''}</small></td><td>${d.b.minutes} Min</td></tr>`;
     if (layout === 'coach') return `<article class="coach ${d.keeper ? 'keeper' : ''}"><h2>${d.num} ${esc(d.e.name)} <span>${d.b.minutes} Min</span></h2><p>${esc(d.groups)}</p><ul>${d.points.slice(0, 3).map(t => `<li>${esc(t)}</li>`).join('')}</ul></article>`;
     return `<article class="pblock ${layout === 'cards' ? 'card' : ''} ${d.keeper ? 'keeper' : ''}">
       <h2>${d.num} · ${esc(d.e.name)} <span>${d.label ? esc(d.label) + ' · ' : ''}${d.b.minutes} Min</span></h2>
-      <p class="sub">${esc(d.e.tag)} · ${esc(d.groups)}</p>
+      <p class="sub">${esc(d.kind)} · ${esc(d.groups)}</p>
       ${layout === 'cards' ? `<div class="psketch">${drillPitch(d.e)}</div>` : ''}
       ${d.e.goal ? `<p><strong>Ziel:</strong> ${esc(d.e.goal)}</p>` : ''}
       <ol>${d.steps.map(t => `<li>${esc(t)}</li>`).join('')}</ol>
@@ -85,7 +87,7 @@ export function printHtml(s, p, layout = 'detailed', style = 'brand') {
       <p class="src">Quelle: ${esc(d.source)}</p></article>`;
   };
   return `<div class="print-doc style-${style} layout-${layout}">
-    <header><div class="bar">TRAINR / TRAININGSPLAN</div><h1>${esc(h.title)}</h1><p>${esc([h.team, h.age, h.type].filter(Boolean).join(' · '))}</p><p>${esc([h.slot, `${h.people} Spieler (ohne Trainer)`, `${h.total} Min`].filter(Boolean).join(' · '))}</p>${h.goal ? `<p><strong>Ziel:</strong> ${esc(h.goal)}</p>` : ''}</header>
+    <header><div class="bar">TRAINR / TRAININGSPLAN</div><h1>${esc(h.title)}</h1><p>${esc([h.team, h.age, h.type].filter(Boolean).join(' · '))}</p><p>${esc([h.slot, `${h.people} Spieler (ohne Trainer)`, `${h.total} Min`, h.pauses].filter(Boolean).join(' · '))}</p>${h.goal ? `<p><strong>Ziel:</strong> ${esc(h.goal)}</p>` : ''}${h.foci ? `<p><strong>Schwerpunkte:</strong> ${esc(h.focus ? `${h.focus} · ` : '')}${esc(h.foci)}</p>` : ''}</header>
     ${layout === 'compact' ? `<table>${B.map(block).join('')}</table>` : B.map(block).join('')}
     <section><h3>Materialübersicht</h3><p>${esc(h.material.join(' · '))}</p>${h.checks.length ? `<h3>Hinweise</h3><ul>${h.checks.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}${h.notes ? `<h3>Coaching-Notizen</h3><p>${esc(h.notes)}</p>` : ''}</section>
     <p class="foot">Lokal erstellt mit TRAINR. Altersgrenzen, Maße und Mengen sind Vorschläge, keine Normen. Spielerzahlen ohne Trainer.</p></div>`;

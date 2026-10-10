@@ -1,11 +1,12 @@
 const { test, expect } = require('@playwright/test');
-const { watchErrors, onboard, plan, createSession, go } = require('./helpers.cjs');
+const { watchErrors, onboard, plan, createSession, setPauses, go } = require('./helpers.cjs');
 
 test('Trainingsmodus: Timer, Pause, Blockwechsel, Vorschau, Blockende', async ({ page }) => {
   const errors = watchErrors(page);
   await page.clock.install();
   await onboard(page);
   await createSession(page);
+  await setPauses(page, { count: 0, minutes: 2 }); // Grundabläufe ohne Pausen; Pausen: pauses.spec.cjs
   const p = await plan(page);
   await page.click('#t-start');
   await expect(page.locator('section[data-view=training]')).toBeVisible();
@@ -47,6 +48,7 @@ test('Trainingsmodus: Auto-Weiter und Vorwarnung', async ({ page }) => {
   await page.clock.install();
   await onboard(page);
   await createSession(page);
+  await setPauses(page, { count: 0, minutes: 2 }); // Grundabläufe ohne Pausen; Pausen: pauses.spec.cjs
   await page.evaluate(() => { window.__trainr.store.setting('autoAdvance', true); window.__trainr.store.setting('warnSeconds', 30); });
   const p = await plan(page);
   await page.click('#t-start');

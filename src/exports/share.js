@@ -1,7 +1,7 @@
 // Download, Web-Share und teilbare Plan-Dateien (.trainr.json). Kein Server, keine Links nach außen.
 import * as store from '../core/store.js';
-import { exercise, activeTeam } from '../core/planning.js';
-import { validCustom } from '../core/schema.js';
+import { exercise, activeTeam, remapPauses } from '../core/planning.js';
+import { validCustom, validPauses } from '../core/schema.js';
 import { SEED } from '../data/drills.js';
 import { uid, slug, fileDate, deepClone, APP_VERSION, text as isText } from '../core/util.js';
 import { toast } from '../ui/feedback.js';
@@ -62,13 +62,14 @@ export function importSharedPlan(obj) {
     if (!validCustom(copy, known)) throw new Error('Eine eigene Übung in der Datei ist ungültig.');
     known.add(copy.id); remap.set(c.id, copy.id); addCustom.push(copy);
   }
-  const p = obj.plan;
+  const p = obj.plan, ids = new Map();
   const plan = {
     id: uid(), teamId: team.id, name: isText(p.name, 80) ? p.name : 'Geteilte Einheit', people: Number.isInteger(p.people) ? p.people : 12,
     slot: team.slots[0].day, focus: p.focus || 'Alle', notes: typeof p.notes === 'string' ? p.notes.slice(0, 2000) : '', goal: typeof p.goal === 'string' ? p.goal.slice(0, 200) : '', date: null,
-    blocks: p.blocks.map(b => { const n = { id: uid(), exerciseId: remap.get(b.exerciseId) || b.exerciseId, minutes: b.minutes }; if (b.people !== undefined) n.people = b.people; if (typeof b.note === 'string' && b.note) n.note = b.note.slice(0, 300); return n; }),
+    blocks: p.blocks.map(b => { const n = { id: uid(), exerciseId: remap.get(b.exerciseId) || b.exerciseId, minutes: b.minutes }; ids.set(b.id, n.id); if (b.people !== undefined) n.people = b.people; if (typeof b.note === 'string' && b.note) n.note = b.note.slice(0, 300); return n; }),
   };
   if (p.age) plan.age = p.age;
+  if (p.pauses !== undefined && validPauses(p.pauses)) plan.pauses = remapPauses(p.pauses, ids);
   for (const b of plan.blocks) if (!exercise({ ...s, custom: [...s.custom, ...addCustom] }, b.exerciseId)) throw new Error('Die Einheit enthält eine unbekannte Übung.');
   store.update('Einheit importiert', d => { d.custom.push(...addCustom); d.plans.push(plan); d.selectedPlanId = plan.id; });
   undoToast(`„${plan.name}“ importiert${addCustom.length ? ` (mit ${addCustom.length} eigenen Übungen)` : ''}.`);

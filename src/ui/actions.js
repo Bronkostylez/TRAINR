@@ -1,7 +1,7 @@
 // Gemeinsame Aktionen mehrerer Ansichten. Jede Änderung ist rückgängig machbar.
 import * as store from '../core/store.js';
 import { uid, deepClone } from '../core/util.js';
-import { exercise, effective, currentPlan, activeTeam } from '../core/planning.js';
+import { exercise, effective, currentPlan, activeTeam, remapPauses } from '../core/planning.js';
 import { LIMITS } from '../core/schema.js';
 import { toast, haptic } from './feedback.js';
 
@@ -60,7 +60,9 @@ export function duplicatePlan(id, { asTemplate = false, fromTemplate = false } =
   if (s.plans.length >= LIMITS.plans) { toast(`Maximal ${LIMITS.plans} Einheiten.`); return null; }
   const copy = deepClone(src);
   copy.id = uid();
-  copy.blocks.forEach(b => { b.id = uid(); });
+  const ids = new Map();
+  copy.blocks.forEach(b => { const id = uid(); ids.set(b.id, id); b.id = id; });
+  if (copy.pauses) copy.pauses = remapPauses(copy.pauses, ids);
   copy.template = asTemplate || undefined;
   if (copy.template === undefined) delete copy.template;
   if (fromTemplate) { copy.teamId = s.activeTeamId; copy.slot = activeTeam(s)?.slots[0]?.day ?? null; }

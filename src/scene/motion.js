@@ -1,6 +1,6 @@
 // Choreografie der schematischen Übungsdurchläufe (aus V20 übernommen, als Modul bereinigt).
 // Geschwindigkeiten in Platzeinheiten pro Sekunde (≈10 Einheiten = 1 m). Wege sind NICHT maßstabsgetreu.
-import { validAnimation } from '../core/schema.js';
+import { normAnimation } from '../core/schema.js';
 let resolveExercise = () => null;
 /** Muss einmal gesetzt werden, damit compile() Übungen über die ID findet. */
 export function setResolver(fn) { resolveExercise = fn; }
@@ -116,12 +116,12 @@ export function compile(scene, steps, opts = {}) {
 }
 /** Eigene Keyframe-Animation (Editor) als Zeitleiste. */
 function compileCustom(scene) {
-  const e = resolveExercise(scene.dataset.exercise);
-  if (!e || !validAnimation(e.animation)) return null;
-  const f = e.animation.frames, anims = [], total = f.reduce((s, x) => s + x.seconds * 1000, 0), starts = [];
+  const e = resolveExercise(scene.dataset.exercise), a = normAnimation(e?.animation);
+  if (!a || a.frames.length < 2) return null; // Ein Schritt = stehende Skizze
+  const f = a.frames, anims = [], total = f.reduce((s, x) => s + x.seconds * 1000, 0), starts = [];
   let t = 0; f.forEach(x => { starts.push(t); t += x.seconds * 1000; });
   scene.querySelectorAll('[data-actor]').forEach(g => {
-    const actor = g.dataset.actor, ix = actor === 'b0' ? 3 : +actor.slice(1), x = +g.dataset.x, y = +g.dataset.y;
+    const ix = +g.dataset.actor.slice(1), x = +g.dataset.x, y = +g.dataset.y;
     const ks = f.map((v, k) => ({ offset: starts[k] / total, transform: `translate(${v.points[ix][0] - x}px,${v.points[ix][1] - y}px)` }));
     ks.push({ ...ks.at(-1), offset: 1 });
     const a = g.animate(ks, { duration: total, fill: 'both', easing: 'ease-in-out' }); a.pause(); anims.push(a);

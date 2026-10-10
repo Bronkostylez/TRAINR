@@ -6,6 +6,7 @@ import { validProfile } from '../core/schema.js';
 import { icon, $, $$ } from '../ui/dom.js';
 import { stagger } from '../ui/motion.js';
 import { haptic } from '../ui/feedback.js';
+import { autoFill } from '../core/calendar.js';
 
 const TYPE_INFO = {
   field: ['⚽', 'Feldspieler', 'Technik, Spielformen, Torschuss'],
@@ -123,6 +124,7 @@ export const onboardingView = {
       onDone: team => {
         store.update('Mannschaft angelegt', d => {
           d.teams.push(team); d.activeTeamId = team.id;
+          autoFill(d); // Trainingstage sofort als Serie im Kalender
           // Pläne aus V20 ohne Mannschaft gehören zur ersten Mannschaft.
           for (const p of d.plans) if (p.teamId === null) { p.teamId = team.id; if (!team.slots.some(s => s.day === p.slot)) p.slot = team.slots[0].day; }
           if (!d.plans.some(p => !p.template && p.teamId === team.id)) {

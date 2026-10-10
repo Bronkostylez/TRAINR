@@ -44,5 +44,9 @@ async function createSession(page) {
 async function noOverflow(page) {
   return page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
 }
+/** Gesamtdauer der aktuellen Einheit inkl. eingeplanter Pausen. */
+const planTotal = page => page.evaluate(async () => { const P = await import('/src/core/planning.js'), s = window.__trainr.store.get(); return P.totalMinutes(P.currentPlan(s), s); });
+/** Pausen der aktuellen Einheit setzen (z. B. { count: 0, minutes: 2 } = keine). */
+const setPauses = (page, cfg) => page.evaluate(c => window.__trainr.store.update('Pausen', d => { d.plans.find(p => p.id === d.selectedPlanId).pauses = c; }), cfg);
 const go = (page, hash) => page.evaluate(h => { location.hash = h; }, hash);
-module.exports = { watchErrors, onboard, closeTour, state, plan, createSession, noOverflow, go };
+module.exports = { watchErrors, onboard, closeTour, state, plan, planTotal, setPauses, createSession, noOverflow, go };

@@ -1,53 +1,72 @@
 const { test, expect } = require('@playwright/test');
 const { watchErrors, onboard, state, plan, go } = require('./helpers.cjs');
 
-test('Eigene Übung mit Material und Animation anlegen, bearbeiten, verwenden, löschen', async ({ page }) => {
+test('Eigene Übung: Pflichtfelder, Skizze mit Animation, Material-Auswahl, bearbeiten, verwenden, löschen', async ({ page }) => {
   const errors = watchErrors(page);
   await onboard(page);
   await go(page, '#uebungen');
   await page.click('#lib-new');
   const f = page.locator('#ed');
-  // Pflichtfelder
+  // Pflicht: Name, dann Material
   await page.click('dialog[open] button[type=submit]');
   await expect(page.locator('#ed-err')).toContainText('Namen');
   await f.locator('[name=name]').fill('Dreieckspass mit Abschluss');
+  await page.click('dialog[open] button[type=submit]');
+  await expect(page.locator('#ed-err')).toContainText('Material');
+  // Skizze: Keeper und Ball setzen
+  const pitch = page.locator('#ed-pitch');
+  const at = async (fx, fy) => { await pitch.scrollIntoViewIfNeeded(); const r = await pitch.boundingBox(); return [r.x + r.width * fx, r.y + r.height * fy]; };
+  await page.click('[data-tool="k"]');
+  await page.mouse.click(...await at(.8, .5));
+  await page.click('[data-tool="ball"]');
+  await page.mouse.click(...await at(.3, .5));
+  await expect(pitch.locator('.goalkeeper')).toHaveCount(1);
+  // Material aus der Skizze übernommen, Spielerzahl vorgeschlagen
+  await expect(page.locator('.mat.on[data-mat="Bälle"] b')).toHaveText('1');
+  await expect(f.locator('[name=min]')).toHaveValue('1');
+  // Schritt 2: Ball zum Keeper ziehen
+  await page.click('#ed-fadd');
+  await page.fill('#ed-cap', 'Ball zum Keeper');
+  await page.mouse.move(...await at(.3, .5));
+  await page.mouse.down();
+  await page.mouse.move(...await at(.6, .5), { steps: 4 });
+  await page.mouse.move(...await at(.74, .5), { steps: 4 });
+  await page.mouse.up();
+  await expect(pitch.locator('.sketch-trail.ball')).toHaveCount(1);
+  // Material per Auswahl: Minitore an, eins mehr
+  await page.click('.mat[data-mat="Minitore"] .mat-toggle');
+  await page.click('.mat[data-mat="Minitore"] [data-mat-d="1"]');
+  await page.fill('#ed-mat-new', 'Stoppuhr'); await page.keyboard.press('Enter');
+  // Spieler pro Gruppe per Stepper
+  await page.click('[data-step="min"][data-d="1"]'); await page.click('[data-step="min"][data-d="1"]');
+  await page.click('[data-step="max"][data-d="-1"]');
+  // Optionale Angaben
+  await page.click('#ed-more summary');
   await f.locator('[name=goal]').fill('Schnell kombinieren');
-  await f.locator('[name=description]').fill('Im Dreieck passen. Dritter Pass in den Lauf. Abschluss aufs Minitor.');
-  await f.locator('[name=min]').fill('3'); await f.locator('[name=max]').fill('4');
-  await page.click('#ed-eq-add');
-  const rows = page.locator('[data-eqrow]');
-  await rows.last().locator('input').nth(0).fill('1');
-  await rows.last().locator('input').nth(1).fill('Minitor');
   await f.locator('[name=url]').fill('http://unsicher.example');
   await page.click('dialog[open] button[type=submit]');
   await expect(page.locator('#ed-err')).toContainText('https');
   await f.locator('[name=url]').fill('');
-  // Animation: Keeper lila setzen, Schritt hinzufügen
-  await page.click('#ed-anim summary');
-  const pitch = page.locator('#ed-pitch');
-  await page.click('[data-actor="2"]');
-  const box = await pitch.boundingBox();
-  await page.mouse.click(box.x + box.width * .8, box.y + box.height * .5);
-  await page.click('#ed-fadd');
-  await page.fill('#ed-cap', 'Ball zum Keeper');
-  await page.click('[data-actor="3"]');
-  await page.mouse.click(box.x + box.width * .75, box.y + box.height * .5);
-  await expect(pitch.locator('circle[fill="#9154d9"]')).toHaveCount(1);
   await page.click('dialog[open] button[type=submit]');
   await expect(page.locator('dialog[open] .sheet-head h2')).toHaveText('Dreieckspass mit Abschluss');
   let s = await state(page);
   const c = s.custom[0];
-  expect(c).toMatchObject({ name: 'Dreieckspass mit Abschluss', goal: 'Schnell kombinieren', min: 3, max: 4, custom: true });
-  expect(c.equipment).toContainEqual(['Minitor', 1]);
-  expect(c.animation.frames.length).toBe(3);
-  expect(c.animation.frames[1].caption).toBe('Ball zum Keeper');
+  expect(c).toMatchObject({ name: 'Dreieckspass mit Abschluss', goal: 'Schnell kombinieren', min: 3, max: 3, custom: true, description: 'Ball zum Keeper.' });
+  expect(c.equipment).toEqual([['Bälle', 1], ['Minitore', 3], ['Stoppuhr', 1]]);
+  expect(c.animation).toMatchObject({ version: 2, items: [{ k: 'k' }, { k: 'ball' }] });
+  expect(c.animation.frames.map(x => x.caption)).toEqual(['Aufbau', 'Ball zum Keeper']);
+  expect(c.animation.frames[1].points[1][0]).toBeGreaterThan(c.animation.frames[0].points[1][0] + 100);
+  expect(c.animation.frames[1].points[0]).toEqual(c.animation.frames[0].points[0]);
   // Detail zeigt eigene Animation mit lila Keeper
   await expect(page.locator('dialog[open] #d-scene .goalkeeper')).toHaveCount(1);
   await page.click('dialog[open] #d-add');
   await page.click('dialog[open] #d-edit');
+  await expect(page.locator('#ed-pitch .goalkeeper')).toHaveCount(1);
+  await page.click('#ed-more summary');
   await page.locator('#ed [name=minutes]').fill('11');
   await page.click('dialog[open] button[type=submit]');
   await expect.poll(async () => (await state(page)).custom[0].minutes).toBe(11);
+  expect((await state(page)).custom[0].animation.frames.length).toBe(2);
   expect((await plan(page)).blocks[0].exerciseId).toBe(c.id);
   // Löschen entfernt auch Blöcke
   await page.keyboard.press('Escape');
@@ -59,6 +78,43 @@ test('Eigene Übung mit Material und Animation anlegen, bearbeiten, verwenden, l
   expect((await plan(page)).blocks.length).toBe(0);
   await page.locator('.toast button').click();
   await expect.poll(async () => (await state(page)).custom.length).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test('Skizzen-Editor: Vorlage, Entfernen, Rückgängig, stehende Skizze', async ({ page }) => {
+  const errors = watchErrors(page);
+  await onboard(page);
+  await go(page, '#uebungen');
+  await page.click('#lib-new');
+  await page.fill('#ed [name=name]', 'Rondo');
+  await page.click('#ed-tpl');
+  await page.click('dialog[open] [data-tpl="Rondo 3 gegen 1"]');
+  const pitch = page.locator('#ed-pitch');
+  await expect(pitch.locator('[data-i]')).toHaveCount(9);
+  await expect(pitch.locator('.opponent')).toHaveCount(1);
+  // Hütchen, Ball und Leibchen als Material übernommen, Spieler pro Gruppe = 4
+  await expect(page.locator('.mat.on[data-mat="Hütchen"] b')).toHaveText('4');
+  await expect(page.locator('.mat.on[data-mat="Leibchen"]')).toHaveCount(1);
+  await expect(page.locator('#ed [name=min]')).toHaveValue('4');
+  // Element auswählen und entfernen, dann rückgängig
+  await pitch.locator('[data-i="3"]').click();
+  await page.click('#ed-del');
+  await expect(pitch.locator('.opponent')).toHaveCount(0);
+  await page.click('#ed-undo');
+  await expect(pitch.locator('.opponent')).toHaveCount(1);
+  // Tastatur: Entf entfernt das fokussierte Element
+  await pitch.locator('[data-i="4"]').focus();
+  await page.keyboard.press('Delete');
+  await expect(pitch.locator('.sketch-ball')).toHaveCount(0);
+  await page.click('dialog[open] button[type=submit]');
+  await expect(page.locator('dialog[open] .sheet-head h2')).toHaveText('Rondo');
+  const c = (await state(page)).custom[0];
+  expect(c.animation.frames.length).toBe(1);
+  expect(c.animation.items.length).toBe(8);
+  expect(c.description).toBe('Aufbau und Ablauf siehe Platzskizze.');
+  // Stehende Skizze: keine Schrittanzeige, Hütchen sichtbar
+  await expect(page.locator('dialog[open] #d-scene .setup-cone')).toHaveCount(4);
+  await expect(page.locator('dialog[open] #d-scene .scene-step-label')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -85,8 +141,9 @@ test('Mehrere Mannschaften: anlegen, wechseln, Einheiten getrennt, Kopie für an
   await expect(page.locator('#pl-switch')).toContainText('1 Einheit');
   // Bibliothek filtert auf Torwart
   await go(page, '#uebungen');
-  const types = await page.locator('#lib-grid .drill .tag.keeper').count();
-  expect(types).toBe(await page.locator('#lib-grid .drill').count());
+  // In einem Schritt prüfen: die Bibliothek zeichnet nach den ersten 12 Karten in Etappen nach.
+  await expect(page.locator('#lib-grid .drill').first()).toBeVisible();
+  expect(await page.locator('#lib-grid .drill').evaluateAll(els => els.every(e => e.querySelector('.tag.keeper')))).toBe(true);
   // Wechsel per Chip
   await page.click('#team-chip');
   await page.locator('dialog[open] [data-team]').filter({ hasText: 'E2' }).click();

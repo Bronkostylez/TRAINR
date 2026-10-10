@@ -1,6 +1,6 @@
 // Zielzeit-basierter Trainings-Timer. Läuft unabhängig von der Ansicht weiter; Zustand übersteht ein Neuladen (sessionStorage).
 import * as store from './store.js';
-import { currentPlan } from './planning.js';
+import { currentPlan, sessionSteps } from './planning.js';
 
 const KEY = 'trainr-timer';
 let t = { planId: null, blockId: null, remaining: 0, deadline: null, warned: false, ended: false, extra: 0 };
@@ -14,7 +14,8 @@ const emit = () => { persist(); for (const fn of listeners) fn(snapshot()); };
 function persist() { try { sessionStorage.setItem(KEY, JSON.stringify(t)); } catch { /* egal */ } }
 
 function plan() { return currentPlan(store.get()); }
-function blocks() { return plan()?.blocks || []; }
+/** Ablauf inkl. eingeplanter Pausen – Pausen laufen wie Blöcke mit eigenem Countdown. */
+function blocks() { const s = store.get(), p = currentPlan(s); return p ? sessionSteps(s, p) : []; }
 export function index() { const i = blocks().findIndex(b => b.id === t.blockId); return i < 0 ? 0 : i; }
 const block = () => blocks()[index()] || null;
 export const running = () => !!t.deadline;
@@ -30,9 +31,9 @@ export function sync() {
   const p = plan();
   if (!p || !p.blocks.length) { stopTick(); t = { planId: p?.id ?? null, blockId: null, remaining: 0, deadline: null, warned: false, ended: false, extra: 0 }; emit(); return; }
   if (t.planId !== p.id) { stopTick(); t = { planId: p.id, blockId: p.blocks[0].id, remaining: p.blocks[0].minutes * 60, lastFull: p.blocks[0].minutes * 60, deadline: null, warned: false, ended: false, extra: 0 }; lastIndex = 0; emit(); return; }
-  const b = p.blocks.find(x => x.id === t.blockId);
+  const bs = blocks(), b = bs.find(x => x.id === t.blockId);
   if (!b) { // aktueller Block wurde entfernt
-    stopTick(); t.blockId = p.blocks[Math.min(p.blocks.length - 1, Math.max(0, lastIndex))].id; t.remaining = block().minutes * 60; t.lastFull = t.remaining; t.extra = 0; t.warned = t.ended = false; emit(); return;
+    stopTick(); t.blockId = bs[Math.min(bs.length - 1, Math.max(0, lastIndex))].id; t.remaining = block().minutes * 60; t.lastFull = t.remaining; t.extra = 0; t.warned = t.ended = false; emit(); return;
   }
   // Blockdauer im Plan geändert und Timer steht am Anfang: neue Dauer übernehmen
   if (!running() && !t.ended && t.remaining === t.lastFull) t.remaining = b.minutes * 60 + t.extra;
