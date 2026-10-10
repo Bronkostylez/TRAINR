@@ -1,10 +1,11 @@
 // Choreografie der schematischen Übungsdurchläufe (aus V20 übernommen, als Modul bereinigt).
 // Geschwindigkeiten in Platzeinheiten pro Sekunde (≈10 Einheiten = 1 m). Wege sind NICHT maßstabsgetreu.
 import { normAnimation } from '../core/schema.js';
+import { SCRIPTS, scriptPlan } from './scripts.js';
 let resolveExercise = () => null;
 /** Muss einmal gesetzt werden, damit compile() Übungen über die ID findet. */
 export function setResolver(fn) { resolveExercise = fn; }
-const SP={walk:20,shuffle:26,jog:42,dribble:30,sprint:62,roll:80,toss:72,pass:125,shot:175};
+const SP={walk:20,shuffle:26,jog:42,dribble:30,sprint:62,roll:80,toss:72,chip:95,pass:125,shot:175};
 const ease={run:'cubic-bezier(.35,0,.35,1)',ball:'cubic-bezier(.15,.55,.35,1)',snap:'cubic-bezier(.4,0,.2,1)'};
 const OFF=[11,3];
 const D=(i,x,y,sp='dribble',b='b'+i)=>({a:'p'+i,x,y,sp,carry:b});
@@ -15,6 +16,7 @@ const ev=(m,hold=.3)=>({m,hold});
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function plan(kind,e,ps){
  if(!ps.length)return null;
+ if(kind==='script')return SCRIPTS[e.id]?scriptPlan(SCRIPTS[e.id]):null;
  const A=ps.map((p,i)=>({i,x:p[0],y:p[1],l:p[2],op:!!p[3]})),mine=A.filter(p=>!p.op&&p.l!=='N'&&p.l!=='K'),opp=A.filter(p=>p.op&&p.l!=='K'),own=ps.map(p=>[p[0]+OFF[0],p[1]+OFF[1]]);
  const balls=[['b0',...own[0]]];let events=[];const ball1=()=>balls.push(['b1',...own[1]]);
  const pairSet=()=>{};
@@ -61,42 +63,70 @@ export function plan(kind,e,ps){
  default:return null;}
  return events.length?{balls,extras:[],events}:null;
 }
+const NS='http://www.w3.org/2000/svg';
+const LOFT=new Set(['toss','chip']);
+const TRAIL_OP={pass:.95,dribble:.7,run:.42};
 function compileSeed(scene,steps,{camera=false}={}){
  const kind=scene.dataset.setup,e=resolveExercise(scene.dataset.exercise);if(!e||kind==='custom')return null;
  const actors={};scene.querySelectorAll('[data-actor]').forEach(el=>{actors[el.dataset.actor]={el,x:+el.dataset.x,y:+el.dataset.y,k:[]};});
  const ps=[];for(let i=0;actors['p'+i];i++)ps.push([actors['p'+i].x,actors['p'+i].y,actors['p'+i].el.dataset.label,actors['p'+i].el.dataset.op==='1']);
  const pl=plan(kind,e,ps);if(!pl)return null;
+ const marked=pl.events.some(x=>x.s!=null);
  const pos={};for(const id in actors)pos[id]=[actors[id].x,actors[id].y];
- const T=[],INTRO=camera?.9:.45,OUTRO=camera?1.3:1;let t=INTRO;
+ const INTRO=marked?1.1:camera?.9:.45,OUTRO=camera?1.3:1;let t=INTRO;
  for(const id in actors)actors[id].k.push({t:0,x:pos[id][0],y:pos[id][1],e:'linear'},{t:INTRO,x:pos[id][0],y:pos[id][1],e:'linear'});
  const cam=[{t:0,x:160,y:95,s:1,e:ease.snap},{t:INTRO,x:160,y:95,s:1,e:ease.snap}];
- const blend=id=>{const b=pos.b0||[160,95];return[b[0]*.6+160*.4,b[1]*.6+95*.4];};
- const evs=[];
+ const blend=()=>{const b=pos.b0||[160,95];return[b[0]*.6+160*.4,b[1]*.6+95*.4];};
+ const evs=[],trails=[];
  for(const event of pl.events){
   const moves=[];
   for(const m of event.m){if(m.to){const target=event.m.find(x=>x.a===m.to&&x.x!=null);const base=target?[target.x,target.y]:pos[m.to];moves.push({id:m.a,x:base[0]+OFF[0],y:base[1]+OFF[1],sp:m.sp,kind:'ball'});}
-   else if(m.carry){moves.push({id:m.a,x:m.x,y:m.y,sp:m.sp,kind:'run'});moves.push({id:m.carry,x:m.x+OFF[0],y:m.y+OFF[1],sp:m.sp,kind:'run',follow:m.a});}
+   else if(m.carry){moves.push({id:m.a,x:m.x,y:m.y,sp:m.sp,kind:'run',carry:true});moves.push({id:m.carry,x:m.x+OFF[0],y:m.y+OFF[1],sp:m.sp,kind:'run',follow:m.a});}
    else moves.push({id:m.a,x:m.x,y:m.y,sp:m.sp,kind:m.abs?'ball':(m.a[0]==='b'?'ball':'run')});}
   let dur=.35;for(const m of moves){const p=pos[m.id];if(!p)continue;m.d=Math.hypot(m.x-p[0],m.y-p[1])/SP[m.sp];dur=Math.max(dur,m.d);}
   const t0=t,t1=t+dur;
   for(const m of moves){const p=pos[m.id];if(!p)continue;const a=actors[m.id];const fl=m.follow?moves.find(x=>x.id===m.follow):null;const d=fl?fl.d:m.d;const end=t0+Math.max(.2,Math.min(dur,d));
-   a.k.push({t:t0,x:p[0],y:p[1],e:m.kind==='ball'?ease.ball:ease.run},{t:end,x:m.x,y:m.y,e:'linear'});pos[m.id]=[m.x,m.y];}
-  evs.push({t0,t1,hold:event.hold,ids:moves.map(m=>m.id).filter(id=>id[0]==='p')});
+   const len=Math.hypot(m.x-p[0],m.y-p[1]),loft=m.kind==='ball'&&LOFT.has(m.sp)&&len>20,lift=loft?Math.min(26,len*.18):0;
+   if(loft){const mt=(t0+end)/2;a.k.push({t:t0,x:p[0],y:p[1],s:1,e:'cubic-bezier(.3,.6,.5,1)'},{t:mt,x:(p[0]+m.x)/2,y:(p[1]+m.y)/2-lift,s:1.5,e:'cubic-bezier(.5,0,.7,.4)'},{t:end,x:m.x,y:m.y,s:1,e:'linear'});}
+   else a.k.push({t:t0,x:p[0],y:p[1],e:m.kind==='ball'?ease.ball:ease.run},{t:end,x:m.x,y:m.y,e:'linear'});
+   // Spuren: Ballwege (Pass/Schuss), Dribbelwege und längere Laufwege
+   const type=m.follow?null:m.kind==='ball'?'pass':m.carry?'dribble':len>24?'run':null;
+   if(type&&len>8)trails.push({type,x1:p[0],y1:p[1],x2:m.x,y2:m.y,lift,t0,t1:end});
+   pos[m.id]=[m.x,m.y];}
+  evs.push({t0,t1,hold:event.hold,s:event.s,ids:moves.map(m=>m.id).filter(id=>id[0]==='p')});
   const b=blend();cam.push({t:t0+(t1-t0)*.15,x:b[0],y:b[1],s:1.17,e:ease.snap});
   t=t1+event.hold;for(const id in actors){const k=actors[id].k;const last=k[k.length-1];if(last.t<t)k.push({t,x:pos[id][0],y:pos[id][1],e:'linear'});}
+  for(const tr of trails)if(tr.fade==null)tr.fade=t+.6;
   cam.push({t:t-.05,x:blend()[0],y:blend()[1],s:1.17,e:ease.snap});
  }
  const total=t+OUTRO;
  for(const id in actors){actors[id].k.push({t:total,x:pos[id][0],y:pos[id][1],e:'linear'});}
  cam.push({t:total,x:160,y:95,s:1,e:ease.snap});
  const anims=[];const mk=(el,list,fn)=>{const frames=[];let lastT=-1;for(const k of list){if(k.t<=lastT)k.t=lastT+.0001;lastT=k.t;frames.push({offset:Math.min(1,k.t/total),transform:fn(k),easing:k.e});}frames[frames.length-1].offset=1;frames[0].offset=0;const a=el.animate(frames,{duration:total*1000,fill:'both',easing:'linear'});a.pause();anims.push(a);};
- for(const id in actors){const a=actors[id];const k0=a.k.slice();mk(a.el,k0,k=>`translate(${(k.x-a.x).toFixed(2)}px,${(k.y-a.y).toFixed(2)}px)`);}
+ for(const id in actors){const a=actors[id],ball=id[0]==='b';mk(a.el,a.k.slice(),k=>`translate(${(k.x-a.x).toFixed(2)}px,${(k.y-a.y).toFixed(2)}px)${ball?` scale(${k.s||1})`:''}`);}
+ // Spuren unter die Spieler legen; sie zeichnen sich mit Ball bzw. Läufer und verblassen nach der Phase.
+ const host=scene.querySelector('.cam'),trailG=document.createElementNS(NS,'g');trailG.setAttribute('class','mv-trails');
+ if(host)host.insertBefore(trailG,host.querySelector('[data-actor]'));
+ const at=x=>clamp(x/total,0,1);
+ for(const tr of trails){
+  const path=document.createElementNS(NS,'path'),mx=(tr.x1+tr.x2)/2,my=(tr.y1+tr.y2)/2-tr.lift*2;
+  path.setAttribute('d',tr.lift?`M${tr.x1} ${tr.y1}Q${mx.toFixed(1)} ${my.toFixed(1)} ${tr.x2} ${tr.y2}`:`M${tr.x1} ${tr.y1}L${tr.x2} ${tr.y2}`);
+  path.setAttribute('class','mv-trail '+tr.type);trailG.appendChild(path);
+  const op=TRAIL_OP[tr.type],draw=tr.type==='pass';
+  if(draw){path.setAttribute('pathLength','1');path.style.strokeDasharray='1 1';}
+  const fade=tr.fade??tr.t1+.6,o0=at(tr.t0),o1=Math.max(o0+.0005,at(tr.t1)),o2=Math.max(o1+.0005,at(fade)),o3=Math.min(1,Math.max(o2+.0005,at(fade+.5)));
+  // Ballwege zeichnen sich mit dem Ball, Lauf- und Dribbelwege blenden während der Bewegung ein; danach verblassen beide.
+  const fr=draw?[{offset:0,opacity:0,strokeDashoffset:1},{offset:o0,opacity:0,strokeDashoffset:1},{offset:Math.min(o1,o0+.0004),opacity:op,strokeDashoffset:1},{offset:o1,opacity:op,strokeDashoffset:0},{offset:o2,opacity:op,strokeDashoffset:0},{offset:o3,opacity:0,strokeDashoffset:0},{offset:1,opacity:0,strokeDashoffset:0}]
+   :[{offset:0,opacity:0},{offset:o0,opacity:0},{offset:o1,opacity:op},{offset:o2,opacity:op},{offset:o3,opacity:0},{offset:1,opacity:0}];
+  const an=path.animate(fr,{duration:total*1000,fill:'both',easing:'linear'});an.pause();anims.push(an);
+ }
  const camEl=scene.querySelector('.cam');
- if(camera&&camEl){const lim=s=>[clamp,s];mk(camEl,cam,k=>{const s=k.s,cx=clamp(k.x,160/s,320-160/s),cy=clamp(k.y,95/s,190-95/s);return `translate(160px,95px) scale(${s}) translate(${-cx.toFixed(2)}px,${-cy.toFixed(2)}px)`;});}
- // Step n covers an equal share of the run, so every written step is shown before the end.
+ if(camera&&camEl){mk(camEl,cam,k=>{const s=k.s,cx=clamp(k.x,160/s,320-160/s),cy=clamp(k.y,95/s,190-95/s);return `translate(160px,95px) scale(${s}) translate(${-cx.toFixed(2)}px,${-cy.toFixed(2)}px)`;});}
  const n=Math.max(1,steps),body=total-INTRO-OUTRO;
- const stepAt=ms=>{const s=ms/1000;if(s<=INTRO)return 0;if(s>=total-OUTRO)return n-1;return Math.min(n-1,Math.floor((s-INTRO)/body*n));};
- const stepStart=i=>Math.round((INTRO+body*i/n)*1000+(i?30:0));
+ // Skripte markieren je Phase den passenden Ablaufschritt; sonst bekommt jeder Schritt einen gleich großen Anteil.
+ const marks=marked?evs.map(x=>[x.t0,Math.min(n-1,x.s??0)]):null;
+ const stepAt=ms=>{const s=ms/1000;if(marks){let cur=0;for(const [t0,i] of marks)if(s>=t0-.02)cur=i;return cur;}if(s<=INTRO)return 0;if(s>=total-OUTRO)return n-1;return Math.min(n-1,Math.floor((s-INTRO)/body*n));};
+ const stepStart=i=>{if(marks){if(!i)return 0;const m=marks.find(([,k])=>k>=i);return Math.round((m?m[0]:total-OUTRO)*1000)+30;}return Math.round((INTRO+body*i/n)*1000+(i?30:0));};
  scene.classList.add('motion-on');
  const first=anims[0];
  return {total:Math.round(total*1000),anims,evs,stepAt,stepStart,intro:INTRO,
@@ -108,7 +138,7 @@ function compileSeed(scene,steps,{camera=false}={}){
   get playing(){return first.playState==='running';},
   get finished(){return (first.currentTime||0)>=this.total-1;},
   moving(ms){const s=ms/1000;return evs.find(x=>s>=x.t0&&s<=x.t1)?.ids||[];},
-  destroy(){anims.forEach(a=>a.cancel());scene.classList.remove('motion-on');}};
+  destroy(){anims.forEach(a=>a.cancel());trailG.remove();scene.classList.remove('motion-on');}};
 }
 export function compile(scene, steps, opts = {}) {
   if (scene?.dataset.setup === 'customAnimation') return compileCustom(scene);

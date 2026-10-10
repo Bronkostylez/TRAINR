@@ -81,7 +81,7 @@ export const todayView = {
           <div><strong>${p.people}</strong><small>Spieler</small></div>
         </div>
         ${p.blocks.length ? `<div class="hero-bar" aria-hidden="true">${p.blocks.map(b => `<i style="width:${(b.minutes / Math.max(total, avail || total)) * 100}%"></i>`).join('')}</div>` : ''}
-        ${fm.list.length ? `<div class="hero-foci"><span class="tiny">Im Fokus</span>${focusChips(fm.list.map(o => ({ key: o.key, minutes: o.minutes })), { max: 4, link: true, mark: p.focus })}</div>` : ''}
+        ${fm.list.length ? `<div class="hero-foci"><span class="tiny">Im Fokus</span>${focusChips(fm.list.map(o => ({ key: o.key, minutes: o.minutes })), { max: 3, link: true, mark: p.focus })}</div>` : ''}
         ${warns.length ? `<p class="small hero-warn">${icon('warn')} ${esc(warns[0].text)}</p>` : ''}
         <div class="row" style="margin-top:16px">
           <button class="btn accent lg grow" type="button" id="t-start" ${p.blocks.length ? '' : 'disabled'}>${icon('start')} Training starten</button>
@@ -117,17 +117,18 @@ export const todayView = {
       ${events.length ? `<div class="stack" id="t-events">${events.map(ev => eventCard(s, ev, { showDate: true })).join('')}</div>`
         : `<div class="notice">${icon('calendar')}<span class="grow">Noch keine Termine. Trage deine Trainingstage als Serie ein – mit Erinnerung.</span><button class="btn sm" type="button" id="t-series">Serie anlegen</button></div>`}
 
-      ${recent.trained.total ? `<div class="section"><h2>Zuletzt trainiert</h2><button class="btn ghost sm" type="button" id="t-rueck">${icon('chart')} Rückblick</button></div>
-      <div class="card focus-recap"><p class="tiny" style="margin:0 0 6px">Letzte 14 Tage · ${recent.held} ${recent.held === 1 ? 'Training' : 'Trainings'} · ${recent.trained.total} Min</p>${areaBar(recent.trained)}
+      ${recent.trained.total ? `<details class="disclosure focus-recap" id="t-recap" style="margin-top:16px"><summary><span class="grow">Zuletzt trainiert <span class="tiny">· ${recent.held} ${recent.held === 1 ? 'Training' : 'Trainings'} · ${recent.trained.total} Min</span></span></summary>
+      <div class="body"><p class="tiny" style="margin:0 0 6px">Letzte 14 Tage</p>${areaBar(recent.trained)}
         <div style="margin-top:8px">${focusChips(recent.trained.list.map(o => ({ key: o.key, minutes: o.minutes })), { max: 6, link: true })}</div>
-        ${gaps.length ? `<p class="small muted" style="margin:8px 0 0">Seit 4 Wochen nicht dabei: ${focusChips(gaps, { max: 4, link: true, label: 'Lange nicht trainiert' })}</p>` : ''}</div>` : ''}
+        ${gaps.length ? `<p class="small muted" style="margin:8px 0 0">Seit 4 Wochen nicht dabei: ${focusChips(gaps, { max: 4, link: true, label: 'Lange nicht trainiert' })}</p>` : ''}
+        <button class="btn ghost sm" type="button" id="t-rueck" style="margin-top:8px">${icon('chart')} Rückblick</button></div></details>` : ''}
 
-      <div class="quick-grid">
-        <button class="quick" type="button" id="q-add">${icon('plus')}<strong>Übung hinzufügen</strong><small>Passende Vorschläge</small></button>
-        <button class="quick" type="button" id="q-lib">${icon('grid')}<strong>Bibliothek</strong><small>Alle Übungen & eigene</small></button>
-        <button class="quick" type="button" id="q-pack">${icon('cone')}<strong>Packliste</strong><small>Material abhaken</small></button>
-        <button class="quick" type="button" id="q-board">${icon('board')}<strong>Taktikboard</strong><small>Spieler frei bewegen</small></button>
-      </div>
+      <nav class="quick-row" aria-label="Schnellzugriff">
+        <button class="quick" type="button" id="q-add">${icon('plus')}<span>Übung</span></button>
+        <button class="quick" type="button" id="q-lib">${icon('grid')}<span>Bibliothek</span></button>
+        <button class="quick" type="button" id="q-pack">${icon('cone')}<span>Packliste</span></button>
+        <button class="quick" type="button" id="q-board">${icon('board')}<span>Taktik</span></button>
+      </nav>
       ${hasData && (backupAge === null || backupAge > 14) ? `<div class="notice" style="margin-top:16px">${icon('data')}<span class="grow">${backupAge === null ? 'Noch kein Backup erstellt.' : `Letztes Backup vor ${plural(backupAge, 'Tag', 'Tagen')}.`} Deine Daten liegen nur in diesem Browser.</span><button class="btn sm" type="button" id="t-backup">Sichern</button></div>` : ''}`;
     this.bind();
   },

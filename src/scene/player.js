@@ -11,7 +11,7 @@ export function mountPlayer(host, e, opts = {}) {
   const steps = stepsFor(e);
   let tl = null, step = 0, raf = 0, rate = 1, destroyed = false;
   const paintStatic = i => { host.innerHTML = drillPitch(e, true, i); };
-  const emitStep = i => { if (i !== step) { step = i; opts.onStep?.(i); } };
+  const emitStep = i => { if (i !== step) { step = i; const l = host.querySelector('.scene-step-label'); if (l) l.textContent = 'SCHRITT ' + (i + 1); opts.onStep?.(i); } };
   const loopFrame = () => {
     raf = 0; if (!tl || destroyed) return;
     emitStep(tl.stepAt(tl.time));

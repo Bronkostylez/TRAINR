@@ -3,6 +3,7 @@
 import { esc } from '../core/util.js';
 import { validAnimation, normAnimation } from '../core/schema.js';
 import { plan as motionPlan } from './motion.js';
+import { SCRIPTS, scriptRoute } from './scripts.js';
 
 // ---- Elemente eigener Skizzen (Detail, Training, Druck und Editor zeichnen gleich)
 export const SKETCH_ITEMS = { a: 'Spieler', b: 'Gegner', k: 'Keeper', ball: 'Ball', cone: 'Hütchen', mini: 'Minitor', goal: 'Tor' };
@@ -49,16 +50,21 @@ const SCENE_GROUPS={
 export const SETUP_KIND=Object.fromEntries(Object.entries(SCENE_GROUPS).flatMap(([kind,ids])=>ids.map(id=>[id,kind])));
 export function drillPitch(e,large=false,step=0){
  if(e.custom&&validAnimation(e.animation))return customPitch(e,large,step);
- const kind=e.custom?'custom':e.setupKind||SETUP_KIND[e.id]||'custom';
+ const sc=!e.custom&&SCRIPTS[e.id],kind=e.custom?'custom':sc?'script':e.setupKind||SETUP_KIND[e.id]||'custom';
  const player=(x,y,n,op=false)=>`<g class="pitch-player ${n==='K'?'goalkeeper':op?'opponent':''}"><circle cx="${x}" cy="${y}" r="10"/><text x="${x}" y="${y+3}">${n}</text></g>`;
  const cone=(x,y)=>`<path class="setup-cone" d="M${x-4} ${y+4}l4-9 4 9z"/>`;
  const gate=(x,y)=>cone(x,y-12)+cone(x,y+12);
  const goal=(x,y)=>`<rect class="setup-goal" x="${x}" y="${y}" width="10" height="25" rx="2"/>`;
- const zone=(x,y,w,h,label)=>`<g class="setup-zone"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="7"/><text x="${x+w/2}" y="${y+h/2+3}">${label}</text></g>`;
+ const zone=(x,y,w,h,label)=>`<g class="setup-zone"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="7"/><text x="${x+w/2}" y="${h>60?y+11:y+h/2+3}">${label}</text></g>`;
  let objects='',route='',ball=[65,100],name='Aufbau';let ps=[];
  const pair=()=>{ps=[[65,95,'1'],[250,95,'2']];ball=[80,95];route='M80 95 L235 95';};
  const match=(count=e.min,goals=true)=>{const each=Math.min(5,Math.floor(count/2));for(let i=0;i<each;i++){ps.push([75+(i%2)*30,48+i*23,String(i+1)]);ps.push([215+(i%2)*30,48+i*23,String(i+1),true]);}ball=[115,95];route='M115 95 L165 65 L205 110';if(goals){const four=e.equipment.some(([n,c])=>/tor/i.test(n)&&c===4);objects+=goal(24,four?45:82)+goal(286,four?45:82);if(four)objects+=goal(24,123)+goal(286,123);}};
+ const box=(x,y,w,h)=>`<rect class="setup-box" x="${x}" y="${y}" width="${w}" height="${h}" rx="2"/>`;
+ let statics=null;
  switch(kind){
+ case 'script':{const O={cone:(x,y)=>cone(x,y),gate:(x,y)=>gate(x,y),gateh:(x,y)=>cone(x-12,y)+cone(x+12,y),mini:(x,y)=>`<rect class="setup-goal" x="${x-4}" y="${y-10}" width="8" height="20" rx="2"/>`,goal:(x,y)=>`<rect class="setup-goal" x="${x-5}" y="${y-17}" width="10" height="34" rx="2"/>`,zone,line:(x1,y1,x2,y2)=>`<path class="setup-line" d="M${x1} ${y1}L${x2} ${y2}"/>`,box};
+   objects=sc.obj.map(([k,...a])=>O[k](...a)).join('');ps=sc.pl.map(([x,y,l,op])=>[x,y,l,!!op]);route=scriptRoute(sc);name=sc.name;
+   statics=sc.balls.map(b=>Array.isArray(b)?b:[sc.pl[b][0]+11,sc.pl[b][1]+3]);break;}
  case 'islands':objects=zone(90,35,42,35,'A')+zone(205,65,42,35,'B')+zone(125,120,42,35,'C');ps=[[60,110,'1'],[245,135,'2']];route='M65 110 Q65 48 105 52 L145 138';name='Freie Inseln';break;
  case 'signal':objects=zone(225,28,64,35,'SIGNAL');ps=[[65,65,'1'],[155,100,'2'],[240,140,'3']];route='M65 65 Q100 145 175 110 T245 145';name=e.id==='traffic'?'Grün · Gelb · Rot':'Bewegen · Signal · Stopp';break;
  case 'transport':objects=zone(30,35,65,120,'START')+zone(220,35,68,45,'ZIEL A')+zone(220,112,68,45,'ZIEL B');ps=[[65,85,'1'],[65,125,'2']];route='M65 85 L245 57';name='Start- und Zielzonen';break;
@@ -94,14 +100,13 @@ export function drillPitch(e,large=false,step=0){
  case 'keeperpair':pair();ps[0][2]='K';ps[1][2]='K';name='Zwei Keeper · Fußpässe';break;
  default:name='Eigene Übung · Text beachten';objects=zone(60,45,200,105,'DEIN AUFBAU');
  }
- if(ps.length)ball=kind==='keeperfloor'?ball:[ps[0][0]+15,ps[0][1]];
+ if(ps.length&&!statics)ball=kind==='keeperfloor'?ball:[ps[0][0]+15,ps[0][1]];
  const instruction=stepsFor(e)[step]||e.description;
- if(step&&ps.length>1){const active=ps[step%ps.length];ball=[active[0]+15,active[1]];}
+ if(step&&ps.length>1&&!statics){const active=ps[step%ps.length];ball=[active[0]+15,active[1]];}
  // Named alternatives share a basic setup, but the title and current instruction never share identity.
- name=e.name+' · '+name;
  const pl=motionPlan(kind,e,ps);
  const balls=pl?pl.balls.map(([id,x,y])=>`<circle class="actor-ball" data-actor="${id}" data-x="${x}" data-y="${y}" cx="${x}" cy="${y}" r="5"/>`).join(''):'';
- return `<div class="pitch-scene scene-${sceneFor(e)} ${large?'pitch-large':''}" data-exercise="${esc(e.id)}" data-setup="${kind}" data-scene-step="${step}"><svg viewBox="0 0 320 190" role="img" aria-label="${esc(e.name)}: ${esc(name)}"><g class="cam"><rect class="pitch-turf" x="1" y="1" width="318" height="188" rx="18"/><g class="pitch-stripes"><rect x="20" y="18" width="35" height="154"/><rect x="90" y="18" width="35" height="154"/><rect x="160" y="18" width="35" height="154"/><rect x="230" y="18" width="35" height="154"/></g><rect class="setup-boundary" x="20" y="18" width="280" height="154" rx="3"/>${objects}${route?`<path class="pitch-route" d="${route}"/>`:''}${ps.map((p,i)=>`<g class="${large&&i===step%ps.length?'scene-active-player':''}" data-actor="p${i}" data-x="${p[0]}" data-y="${p[1]}" data-label="${esc(p[2])}" data-op="${p[3]?1:0}">${player(...p)}</g>`).join('')}<circle class="pitch-ball-static" cx="${ball[0]}" cy="${ball[1]}" r="5"/>${balls}</g><text class="scene-step-label" x="28" y="31">${large?'SCHRITT '+(step+1):'AUFBAU'}</text></svg><span class="scene-label">${esc(name)}</span></div>`;
+ return `<div class="pitch-scene scene-${sceneFor(e)} ${large?'pitch-large':''}" data-exercise="${esc(e.id)}" data-setup="${kind}" data-scene-step="${step}"><svg viewBox="0 0 320 190" role="img" aria-label="${esc(e.name)}: ${esc(name)}"><g class="cam"><rect class="pitch-turf" x="1" y="1" width="318" height="188" rx="18"/><g class="pitch-stripes"><rect x="20" y="18" width="35" height="154"/><rect x="90" y="18" width="35" height="154"/><rect x="160" y="18" width="35" height="154"/><rect x="230" y="18" width="35" height="154"/></g><rect class="setup-boundary" x="20" y="18" width="280" height="154" rx="3"/>${objects}${route?`<path class="pitch-route" d="${route}"/>`:''}${ps.map((p,i)=>`<g class="${large&&!statics&&i===step%ps.length?'scene-active-player':''}" data-actor="p${i}" data-x="${p[0]}" data-y="${p[1]}" data-label="${esc(p[2])}" data-op="${p[3]?1:0}">${player(...p)}</g>`).join('')}${(statics||[ball]).map(b=>`<circle class="pitch-ball-static" cx="${b[0]}" cy="${b[1]}" r="5"/>`).join('')}${balls}</g><text class="scene-step-label" x="28" y="31">${large?'SCHRITT '+(step+1):'AUFBAU'}</text></svg><span class="scene-label">${esc(name)}</span></div>`;
 }
 function customPitch(e, large, step) {
   const a = normAnimation(e.animation), i0 = Math.min(step, a.frames.length - 1), f = a.frames[i0], labels = sketchLabels(a.items), moving = a.frames.length > 1;

@@ -266,6 +266,12 @@ export function similar(s, e, limit = 4) {
     .sort((a, b) => a.d - b.d || a.x.name.localeCompare(b.x.name)).slice(0, limit).map(o => o.x);
 }
 
+/** Lernweg: die ähnlichste leichtere und die ähnlichste anspruchsvollere Übung (je null, wenn es keine gibt). */
+export function progression(s, e) {
+  const near = similar(s, e, 16).filter(x => x.type === e.type || x.type === 'both' || e.type === 'both'), l = level(e);
+  return { easier: near.find(x => level(x) < l) || null, harder: near.find(x => level(x) > l) || null };
+}
+
 /** Filtert passend zu Mannschaft/Alter/Trainerart. */
 export function suits(s, p, e, { allowFall = false } = {}) {
   const age = planAge(s, p), type = planType(s, p);

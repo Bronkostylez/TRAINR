@@ -1,6 +1,6 @@
 // Detail-Sheet einer Übung: Animation, Ziel, Ablauf, Coaching, Material, Varianten, Bewertung, Notiz, Quellen.
 import * as store from '../core/store.js';
-import { exercise, effective, fit, currentPlan, similar, meta, level, LEVEL_LABEL, planAge, foci, FOCUS, AREAS, MAX_FOCI } from '../core/planning.js';
+import { exercise, effective, fit, currentPlan, similar, progression, meta, level, LEVEL_LABEL, planAge, foci, FOCUS, AREAS, MAX_FOCI } from '../core/planning.js';
 import { focusChips } from '../ui/focus.js';
 import { TAG_VARIANTS } from '../data/drill-meta.js';
 import { esc, integer, uid, TYPE_SHORT, deepClone } from '../core/util.js';
@@ -35,6 +35,7 @@ export function openDetail(id, order = null) {
         <span class="tag ${e.type === 'keeper' ? 'keeper' : e.type === 'both' ? 'both' : ''}">${esc(TYPE_SHORT[e.type])}</span>
         <span class="tag">${esc(LEVEL_LABEL[level(e)])}</span>
         ${e.custom ? '<span class="tag custom">Eigene Übung</span>' : ''}
+        ${!e.custom && e.id.startsWith('v22-') ? '<span class="tag new">Neu</span>' : ''}
         ${e.archived ? '<span class="tag warn">Archiviert</span>' : ''}
         ${age && !e.ages.includes(age) ? `<span class="tag warn">Nicht für ${esc(age)} vorgesehen</span>` : ''}
         ${ids.length > 1 ? `<span class="tiny" style="margin-left:auto">${idx + 1} / ${ids.length}</span>` : ''}
@@ -60,6 +61,7 @@ export function openDetail(id, order = null) {
             ${Array.isArray(e.points) && e.points.length && e.safety ? `<p class="small muted">${esc(e.safety)}</p>` : ''}</section>
           <section><h3>Aufbau & Material <small class="tiny">je Gruppe</small></h3><div>${materialChips(e.equipment)}</div>${e.type === 'keeper' && e.min <= 2 ? '<p class="tiny">Bei Partneraufgaben zählt das zuspielende Kind mit. Erwachsene Helfer zusätzlich.</p>' : ''}</section>
           ${variants ? `<section><h3>Leichter / schwerer</h3><p class="small"><strong>Leichter:</strong> ${esc(variants[0])}</p><p class="small"><strong>Schwerer:</strong> ${esc(variants[1])}</p></section>` : ''}
+          ${lernweg(s, e)}
           <details class="disclosure"><summary>Deine Variante <span class="tiny">${m.variant ? 'aktiv' : 'Spieler & Minuten anpassen'}</span></summary><div class="body">
             <p class="tiny">Nur auf diesem Gerät. Gilt für neue Blöcke, Gruppenberechnung und Vorschläge. Material bleibt beim Original.</p>
             <div class="row"><label class="field grow"><span>Von Spielern</span><input class="input" id="v-min" type="number" min="1" max="100" value="${x.min}"></label><label class="field grow"><span>Bis Spielern</span><input class="input" id="v-max" type="number" min="1" max="100" value="${x.max}"></label><label class="field grow"><span>Minuten</span><input class="input" id="v-min2" type="number" min="1" max="120" value="${x.minutes}"></label></div>
@@ -147,6 +149,14 @@ export function openDetail(id, order = null) {
   sheet.body.addEventListener('touchend', ev => { if (!sw) return; const dx = ev.changedTouches[0].clientX - sw.x, dy = ev.changedTouches[0].clientY - sw.y; sw = null; if (Math.abs(dx) > 80 && Math.abs(dy) < 50) nav(dx < 0 ? 1 : -1); }, { passive: true });
   paint();
   return sheet;
+}
+
+/** Vorstufe und Weiterführung als Sprungziele im Detail. */
+function lernweg(s, e) {
+  const { easier, harder } = progression(s, e);
+  if (!easier && !harder) return '';
+  const link = (o, t) => o ? `<button class="mini-drill" type="button" data-open="${esc(o.id)}">${drillPitch(o)}<span><small>${t} · ${esc(LEVEL_LABEL[level(o)])}</small><br><strong>${esc(o.name)}</strong></span></button>` : '';
+  return `<section><h3>Lernweg <small class="tiny">gleiche Idee, andere Stufe</small></h3><div class="stack">${link(easier, 'Vorstufe')}${link(harder, 'Weiterführung')}</div></section>`;
 }
 
 function copyAsCustom(e) {
