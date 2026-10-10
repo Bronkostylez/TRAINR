@@ -3,6 +3,7 @@ import * as store from '../core/store.js';
 import { exercise, effective, fit, currentPlan, similar, progression, meta, level, LEVEL_LABEL, planAge, foci, FOCUS, AREAS, MAX_FOCI } from '../core/planning.js';
 import { focusChips } from '../ui/focus.js';
 import { TAG_VARIANTS } from '../data/drill-meta.js';
+import { localizeVariants } from '../i18n/catalog.js';
 import { esc, integer, uid, TYPE_SHORT, deepClone } from '../core/util.js';
 import { openSheet, confirmSheet } from '../ui/sheet.js';
 import { icon, on, $ } from '../ui/dom.js';
@@ -26,7 +27,7 @@ export function openDetail(id, order = null) {
     const s = store.get(), e = exercise(s, ids[idx]);
     if (!e) { sheet.close(); return; }
     const p = currentPlan(s), x = effective(s, e), m = meta(s, e.id), n = p?.people || 12, g = fit(s, e, n);
-    const variants = e.variants || TAG_VARIANTS[e.tag];
+    const variants = e.variants || localizeVariants(e.tag, TAG_VARIANTS[e.tag]);
     const age = planAge(s, p);
     sheet.setTitle(e.name);
     sheet.setBody(`
@@ -45,7 +46,7 @@ export function openDetail(id, order = null) {
           <div id="d-scene"></div>
           <div class="player-bar" id="d-bar">
             <button class="btn sm" type="button" id="d-play" aria-pressed="false">${icon('start')} Abspielen</button>
-            <span class="seg" role="group" aria-label="Tempo">${[[.5, '½×'], [1, '1×'], [2, '2×']].map(([v, t]) => `<button type="button" data-rate="${v}" aria-pressed="${v === 1}" aria-label="Tempo ${t}">${t}</button>`).join('')}</span>
+            <span class="seg" role="group" id="d-rates" aria-label="Tempo">${[[.5, '½×'], [1, '1×'], [2, '2×']].map(([v, t]) => `<button type="button" data-rate="${v}" aria-pressed="${v === 1}" aria-label="Tempo ${t}">${t}</button>`).join('')}</span>
             <input type="range" id="d-scrub" min="0" max="1000" value="0" step="10" aria-label="Zeitleiste der Animation">
             <span class="tiny" id="d-time"></span>
           </div>
@@ -102,7 +103,7 @@ export function openDetail(id, order = null) {
       onState: st => {
         playBtn.innerHTML = st === 'run' ? `${icon('pause')} Pause` : st === 'done' ? `${icon('reset')} Nochmal` : st === 'static' ? `${icon('next')} Nächster Schritt` : `${icon('start')} Abspielen`;
         playBtn.setAttribute('aria-pressed', String(st === 'run'));
-        b.querySelector('[aria-label="Tempo"]').hidden = scrub.hidden = st === 'static';
+        b.querySelector('#d-rates').hidden = scrub.hidden = st === 'static';
       },
     });
     stepsEl.innerHTML = stepsHtml();

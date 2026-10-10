@@ -1,0 +1,23 @@
+// Englisch: Titel der Spielzug-Skizzen und sonstige Kleintexte aus der Platzgrafik.
+export const SCENES = {
+  'Zauberer jagen · Steine erlösen': 'Chase the wizard · free the stones', 'Brücke · ein Wächter': 'Bridge · one guard', 'Farbsignal · Sprint · Duell': 'Colour signal · sprint · duel',
+  'Slalom · Pass · Seitenwechsel': 'Slalom · pass · switch of sides', 'Angreifer · Verteidiger · Keeper': 'Attacker · defender · keeper', 'Flügel · Flanke · zwei Pfosten': 'Wing · cross · two posts',
+  'Zwei Felder · Verlagerung': 'Two areas · switching play', 'Drei gegen zwei · Konter zwei gegen eins': 'Three against two · counter two against one',
+  'Ballverlust · fünf Sekunden jagen': 'Ball lost · chase for five seconds', 'Keeper + drei gegen zwei · Dribbeltore': 'Keeper + three against two · dribbling gates',
+  'Kanal · lenken · zwei Dribbeltore': 'Channel · steering · two dribbling gates', 'Y-Form · dritter Mann': 'Y shape · third man', 'Dribbler · Keeper verkürzt': 'Dribbler · keeper narrows the angle',
+  'Keeper · Abrollen & Abwurf in Zonen': 'Keeper · rolling out & throwing into zones', 'Hütchen tippen · Grundstellung · Korb': 'Tap cones · ready stance · basket catch',
+  'Vier Minitore · Tore sammeln': 'Four mini goals · collect goals', 'Leibchen ziehen · Ball behalten': 'Pull bibs · keep the ball', 'Ball durch den Tunnel': 'Ball through the tunnel',
+  'Hütchen holen · Ball behalten': 'Fetch cones · keep the ball', 'Acht um zwei Hütchen': 'Figure eight around two cones', 'Sohlenzug · Drehung · weiter': 'Sole drag · turn · carry on',
+  'Hase dribbelt · Fuchs jagt': 'Hare dribbles · fox chases', 'Pass und Nachlaufen im Quadrat': 'Pass and follow in the square', 'Kurz · Ablage · langer Ball': 'Short · lay-off · long ball',
+  'Zwei Reihen · Pass und Lauf nach hinten': 'Two lines · pass and run to the back', 'Fünf Positionen · zwei Bälle': 'Five positions · two balls', 'Dribbeln · Marke · Ziel treffen': 'Dribble · marker · hit the target',
+  'Dribbeln · Querpass · Abschluss': 'Dribble · square pass · finish', 'Schuss · Abpraller · Nachschuss': 'Shot · rebound · follow-up shot', 'Drei Zonen · vier gegen vier': 'Three zones · four against four',
+  'Zwei Bälle · vier Tore': 'Two balls · four goals', 'Alle vier am Ball · dann Tor': 'All four on the ball · then goal', 'Normal spielen · Pfiff · Tore tauschen': 'Play normally · whistle · swap goals',
+  'Ballverlust · Rückspurt · Konter': 'Ball lost · sprint back · counter', 'Verteidiger verschieben als Kette': 'Defenders shift as a line', 'Mitte zu · Seite offen': 'Centre closed · side open',
+  'Seitwärts mitgehen · dann Antritt': 'Shuffle sideways · then accelerate', 'Abstoß · Anlaufen · Befreiung': 'Goal kick · pressing · breaking out', 'Ball rollt · Keeper startet · aufnehmen': 'Ball rolls · keeper starts · picks it up',
+  'Aufsetzer · Korb · zurückrollen': 'Bouncing ball · basket catch · roll back', 'Links, rechts · Keeper wechselt die Seite': 'Left, right · keeper changes sides', 'Ball abschirmen · Partnerdruck': 'Shield the ball · partner pressure',
+  'Zwei gegen zwei · zwei Minitore': 'Two against two · two mini goals', 'Drei gegen drei · vier Minitore': 'Three against three · four mini goals', 'Drei gegen eins · Passfenster': 'Three against one · passing window',
+  'Vier gegen zwei · gemeinsam zustellen': 'Four against two · close down together', 'Zehn gegen vier · durch die Mitte': 'Ten against four · through the middle', 'Pass · erster Kontakt · Duell': 'Pass · first touch · duel',
+  'Angriff · seitlich stellen · Konter': 'Attack · show sideways · counter', 'Pass · Lauf · Rückpass': 'Pass · run · back pass',
+  'Hase dribbelt': 'Hare dribbles', 'Fuchs jagt': 'Fox chases', 'Zauberer jagen': 'Chase the wizard', 'Steine erlösen': 'Free the stones',
+  'Spielzug': 'Play', 'Animation aus': 'Animation off', 'Schritte': 'Steps',
+};

@@ -1,0 +1,22 @@
+// Englisch: Onboarding und Mannschaftsassistent.
+export const ONBOARDING = {
+  'Technik, Spielformen, Torschuss': 'Technique, small-sided games, shooting', 'Torwarttraining, Fangen, Spieleröffnung': 'Goalkeeper training, catching, build-up play',
+  'Feldspieler und Keeper gemeinsam': 'Outfield players and keepers together',
+  'spielerisch, viele Ballkontakte, keine festen Positionen': 'playful, lots of touches, no fixed positions', 'kleine Spiele, Freude am Dribbeln': 'small games, joy of dribbling',
+  'Technik im Spiel, 1 gegen 1': 'technique in the game, 1 v 1', 'Zusammenspiel, Torwartausbildung beginnt': 'combination play, goalkeeper training begins', 'Erwachsene': 'Adults',
+  'Mannschaft': 'Team', 'Altersklasse': 'Age group', 'Trainingstage': 'Training days', 'Trainingszeiten': 'Training times',
+  'Willkommen bei TRAINR.': 'Welcome to TRAINR.', 'Willkommen': 'Welcome', 'Passe deine Mannschaft an.': 'Adjust your team.',
+  'In vier kurzen Schritten passen Vorschläge, Zeiten und Spielerzahlen zu deinem Training. Alles bleibt auf diesem Gerät.': 'In four short steps, suggestions, times and player numbers fit your training. Everything stays on this device.',
+  'Name der Mannschaft (keine Spielernamen)': 'Team name (no player names)', 'z. B. E2 oder Torwartgruppe': 'e.g. U11-2 or goalkeeper group',
+  'Du trainierst …': 'You coach …', 'Farbe': 'Colour', 'Farbe {}': 'Colour {}',
+  'Welche Altersklasse?': 'Which age group?', 'Übungen, Gruppengrößen und Warnungen richten sich danach.': 'Exercises, group sizes and warnings depend on it.',
+  'Bambini und F-Jugend bekommen allgemeine Ballspiele statt fester Torwartrolle.': 'Bambini and U9 get general ball games instead of a fixed goalkeeper role.',
+  'Wann trainiert ihr?': 'When do you train?', 'Wähle alle Trainingstage. Zeiten folgen im nächsten Schritt.': 'Select all training days. Times follow in the next step.',
+  'Von wann bis wann?': 'From when to when?', 'Beginn und Ende pro Tag. Die Endzeit muss nach dem Beginn liegen.': 'Start and end per day. The end time must be after the start.',
+  'Von': 'From', 'Bis': 'To', 'Zeiten vom ersten Tag für alle übernehmen': 'Apply the first day’s times to all days',
+  'Zurück': 'Back', 'Weiter': 'Next', 'Abbrechen': 'Cancel', 'Fertig': 'Done', 'Los geht\'s': 'Let\'s go',
+  'Schon TRAINR genutzt?': 'Already used TRAINR?', 'Backup wiederherstellen': 'Restore backup',
+  'Name höchstens 60 Zeichen.': 'Name at most 60 characters.', 'Mindestens einen Trainingstag auswählen.': 'Select at least one training day.',
+  '{}: Die Endzeit muss nach dem Beginn liegen.': '{}: the end time must be after the start.', 'Bitte Angaben prüfen.': 'Please check your entries.',
+  'Mannschaft angelegt': 'Team created',
+};

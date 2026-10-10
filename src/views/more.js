@@ -13,6 +13,7 @@ import { showHelp, tour } from '../ui/help.js';
 import { go } from '../ui/router.js';
 import { downloadBlob } from '../exports/share.js';
 import { autoFill, resyncAuto } from '../core/calendar.js';
+import { LANGS, locale } from '../i18n/index.js';
 
 const CLUB = [null, '#d4f26b', '#ffd23f', '#ff8a3d', '#ef4444', '#3b82f6', '#22c55e', '#e5e7eb'];
 
@@ -54,7 +55,7 @@ export function teamSwitcher() {
   const s = store.get();
   openSheet({
     title: 'Mannschaft wechseln',
-    body: `<div class="list">${s.teams.map(t => `<button class="list-item" type="button" data-team="${t.id}" aria-current="${t.id === s.activeTeamId}"><span class="team-card" style="padding:0;border:0;display:contents"><span class="dot" style="--team-color:${t.color || '#133e33'};width:36px;height:36px;border-radius:11px;background:${t.color || '#133e33'};color:#fff;display:grid;place-items:center;font-weight:900">${esc(t.name.slice(0, 2).toUpperCase())}</span></span><span class="grow"><strong>${esc(t.name)}</strong><small>${esc(t.age)} · ${esc(TYPE_SHORT[t.type])} · ${plural(plansOfTeam(s, t.id).length, 'Einheit', 'Einheiten')}</small></span>${t.id === s.activeTeamId ? icon('check') : ''}</button>`).join('')}</div>`,
+    body: `<div class="list">${s.teams.map(t => `<button class="list-item" type="button" data-team="${t.id}" aria-current="${t.id === s.activeTeamId}"><span class="team-card" style="padding:0;border:0;display:contents"><span class="dot" style="--team-color:${t.color || '#133e33'};width:36px;height:36px;border-radius:11px;background:${t.color || '#133e33'};color:#fff;display:grid;place-items:center;font-weight:900">${esc(t.name.slice(0, 2).toUpperCase())}</span></span><span class="grow"><strong translate="no">${esc(t.name)}</strong><small>${esc(t.age)} · ${esc(TYPE_SHORT[t.type])} · ${plural(plansOfTeam(s, t.id).length, 'Einheit', 'Einheiten')}</small></span>${t.id === s.activeTeamId ? icon('check') : ''}</button>`).join('')}</div>`,
     foot: `<button class="btn" type="button" data-manage>${icon('settings')} Verwalten</button><button class="btn primary" type="button" data-newteam>${icon('plus')} Neue Mannschaft</button>`,
     onMount: sh => {
       on(sh.body, 'click', '[data-team]', (_, b) => { switchTeam(b.dataset.team); sh.close(); });
@@ -122,7 +123,7 @@ export const moreView = {
       ${info.source === 'v2' ? `<div class="notice ok">${icon('check')}<span>Deine Daten aus TRAINR V20 wurden übernommen. Die alten Daten bleiben unverändert im Browser.</span></div>` : ''}
 
       <section class="settings-group"><h2>Mannschaften</h2><div class="settings-card" style="padding:0">
-        ${s.teams.map(t => `<div class="team-card"><span class="dot" style="--team-color:${t.color || '#133e33'}">${esc(t.name.slice(0, 2).toUpperCase())}</span><span><strong>${esc(t.name)}</strong>${t.id === s.activeTeamId ? ' <span class="tag ok">aktiv</span>' : ''}<br><small class="tiny">${esc(t.age)} · ${esc(LABELS[t.type])} · ${t.slots.map(x => `${DAYS_SHORT[x.day]} ${x.start}–${x.end}`).join(', ')}</small></span>
+        ${s.teams.map(t => `<div class="team-card"><span class="dot" style="--team-color:${t.color || '#133e33'}">${esc(t.name.slice(0, 2).toUpperCase())}</span><span><strong translate="no">${esc(t.name)}</strong>${t.id === s.activeTeamId ? ' <span class="tag ok">aktiv</span>' : ''}<br><small class="tiny">${esc(t.age)} · ${esc(LABELS[t.type])} · ${t.slots.map(x => `${DAYS_SHORT[x.day]} ${x.start}–${x.end}`).join(', ')}</small></span>
           <span class="row" style="gap:0">${t.id !== s.activeTeamId ? `<button class="btn sm" type="button" data-use-team="${t.id}">Wählen</button>` : ''}<button class="icon-btn" type="button" data-edit-team="${t.id}" aria-label="${esc(t.name)} bearbeiten">${icon('edit')}</button>${s.teams.length > 1 ? `<button class="icon-btn" type="button" data-del-team="${t.id}" aria-label="${esc(t.name)} löschen">${icon('trash')}</button>` : ''}</span></div>`).join('')}
         <div style="padding:12px 16px"><button class="btn block" type="button" id="m-newteam">${icon('plus')} Mannschaft hinzufügen</button></div></div></section>
 
@@ -133,6 +134,7 @@ export const moreView = {
         <button class="list-item" type="button" id="m-export">${icon('print')}<span class="grow"><strong>Export & Druck</strong><small>PDF, Bild, Text, CSV, Teilen</small></span>${icon('chevron')}</button></div></section>
 
       <section class="settings-group"><h2>Darstellung</h2><div class="settings-card">
+        <div class="field"><span>Sprache</span><div class="seg" role="radiogroup" aria-label="Sprache">${[['auto', 'Auto'], ...LANGS.map(l => [l[0], l[1]])].map(([v, t]) => `<button type="button" role="radio" data-lang="${v}"${v === 'auto' ? '' : ' translate="no" lang="' + v + '"'} aria-checked="${(st.lang || 'auto') === v}">${t}</button>`).join('')}</div><small class="tiny">Auto folgt der Gerätesprache. Deine Daten und Übungen bleiben unverändert.</small></div>
         <div class="field"><span>Erscheinungsbild</span>${seg('theme', [['system', 'System'], ['light', 'Hell'], ['dark', 'Dunkel']])}</div>
         <div class="field"><span>Animationen</span>${seg('motion', [['full', 'Voll'], ['reduced', 'Reduziert'], ['off', 'Aus']])}<small class="tiny">„Weniger Bewegung“ im System hat immer Vorrang und begrenzt auf „Reduziert“.</small></div>
         <div class="field"><span>Schriftgröße</span>${seg('fontScale', [[90, 'Klein'], [100, 'Normal'], [115, 'Groß'], [130, 'Sehr groß']])}</div>
@@ -155,7 +157,7 @@ export const moreView = {
           <p class="tiny">Für den Fall, dass du zu TRAINR V20 zurückkehrst. Enthält nur die aktive Mannschaft und keine V21-Extras.</p>
           <button class="btn sm danger" type="button" id="m-reset" style="margin-top:8px">${icon('trash')} Alle V21-Daten zurücksetzen</button>
           <p class="tiny">Alte V20-Daten im Browser bleiben unberührt. Lade vorher ein Backup herunter.</p></div></details>
-        <p class="tiny">${s.help.lastBackup ? `Letztes Backup: ${new Date(s.help.lastBackup).toLocaleDateString('de-DE')}` : 'Noch kein Backup erstellt.'}</p>
+        <p class="tiny">${s.help.lastBackup ? `Letztes Backup: ${new Date(s.help.lastBackup).toLocaleDateString(locale())}` : 'Noch kein Backup erstellt.'}</p>
       </div></section>
 
       <section class="settings-group"><h2>Hilfe & Info</h2><div class="list">
@@ -180,6 +182,11 @@ export const moreView = {
       const k = b.dataset.set, raw = b.dataset.v, v = ['fontScale', 'warnSeconds'].includes(k) ? Number(raw) : raw;
       store.setting(k, v); haptic('tap');
       if (k === 'motion') toast(v === 'off' ? 'Animationen aus.' : v === 'reduced' ? 'Reduzierte Animationen.' : 'Animationen an.');
+    });
+    on(r, 'click', '[data-lang]', (_, b) => {
+      if (b.dataset.lang === (store.get().settings.lang || 'auto')) return;
+      store.setting('lang', b.dataset.lang); store.flush(); haptic('tap');
+      location.reload(); // Die Anzeige wird einmal beim Start übersetzt; ein Neustart der Ansicht ist der sauberste Wechsel.
     });
     on(r, 'change', '[data-toggle]', (_, c) => { store.setting(c.dataset.toggle, c.checked); haptic('tap'); });
     on(r, 'click', '[data-club]', (_, b) => { store.setting('clubColor', b.dataset.club || null); haptic('tap'); });

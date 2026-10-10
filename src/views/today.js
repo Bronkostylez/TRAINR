@@ -62,7 +62,7 @@ export const todayView = {
     const events = upcoming(s, { limit: 3 }), nextEv = events[0], review = needsReview(s), nextPlan = nextEv && s.plans.find(x => x.id === nextEv.planId);
     $('#today', this.root).innerHTML = `
       <div class="page-head"><div>
-        <p class="eyebrow">${esc(team.name)} · ${esc(planAge(s, p))} · ${esc(LABELS[team.type])}</p>
+        <p class="eyebrow"><span translate="no">${esc(team.name)}</span> · ${esc(planAge(s, p))} · ${esc(LABELS[team.type])}</p>
         ${nextEv ? `<h1 id="h-heute">${esc(DAYS[weekday(nextEv.date)])}, ${esc(nextEv.start)}</h1>
         <p class="muted">${esc(evTitle(nextEv))} ${esc(eventWhen(nextEv))} · ${duration(nextEv)} Min${nextEv.place ? ` · ${esc(nextEv.place)}` : ''}</p>`
         : `<h1 id="h-heute">${next ? `${esc(DAYS[next.slot.day])}, ${esc(next.slot.start)}` : 'Dein Training'}</h1>

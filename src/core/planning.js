@@ -2,6 +2,7 @@
 import { SEED, AGES, TAGS } from '../data/drills.js';
 import { META } from '../data/drill-meta.js';
 import { FOCUS, FOCUS_KEYS, DRILL_FOCUS } from '../data/focus.js';
+import { localizeExercise } from '../i18n/catalog.js';
 import { time, fmtTime, sum, DAYS } from './util.js';
 
 export { AGES, TAGS, SEED };
@@ -12,7 +13,8 @@ const seedById = new Map(SEED.map(e => [e.id, { ...e, ...META[e.id], focus: DRIL
 
 /** Übung inkl. redaktioneller Ergänzungen und Schwerpunkte. */
 export function exercise(s, id) {
-  return seedById.get(id) || s.custom.find(e => e.id === id) || null;
+  const seed = seedById.get(id);
+  return seed ? localizeExercise(seed) : s.custom.find(e => e.id === id) || null;
 }
 
 // ---------- Schwerpunkte ----------

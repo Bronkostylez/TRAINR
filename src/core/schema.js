@@ -2,6 +2,7 @@
 // Validierung verändert Eingaben nicht, außer offensichtliche Zeiger (selected) zu reparieren.
 import { AGES, TAGS, SEED } from '../data/drills.js';
 import { FOCUS_KEYS, MAX_FOCI } from '../data/focus.js';
+import { LANG_CODES } from '../i18n/index.js';
 import { LABELS, integer, text, optText, safeURL, time } from './util.js';
 
 export const LIMITS = { events: 1500, plans: 300, blocks: 100, custom: 500, teams: 20, boards: 100, backupBytes: 5_000_000, notes: 2000 };
@@ -104,13 +105,14 @@ export function validateV2(x) {
 const THEMES = ['system', 'light', 'dark'], MOTION = ['full', 'reduced', 'off'], LAYOUTS = ['detailed', 'compact', 'cards', 'coach'];
 export const DEFAULT_SETTINGS = Object.freeze({
   theme: 'system', motion: 'full', haptics: false, sound: true, fontScale: 100, clubColor: null,
-  autoAdvance: false, warnSeconds: 30, wakeLock: true, exportLayout: 'detailed', exportStyle: 'brand',
+  autoAdvance: false, warnSeconds: 30, wakeLock: true, exportLayout: 'detailed', exportStyle: 'brand', lang: 'auto',
 });
 
 export function validSettings(s) {
   return !!s && THEMES.includes(s.theme) && MOTION.includes(s.motion) && typeof s.haptics === 'boolean' && typeof s.sound === 'boolean' &&
     integer(s.fontScale, 85, 130) && (s.clubColor === null || /^#[0-9a-f]{6}$/i.test(s.clubColor)) && typeof s.autoAdvance === 'boolean' &&
-    integer(s.warnSeconds, 0, 120) && typeof s.wakeLock === 'boolean' && LAYOUTS.includes(s.exportLayout) && ['brand', 'ink'].includes(s.exportStyle);
+    integer(s.warnSeconds, 0, 120) && typeof s.wakeLock === 'boolean' && LAYOUTS.includes(s.exportLayout) && ['brand', 'ink'].includes(s.exportStyle) &&
+    (s.lang === undefined || s.lang === 'auto' || LANG_CODES.includes(s.lang));
 }
 
 function validBoard(b) {

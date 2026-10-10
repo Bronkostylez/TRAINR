@@ -80,7 +80,7 @@ export const calendarView = {
     const s = store.get(), team = activeTeam(s); if (!team) return;
     const next = upcoming(s, { limit: 1 })[0], review = needsReview(s);
     this.root.innerHTML = `
-      <div class="page-head"><div><p class="eyebrow">${esc(team.name)} · Kalender</p><h1 id="h-kalender">Kalender</h1>
+      <div class="page-head"><div><p class="eyebrow"><span translate="no">${esc(team.name)}</span> · Kalender</p><h1 id="h-kalender">Kalender</h1>
         <p class="muted">${next ? `Nächster Termin: ${esc(fmtDate(next.date, { relative: true }))}, ${esc(next.start)} · ${esc(title(next))}` : 'Noch keine kommenden Termine.'}</p></div>
         <div class="row" style="gap:2px"><button class="btn sm" type="button" id="cal-series">${icon('repeat')} Serie</button><button class="icon-btn" type="button" id="cal-more" aria-label="Weitere Kalenderaktionen">${icon('more')}</button></div></div>
       ${review.length ? `<div class="notice warn" style="margin-bottom:12px">${icon('check')}<span class="grow">${plural(review.length, 'Training wartet', 'Trainings warten')} auf die Nachbereitung.</span><button class="btn sm" type="button" data-ev="${esc(review[0].id)}">Nachbereiten</button></div>` : ''}
@@ -441,7 +441,7 @@ export function seriesSheet() {
   const build = () => series(store.get(), { ...team, slots: team.slots.filter(x => f.days.has(x.day)) }, { from: f.from, until: f.until, remind: f.remind, skip: f.skipFrom && f.skipTo ? range(f.skipFrom, f.skipTo) : [] });
   openSheet({
     title: 'Trainingsserie anlegen',
-    body: `<p class="small muted">Legt für ${esc(team.name)} Trainings an allen gewählten Trainingstagen an. Tage mit vorhandenem Training werden übersprungen.</p>
+    body: `<p class="small muted">Legt für <span translate="no">${esc(team.name)}</span> Trainings an allen gewählten Trainingstagen an. Tage mit vorhandenem Training werden übersprungen.</p>
       <div class="field"><span>Trainingstage</span><div class="chips" style="flex-wrap:wrap">${team.slots.map(x => `<button class="chip" type="button" data-sday="${x.day}" aria-pressed="true">${DAYS_SHORT[x.day]} ${x.start}–${x.end}</button>`).join('')}</div></div>
       <div class="grid-2"><label class="field"><span>Ab</span><input class="input" type="date" id="se-from" value="${f.from}"></label><label class="field"><span>Bis einschließlich</span><input class="input" type="date" id="se-until" value="${f.until}"></label></div>
       <div class="row">${[[4, '4 Wochen'], [8, '8 Wochen'], [12, '12 Wochen'], ['season', 'Saisonhälfte']].map(([w, t]) => `<button class="chip" type="button" data-weeks="${w}">${t}</button>`).join('')}</div>

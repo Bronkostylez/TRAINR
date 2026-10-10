@@ -2,6 +2,7 @@
 import { exercise, effective, fit, blockPeople, timeline, slotOf, slotLabel, planAge, teamOf, totalMinutes, exerciseMinutes, pauses, requirements, check, foci, planFocus, keyFirst } from '../core/planning.js';
 import { LABELS, BRAND } from '../core/util.js';
 import { stepsFor } from '../scene/pitch.js';
+import { t, locale } from '../i18n/index.js';
 
 export const LAYOUTS = {
   detailed: ['Ausführlich', 'Alle Infos je Übung: Ziel, Ablauf, Coaching, Material, Quelle'],
@@ -46,7 +47,8 @@ export function headerData(s, p) {
  */
 export function buildDoc(s, p, layout = 'detailed') {
   const h = headerData(s, p), B = blocksData(s, p), out = [];
-  const push = (k, text = '', o = {}) => out.push({ k, text, ...o });
+  // Alle Texte laufen durch die Übersetzung: Das Dokument entsteht nicht im DOM und wird deshalb hier übersetzt.
+  const push = (k, text = '', o = {}) => out.push({ k, text: t(text), ...o, ...(o.minutes ? { minutes: t(o.minutes) } : {}), ...(o.cols ? { cols: o.cols.map(c => t(String(c))) } : {}) });
   push('title', h.title);
   push('meta', [h.team, h.age, h.type].filter(Boolean).join(' · '));
   push('meta', [h.slot, `${h.people} Spieler (ohne Trainer)`, `${h.total} Min`, h.pauses].filter(Boolean).join(' · '));
@@ -137,7 +139,7 @@ export function layoutPages(doc, style = 'brand') {
   const newPage = () => {
     page = { ops: [] }; pages.push(page);
     page.ops.push({ t: 'rect', x: 0, y: 0, w: W, h: 30, fill: C.bar });
-    page.ops.push({ t: 'text', x: M, y: 19.5, s: 9, bold: true, color: C.barText, text: `${BRAND} / TRAININGSPLAN` });
+    page.ops.push({ t: 'text', x: M, y: 19.5, s: 9, bold: true, color: C.barText, text: `${BRAND} / ${t('TRAININGSPLAN')}` });
     y = 58;
   };
   const room = need => { if (y + need > H - 48) newPage(); };
@@ -189,21 +191,23 @@ export function layoutPages(doc, style = 'brand') {
       default: break;
     }
   }
-  pages.forEach((pg, i) => pg.ops.push({ t: 'text', x: M, y: H - 22, s: 8, color: C.muted, text: `Lokal erstellt mit ${BRAND} · ${new Date().toLocaleDateString('de-DE')} · Seite ${i + 1} / ${pages.length}` }));
+  pages.forEach((pg, i) => pg.ops.push({ t: 'text', x: M, y: H - 22, s: 8, color: C.muted, text: `${t('Lokal erstellt mit')} ${BRAND} · ${new Date().toLocaleDateString(locale())} · ${t('Seite')} ${i + 1} / ${pages.length}` }));
   return pages;
 }
 
 // ---------- Text & CSV (wie V20, ergänzt um Ziel und Notizen) ----------
 export function planText(s, p) {
   const h = headerData(s, p), B = blocksData(s, p);
-  return `${BRAND} · ${h.title}\n${[h.team, h.age, h.type].filter(Boolean).join(' · ')}\n${h.slot}\n${h.people} Spieler (ohne Trainer)\n${h.total} Minuten${h.pauses ? ` (${h.pauses})` : ''}\n${h.goal ? `Ziel: ${h.goal}\n` : ''}${h.foci ? `Schwerpunkte: ${h.foci}\n` : ''}\n` +
+  return translateLines(`${BRAND} · ${h.title}\n${[h.team, h.age, h.type].filter(Boolean).join(' · ')}\n${h.slot}\n${h.people} Spieler (ohne Trainer)\n${h.total} Minuten${h.pauses ? ` (${h.pauses})` : ''}\n${h.goal ? `Ziel: ${h.goal}\n` : ''}${h.foci ? `Schwerpunkte: ${h.foci}\n` : ''}\n` +
     B.map(d => `${d.i + 1}. ${d.e.name} · ${d.b.minutes} Minuten${d.label ? ` (${d.label})` : ''}\n${d.b.people ? `${d.n} Spieler · ` : ''}${d.groups}\n${d.e.goal ? `Ziel: ${d.e.goal}\n` : ''}${d.e.description}\nCoaching: ${d.points.join(' ')}\nMaterial je Gruppe: ${d.material}\n${d.b.note ? `Notiz: ${d.b.note}\n` : ''}Quelle: ${d.source}\n${d.ageWarn ? d.ageWarn + '\n' : ''}${d.pause ? `\n– ${d.pause.text} –\n` : ''}`).join('\n') +
-    `\nMaterialübersicht (Höchstbedarf, parallele Gruppen):\n${h.material.join('\n') || '–'}\n${h.notes ? `\nCoaching-Ziel / Notizen:\n${h.notes}\n` : ''}\n${SAFETY}`;
+    `\nMaterialübersicht (Höchstbedarf, parallele Gruppen):\n${h.material.join('\n') || '–'}\n${h.notes ? `\nCoaching-Ziel / Notizen:\n${h.notes}\n` : ''}\n${SAFETY}`);
 }
+/** Zeilenweise übersetzen (Text-Export; das Dokument entsteht nicht im DOM). */
+const translateLines = str => str.split('\n').map(l => t(l)).join('\n');
 
 export function planCsv(s, p) {
   const h = headerData(s, p), B = blocksData(s, p);
-  const cell = v => { let x = String(v ?? ''); if (/^[=+@-]/.test(x)) x = "'" + x; return `"${x.replace(/"/g, '""')}"`; };
+  const cell = v => { let x = t(String(v ?? '')); if (/^[=+@-]/.test(x)) x = "'" + x; return `"${x.replace(/"/g, '""')}"`; };
   const rows = [['Plan', h.title], ['Mannschaft', h.team], ['Altersklasse', h.age], ['Trainingstag', h.slot], ['Spieler ohne Trainer', h.people], ['Ziel', h.goal], ['Schwerpunkte', h.foci],
     ['Block', 'Zeit', 'Übung', 'Kategorie', 'Schwerpunkte', 'Minuten', 'Spieler', 'Gruppen', 'Material je Gruppe', 'Beschreibung', 'Notiz', 'Quelle'],
     ...B.flatMap(d => [[d.i + 1, d.label, d.e.name, d.e.tag, d.foci, d.b.minutes, d.n, d.g || 'Anpassen', d.material, d.e.description, d.b.note || '', d.source], ...(d.pause ? [['Pause', d.pause.label || '', 'Trinkpause', '', '', d.pause.minutes, '', '', '', '', '', '']] : [])]),

@@ -1,6 +1,7 @@
 // TRAINR V21 – Start: Daten laden/migrieren, Darstellung anwenden, Ansichten registrieren, Router starten.
 import * as store from './core/store.js';
 import * as timer from './core/timer.js';
+import * as i18n from './i18n/index.js';
 import { exercise, activeTeam, currentPlan } from './core/planning.js';
 import { setResolver } from './scene/motion.js';
 import { $, $$, icon } from './ui/dom.js';
@@ -24,6 +25,7 @@ import { initFocusLinks } from './ui/focus.js';
 import { autoFill } from './core/calendar.js';
 
 const info = store.init();
+i18n.init(store.get().settings.lang); // vor dem ersten Rendern: Sprache festlegen und Übersetzung starten
 setResolver(id => exercise(store.get(), id));
 initFocusLinks();
 
@@ -54,7 +56,7 @@ $('#team-chip').onclick = teamSwitcher;
 function syncChrome() {
   const s = store.get(), team = activeTeam(s), chip = $('#team-chip');
   chip.hidden = !team;
-  if (team) chip.innerHTML = `<span class="dot" style="--team-color:${team.color || '#133e33'}" aria-hidden="true"></span><span>${esc(team.name)}</span>`;
+  if (team) chip.innerHTML = `<span class="dot" style="--team-color:${team.color || '#133e33'}" aria-hidden="true"></span><span translate="no">${esc(team.name)}</span>`;
   const u = $('#btn-undo'); u.disabled = !store.canUndo(); u.title = store.canUndo() ? `Rückgängig: ${store.undoLabel()}` : 'Nichts rückgängig zu machen';
   const live = $('.tab[data-tab="training"]');
   live.querySelector('.tab-live-dot')?.remove();
@@ -124,7 +126,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) fill
 initReminders(id => (id ? go('kalender', 'termin', id) : go('kalender')));
 if (info.source === 'v2') toast('Deine Daten aus TRAINR V20 wurden übernommen. Die alten Daten bleiben unverändert.', { ms: 6000 });
 if (info.problem === 'invalid-v3' || info.problem === 'invalid-v2') toast('Gespeicherte Daten waren ungültig und wurden gesichert, nicht überschrieben. Details unter „Mehr“.', { ms: 8000 });
-window.__trainr = { store, timer, version: '21.5.0' }; // für Tests und Fehlersuche
+window.__trainr = { store, timer, version: '21.6.0' }; // für Tests und Fehlersuche
 
 // ---------- Wischen zwischen den Haupt-Tabs (nur Touch, nur schmale Bildschirme) ----------
 {

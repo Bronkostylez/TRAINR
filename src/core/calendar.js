@@ -3,6 +3,7 @@
 import { uid, time, sum, DAYS, DAYS_SHORT, APP_VERSION } from './util.js';
 import { exercise, totalMinutes, focusMinutes, planFocus, keyFirst, RELEVANT, FOCUS_KEYS } from './planning.js';
 import { LIMITS } from './schema.js';
+import { getLang, locale } from '../i18n/index.js';
 
 export const KIND = { training: 'Training', spiel: 'Spiel', turnier: 'Turnier', termin: 'Termin' };
 export const STATUS = { geplant: 'Geplant', erledigt: 'Gehalten', ausgefallen: 'Ausgefallen' };
@@ -22,7 +23,9 @@ export const weekday = s => (parse(s).getDay() + 6) % 7;
 export const mondayOf = s => addDays(s, -weekday(s));
 export const monthKey = s => s.slice(0, 7);
 export const shiftMonth = (key, n) => { const [y, m] = key.split('-').map(Number), d = new Date(y, m - 1 + n, 1); return iso(d).slice(0, 7); };
-export const monthLabel = key => { const [y, m] = key.split('-').map(Number); return `${MONTHS[m - 1]} ${y}`; };
+// Deutsch behält das feste Format; andere Sprachen formatieren Datum und Monat nach ihren Regeln (Intl).
+const intl = (d, o) => new Intl.DateTimeFormat(locale(), o).format(d);
+export const monthLabel = key => { const [y, m] = key.split('-').map(Number); return getLang() === 'de' ? `${MONTHS[m - 1]} ${y}` : intl(new Date(y, m - 1, 1), { month: 'long', year: 'numeric' }); };
 
 /** 6 × 7 Tage ab dem Montag vor dem Monatsersten. */
 export function monthGrid(key) {
@@ -44,6 +47,7 @@ export function fmtDate(s, { long = false, relative = false, now = new Date() } 
     if (diff === 0) return 'Heute'; if (diff === 1) return 'Morgen'; if (diff === -1) return 'Gestern';
   }
   const d = parse(s);
+  if (getLang() !== 'de') return intl(d, long ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' } : { weekday: 'short', day: 'numeric', month: 'numeric' });
   return long ? `${DAYS[weekday(s)]}, ${d.getDate()}. ${MONTHS[d.getMonth()]} ${d.getFullYear()}` : `${DAYS_SHORT[weekday(s)]}, ${pad(d.getDate())}.${pad(d.getMonth() + 1)}.`;
 }
 

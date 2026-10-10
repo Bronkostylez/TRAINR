@@ -208,7 +208,7 @@ export const planView = {
   plansSheet() {
     const paint = sh => {
       const s = store.get(), team = activeTeam(s), list = plansOfTeam(s);
-      sh.setBody(`<p class="small muted">${esc(team.name)} · ${plural(list.length, 'Einheit', 'Einheiten')}</p><div class="stack">${list.map(p => { const t = totalMinutes(p, s); return `
+      sh.setBody(`<p class="small muted"><span translate="no">${esc(team.name)}</span> · ${plural(list.length, 'Einheit', 'Einheiten')}</p><div class="stack">${list.map(p => { const t = totalMinutes(p, s); return `
         <button class="plan-card" type="button" data-pick="${p.id}" aria-current="${p.id === s.selectedPlanId}">
           <span class="row between"><strong>${esc(p.name)}</strong><span class="tiny">${t} Min · ${plural(p.blocks.length, 'Block', 'Blöcke')}</span></span>
           ${p.blocks.length ? `<span class="hero-bar" aria-hidden="true">${p.blocks.map(b => `<i style="width:${b.minutes / Math.max(1, t) * 100}%"></i>`).join('')}</span>` : '<span class="tiny">leer</span>'}
