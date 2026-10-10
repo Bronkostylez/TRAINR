@@ -129,6 +129,20 @@ function validBoard(b) {
 export const EVENT_KINDS = ['training', 'spiel', 'turnier', 'termin'];
 export const EVENT_STATUS = ['geplant', 'erledigt', 'ausgefallen'];
 
+/** Spieltag-Daten eines Spiels/Turniers (ab 21.6): Gegner, Treffpunkt, Formation, Taktik, Spielplan, Ergebnis. Keine Spielernamen. */
+export function validGame(g) {
+  if (!g || typeof g !== 'object' || Array.isArray(g)) return false;
+  if (!optText(g.opponent, 60) || !optText(g.formation, 40) || !(g.home === undefined || typeof g.home === 'boolean')) return false;
+  if (!(g.meet === undefined || g.meet === '' || time(g.meet) >= 0)) return false;
+  if (!(g.boardId === undefined || g.boardId === null || text(g.boardId, 100))) return false;
+  if (g.tactics !== undefined && (!g.tactics || ['attack', 'defence', 'standards'].some(k => !optText(g.tactics[k], 600)))) return false;
+  const score = r => r === undefined || (!!r && integer(r.own, 0, 99) && integer(r.opp, 0, 99));
+  if (!score(g.result)) return false;
+  if (g.matches !== undefined && (!Array.isArray(g.matches) || g.matches.length > 20 ||
+    g.matches.some(m => !m || !(m.time === '' || time(m.time) >= 0) || !optText(m.opponent, 60) || !optText(m.pitch, 30) || !score(m.result)))) return false;
+  return true;
+}
+
 /** Kalendertermin. Anwesenheit nur als Zahl – keine Namen. `done` = Momentaufnahme der gehaltenen Einheit. */
 function validEvent(ev, tids) {
   if (!text(ev?.id, 100) || !tids.has(ev.teamId) || !/^\d{4}-\d\d-\d\d$/.test(ev.date) || Number.isNaN(Date.parse(ev.date))) return false;
@@ -137,6 +151,7 @@ function validEvent(ev, tids) {
   if (!(ev.planId === null || text(ev.planId, 100)) || !(ev.remind === null || integer(ev.remind, 0, 10080))) return false;
   if (!optText(ev.title, 80) || !optText(ev.place, 80) || !optText(ev.note, LIMITS.notes) || !optText(ev.reason, 120)) return false;
   if (ev.seriesId !== undefined && !text(ev.seriesId, 100)) return false;
+  if (ev.game !== undefined && (!validGame(ev.game) || (ev.kind !== 'spiel' && ev.kind !== 'turnier'))) return false;
   if (ev.attendance !== undefined && !integer(ev.attendance, 0, 100)) return false;
   if (ev.rating !== undefined && !integer(ev.rating, 1, 5)) return false;
   if (ev.done !== undefined) {

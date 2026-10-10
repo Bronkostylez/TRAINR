@@ -17,6 +17,7 @@ import { undoToast, blankPlan, duplicatePlan } from '../ui/actions.js';
 import { permission, requestPermission } from '../ui/reminders.js';
 import { openDetail } from './detail.js';
 import { areaBar, focusBars, focusChips, focusSummary } from '../ui/focus.js';
+import { isGame, gameBody, gameAction, gameSub, editGame } from './matchday.js';
 
 const MODES = [['monat', 'Monat'], ['liste', 'Liste'], ['rueckblick', 'Rückblick']];
 const RANGES = [['woche', 'Woche'], ['monat', 'Monat'], ['saison', 'Saison'], ['alle', 'Alles']];
@@ -49,6 +50,7 @@ const stars = n => `<span class="stars-inline" aria-label="${n} von 5 Sternen">$
 export function eventCard(s, ev, { showDate = false } = {}) {
   const p = planOf(s, ev), open = ev.kind === 'training' && ev.status === 'geplant';
   const sub = ev.status === 'ausgefallen' ? `Ausgefallen${ev.reason ? ` · ${ev.reason}` : ''}`
+    : isGame(ev) ? [gameSub(ev), ev.place].filter(Boolean).join(' · ')
     : ev.status === 'erledigt' ? [ev.done?.name || p?.name, ev.attendance !== undefined ? `${ev.attendance} Spieler` : '', ev.rating ? '★'.repeat(ev.rating) : ''].filter(Boolean).join(' · ') || 'Gehalten'
       : p ? `${p.name} · ${totalMinutes(p, s)} Min` : open ? 'Noch keine Einheit geplant' : ev.place || '';
   const fm = ev.kind === 'training' && ev.status !== 'ausgefallen' ? eventFocus(s, ev) : null, fl = fm?.list.slice(0, 3).map(o => o.key) || [];
@@ -202,17 +204,18 @@ export const calendarView = {
 export function openEvent(id) {
   const paint = sh => {
     const s = store.get(), ev = findEvent(id); if (!ev) { sh.close(); return; }
-    const p = planOf(s, ev), team = s.teams.find(t => t.id === ev.teamId), past = isPast(ev), isTraining = ev.kind === 'training';
+    const p = planOf(s, ev), team = s.teams.find(t => t.id === ev.teamId), past = isPast(ev), isTraining = ev.kind === 'training', game = isGame(ev);
     sh.setTitle(title(ev));
     sh.setBody(`
       <div class="row" style="margin-bottom:8px">${kindTag(ev)}${statusTag(ev)}${ev.seriesId ? '<span class="tag">Serie</span>' : ''}</div>
       <p><strong>${esc(fmtDate(ev.date, { long: true }))}</strong><br>${esc(ev.start)}–${esc(ev.end)} Uhr · ${duration(ev)} Min${ev.place ? ` · ${esc(ev.place)}` : ''}</p>
       <p class="small muted">${esc(team?.name || '')}${ev.status === 'geplant' ? ` · ${ev.remind === null ? 'Keine Erinnerung' : `Erinnerung ${esc(remindLabel(ev.remind))}`}` : ''}</p>
       ${ev.status === 'ausgefallen' ? `<p class="notice warn">${icon('warn')}<span>Ausgefallen${ev.reason ? `: ${esc(ev.reason)}` : ''}</span></p>` : ''}
-      ${ev.status === 'erledigt' ? `<div class="notice ok">${icon('check')}<span class="grow">Gehalten${ev.done ? `: ${esc(ev.done.name)} (${ev.done.minutes} Min)` : ''}${ev.attendance !== undefined ? ` · ${ev.attendance} Spieler` : ''}${ev.rating ? ` · ${stars(ev.rating)}` : ''}</span></div>` : ''}
+      ${ev.status === 'erledigt' && !game ? `<div class="notice ok">${icon('check')}<span class="grow">Gehalten${ev.done ? `: ${esc(ev.done.name)} (${ev.done.minutes} Min)` : ''}${ev.attendance !== undefined ? ` · ${ev.attendance} Spieler` : ''}${ev.rating ? ` · ${stars(ev.rating)}` : ''}</span></div>` : ''}
       ${ev.done ? (() => { const fm = eventFocus(s, ev); return fm?.list.length ? `<div class="focus-strip"><strong class="small">Trainiert</strong>${focusSummary(fm, { max: 6 })}</div>` : ''; })() : ''}
       ${ev.note ? `<p class="small" style="white-space:pre-line">${esc(ev.note)}</p>` : ''}
-      ${isTraining || p ? `<h3 style="margin-top:16px">Einheit</h3>${p ? `<div class="plan-card" style="cursor:default"><span class="row between"><strong>${esc(p.name)}</strong><span class="tiny">${totalMinutes(p, s)} von ${duration(ev)} Min · ${plural(p.blocks.length, 'Block', 'Blöcke')}</span></span>
+      ${game ? `<div class="stack" style="margin-top:12px">${gameBody(s, ev)}</div>` : ''}
+      ${!game && (isTraining || p) ? `<h3 style="margin-top:16px">Einheit</h3>${p ? `<div class="plan-card" style="cursor:default"><span class="row between"><strong>${esc(p.name)}</strong><span class="tiny">${totalMinutes(p, s)} von ${duration(ev)} Min · ${plural(p.blocks.length, 'Block', 'Blöcke')}</span></span>
           ${p.goal ? `<span class="small muted">Ziel: ${esc(p.goal)}</span>` : ''}
           ${!ev.done && p.blocks.length ? focusChips(planFocus(s, p).list.map(o => ({ key: o.key, minutes: o.minutes })), { max: 4, link: true, mark: p.focus }) : ''}
           ${p.blocks.length ? `<span class="hero-bar" aria-hidden="true">${p.blocks.map(b => `<i style="width:${b.minutes / Math.max(1, totalMinutes(p, s), duration(ev)) * 100}%"></i>`).join('')}</span><span class="tiny">${p.blocks.slice(0, 6).map(b => esc(exercise(s, b.exerciseId)?.name || '')).join(' · ')}${p.blocks.length > 6 ? ' …' : ''}</span>` : '<span class="tiny">Noch leer</span>'}
@@ -225,12 +228,14 @@ export function openEvent(id) {
         <button class="list-item" type="button" data-a="copy">${icon('copy')}<span class="grow"><strong>Eine Woche später wiederholen</strong><small>${esc(fmtDate(addDays(ev.date, 7)))} · gleiche Einheit</small></span></button>
         <button class="list-item" type="button" data-a="ics">${icon('download')}<span class="grow"><strong>In Handy-Kalender (.ics)</strong><small>Mit Erinnerung, auch wenn TRAINR geschlossen ist</small></span></button>
         <button class="list-item" type="button" data-a="del" style="color:var(--danger)">${icon('trash')}<span class="grow"><strong>Termin löschen</strong></span></button></div>`);
-    sh.setFoot(`<button class="btn" type="button" data-a="edit">${icon('edit')} Bearbeiten</button>${ev.status === 'geplant' && isTraining && (past || ev.date === todayIso()) ? `<button class="btn primary" type="button" data-a="review">${icon('check')} Nachbereiten</button>` : ''}`);
+    sh.setFoot(`<button class="btn" type="button" data-a="edit">${icon('edit')} ${game ? 'Spieltag bearbeiten' : 'Bearbeiten'}</button>${game ? `<button class="btn ghost" type="button" data-a="editevent">${icon('calendar')} Termin</button>` : ''}${ev.status === 'geplant' && isTraining && (past || ev.date === todayIso()) ? `<button class="btn primary" type="button" data-a="review">${icon('check')} Nachbereiten</button>` : ''}`);
   };
   const act = async (a, sh) => {
     const ev = findEvent(id); if (!ev) return;
     const s = store.get(), p = planOf(s, ev);
-    if (a === 'edit') { sh.close(); setTimeout(() => editEvent(id), 220); }
+    if (gameAction(a, ev, sh)) return;
+    if (a === 'edit') { sh.close(); setTimeout(() => (isGame(ev) ? editGame(id) : editEvent(id)), 220); }
+    if (a === 'editevent') { sh.close(); setTimeout(() => editEvent(id), 220); }
     if (a === 'review') { sh.close(); setTimeout(() => reviewEvent(id), 220); }
     if (a === 'cancel') { sh.close(); setTimeout(() => cancelEvent(id), 220); }
     if (a === 'assign') { sh.close(); setTimeout(() => assignPlan(id), 220); }
@@ -293,7 +298,7 @@ export function editEvent(id, date = todayIso(), kind = 'training', { planId = n
         <label class="field"><span>Ende</span><input class="input" type="time" name="end" value="${ev.end}" required></label>
       </div>
       <label class="field"><span>Ort (optional)</span><input class="input" name="place" maxlength="80" value="${esc(ev.place)}" placeholder="z. B. Kunstrasen, Platz 2" autocomplete="off"></label>
-      <label class="field"><span>Einheit</span><select class="input" name="plan"><option value="">— keine —</option>${plans.map(p => `<option value="${esc(p.id)}" ${p.id === ev.planId ? 'selected' : ''}>${esc(p.name)} · ${totalMinutes(p, s)} Min</option>`).join('')}</select></label>
+      <label class="field" id="ev-planfield" ${isGame(ev) ? 'hidden' : ''}><span>Einheit</span><select class="input" name="plan"><option value="">— keine —</option>${plans.map(p => `<option value="${esc(p.id)}" ${p.id === ev.planId ? 'selected' : ''}>${esc(p.name)} · ${totalMinutes(p, s)} Min</option>`).join('')}</select></label>
       <label class="field"><span>Erinnerung</span><select class="input" name="remind">${REMIND.map(([v, t]) => `<option value="${v ?? ''}" ${v === ev.remind ? 'selected' : ''}>${t}</option>`).join('')}${ev.remind !== null && !REMIND.some(([v]) => v === ev.remind) ? `<option value="${ev.remind}" selected>${esc(remindLabel(ev.remind))}</option>` : ''}</select>
         <small class="tiny" id="ev-perm"></small></label>
       <label class="field"><span>Notiz (keine Kindernamen)</span><textarea class="input" name="note" rows="3" maxlength="2000" placeholder="z. B. Treffpunkt 15 Min vorher, Leibchen mitbringen">${esc(ev.note)}</textarea></label>
@@ -307,7 +312,7 @@ export function editEvent(id, date = todayIso(), kind = 'training', { planId = n
       on(sh.body, 'click', '[data-kind]', (_, b) => {
         const was = ev.kind; ev.kind = b.dataset.kind;
         $$('[data-kind]', sh.body).forEach(x => x.setAttribute('aria-checked', String(x === b)));
-        f.title.placeholder = KIND[ev.kind];
+        f.title.placeholder = KIND[ev.kind]; $('#ev-planfield', sh.body).hidden = isGame(ev);
         if (!old && was === 'training' && ev.kind !== 'training' && f.remind.value === String(DEFAULT_REMIND)) f.remind.value = '';
       });
       f.date.onchange = () => { // Uhrzeit an Trainingszeit des Wochentags anpassen, solange nicht selbst geändert
@@ -322,6 +327,7 @@ export function editEvent(id, date = todayIso(), kind = 'training', { planId = n
         if (time(start) < 0 || time(end) < 0) { err.textContent = 'Bitte Beginn und Ende eintragen.'; return; }
         if (time(end) <= time(start)) { err.textContent = 'Das Ende muss nach dem Beginn liegen.'; f.end.focus(); return; }
         const next = { ...ev, date, start, end, title: f.title.value.trim().slice(0, 80), place: f.place.value.trim().slice(0, 80), planId: f.plan.value || null, remind: f.remind.value === '' ? null : Number(f.remind.value), note: f.note.value.slice(0, 2000) };
+        if (!isGame(next)) delete next.game;
         const prev = { day: ui.day, month: ui.month };
         ui.day = date; ui.month = monthKey(date);
         try {

@@ -10,8 +10,9 @@ import { MORE } from './en-more.js';
 import { CALENDAR } from './en-calendar.js';
 import { EXPORT } from './en-export.js';
 import { SCENES } from './en-scenes.js';
+import { MATCHDAY } from './en-matchday.js';
 import { MISC } from './en-misc.js';
 import { SOURCE_SUPPORTS_EN } from './catalog-en-tags.js';
 
 // Spätere Teile überschreiben frühere bei gleichem Schlüssel; Spezielles zuletzt.
-export const EN = Object.assign({}, CORE, HELP, ONBOARDING, TODAY, LIBRARY, DETAIL, PLAN, MORE, CALENDAR, EXPORT, SCENES, SOURCE_SUPPORTS_EN, MISC);
+export const EN = Object.assign({}, CORE, HELP, ONBOARDING, TODAY, LIBRARY, DETAIL, PLAN, MORE, CALENDAR, EXPORT, SCENES, SOURCE_SUPPORTS_EN, MATCHDAY, MISC);
