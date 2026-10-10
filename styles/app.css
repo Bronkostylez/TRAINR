@@ -782,3 +782,70 @@ button.bar-row.fbar:hover { background: var(--surface-2); }
   .lib-group { font-size: 1.25rem; }
 }
 .lib-grid.grouped .drill-row .row-tag { display: none; }
+
+/* ---------- V21.8 Handy-Aufräumpass: lesbare Schrift, 44-px-Touchflächen, ruhigere Struktur ---------- */
+/* Mindestgrößen für kleine Texte (vorher teils 10,9 px) */
+.eyebrow { font-size: .78rem; }
+.tiny { font-size: .82rem; }
+.small { font-size: .9rem; }
+.hero-stats small, .next-up small { font-size: .76rem; }
+.chip .count, .fchip small { font-size: .8rem; }
+.drill-meta { font-size: .84rem; }
+.drill-why { font-size: .84rem; }
+.cal-wd { font-size: .78rem; }
+.alegend { font-size: .84rem; }
+.fchip { font-size: .82rem; min-height: 30px; }
+.tab { font-size: .76rem; letter-spacing: .03em; }
+.switch-row small { font-size: .86rem; }
+
+@media (max-width: 599px) {
+  /* Touchflächen mindestens 44 px */
+  .team-chip { min-height: 44px; max-width: 42vw; }
+  .btn.sm, .fact, .chip, .seg button, .toast button, .stepper input { min-height: 44px; }
+  .block-actions .stepper button { width: 44px; height: 44px; }
+  .chip { padding-inline: 14px; }
+  .hero .chip, .sm-chip { min-height: 44px; display: inline-flex; align-items: center; }
+  button.fchip { min-height: 36px; }
+  .cal-day { min-height: 56px; }
+  /* Heute: Kopf und Hero ruhiger */
+  .page-head { margin: var(--s-2) 0 var(--s-4); }
+  .hero { padding: 18px 16px; }
+  .hero .chip { border-color: var(--hero-muted); color: var(--hero-ink); background: transparent; }
+  .hero-foci > .tiny { flex-basis: 100%; }
+  details.disclosure .seg { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  details.disclosure .seg button { border-left: 0; border-top: 1.5px solid var(--line-2); }
+  details.disclosure .seg button:nth-child(-n+2) { border-top: 0; }
+  details.disclosure .seg button:nth-child(2n) { border-left: 1.5px solid var(--line-2); }
+  .section { margin: var(--s-6) 0 var(--s-3); }
+  .tl-item { grid-template-columns: 54px 1fr auto; padding: 8px 0; }
+  .tl-item small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  /* Einstellungen: Auswahlzeilen gleichmäßig verteilen statt schief umbrechen */
+  .card .seg, .setting-row .seg { display: flex; flex-wrap: wrap; }
+  .seg { max-width: 100%; }
+  .seg button { flex: 1 1 auto; padding-inline: 12px; }
+  /* Planen: Kopf als sauberes 2-Spalten-Raster, Titel in voller Länge */
+  .plan-title { font-size: clamp(1.4rem, 6.4vw, 1.9rem); line-height: 1.1; }
+  .plan-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .plan-facts .fact { width: 100%; justify-content: flex-start; min-width: 0; }
+  .plan-facts .fact { white-space: normal; line-height: 1.15; text-align: left; }
+  .plan-facts .fact:first-child { grid-column: span 2; }
+  .field > span:first-child { font-size: .8rem; }
+  .plan-facts .stepper input { width: 40px; min-width: 40px; }
+  .budget-label { font-size: .84rem; }
+  /* Bibliothek: Karte ohne gequetschte Labels */
+  .drill { grid-template-columns: 104px 1fr; }
+  .drill-body h3 { font-size: 1rem; }
+  .drill .fchips { gap: 4px; }
+  .drill .fchips .fchip:nth-child(n+3) { display: none; }
+  .drill .fchip { padding: 2px 7px; }
+  .drill-body .tag { font-size: .72rem; }
+  .fav { width: 44px; height: 44px; top: 2px; right: 2px; }
+  .drill-meta { gap: 2px 10px; }
+  /* Hinweise (Toasts): schmal, kurz, verdecken weniger */
+  .toasts { width: min(92vw, 520px); bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 8px); }
+  .toast { min-height: 44px; padding: 6px 6px 6px 12px; gap: 8px; font-size: .88rem; line-height: 1.3; }
+  .toast .grow { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  /* Training: Lauf-Buttons und Fokus-Zeile */
+  .live-controls .btn { min-height: 64px; }
+  .clock-card .fchip { min-height: 32px; font-size: .84rem; }
+}
