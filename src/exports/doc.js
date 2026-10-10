@@ -1,5 +1,5 @@
 // Ein gemeinsames Dokumentmodell für PDF, PNG und Druck. Layouts: detailed | compact | cards | coach.
-import { exercise, effective, fit, blockPeople, timeline, slotOf, slotLabel, planAge, teamOf, totalMinutes, exerciseMinutes, pauses, requirements, check, foci, planFocus, keyFirst } from '../core/planning.js';
+import { exercise, effective, blockLayout, layoutText, layoutAdvice, squadLabel, blockPeople, timeline, slotOf, slotLabel, planAge, teamOf, totalMinutes, exerciseMinutes, pauses, requirements, check, foci, planFocus, keyFirst } from '../core/planning.js';
 import { LABELS, BRAND } from '../core/util.js';
 import { stepsFor } from '../scene/pitch.js';
 import { t, locale } from '../i18n/index.js';
@@ -12,18 +12,19 @@ export const LAYOUTS = {
 };
 export const STYLES = { brand: 'Farbig', ink: 'Druckerfreundlich' };
 
-const SAFETY = 'Spielerzahlen ohne Trainer. Minuten enthalten Erklären, Trinken und Wechsel. Materialmengen: Höchstbedarf pro Block, parallele Gruppen eingerechnet; bei unpassenden Gruppen vorläufig. Altersgrenzen, Maße und Mengen sind Vorschläge, keine Normen. Tore sichern, freie Schusswege; Falltechnik nur auf weichem Boden mit geschulter Anleitung.';
+const SAFETY = 'Spieler, Torwart und Trainer sind getrennt gezählt. Minuten enthalten Erklären, Trinken und Wechsel. Materialmengen: Höchstbedarf pro Block, Gruppen und Schlangen eingerechnet; bei unpassender Besetzung vorläufig. Altersgrenzen, Maße und Mengen sind Vorschläge, keine Normen. Tore sichern, freie Schusswege; Falltechnik nur auf weichem Boden mit geschulter Anleitung.';
 
 /** Block-Daten für alle Layouts. */
 export function blocksData(s, p) {
   return timeline(s, p).map(({ block: b, label, pause }, i) => {
-    const e = exercise(s, b.exerciseId), n = blockPeople(p, b), g = fit(s, e, n), x = effective(s, e), age = planAge(s, p);
+    const e = exercise(s, b.exerciseId), n = blockPeople(p, b), L = blockLayout(s, p, b), g = L.level === 'no' ? 0 : L.groups, x = effective(s, e), age = planAge(s, p);
     const src = Array.isArray(e.sources) && e.sources.length ? e.sources.map(z => `${z.title}: ${z.url}`).join(' · ') : e.url || 'Eigene Übung';
     return {
       i, b, e, n, g, label, num: String(i + 1).padStart(2, '0'), keeper: e.type === 'keeper',
       pause: pause ? { minutes: pause.minutes, label: pause.label, text: `Trinkpause · ${pause.minutes} Min${pause.label ? ` (${pause.label})` : ''}` } : null,
       foci: foci(e).join(', '), kind: foci(e).slice(0, 3).join(' · ') || e.tag,
-      groups: g ? `${g} ${g > 1 ? 'parallele Gruppen' : 'Gruppe'} à ${x.min === x.max ? x.min : `${x.min}–${x.max}`}` : `ACHTUNG: ${n} Spieler passen nicht in Gruppen von ${x.min}–${x.max}`,
+      groups: L.level === 'no' ? (L.why === 'nokeeper' ? 'ACHTUNG: Torwart fehlt' : `ACHTUNG: ${n} Spieler passen nicht in Gruppen von ${x.min}–${x.max}`) : layoutText(L) + (L.level === 'tight' && layoutAdvice(L) ? ` – ${layoutAdvice(L)}` : ''),
+      matLabel: L.mode === 'queue' ? 'Material je Schlange' : L.mode === 'open' ? 'Material insgesamt' : 'Material je Gruppe',
       material: e.equipment.map(([m, c]) => `${c} ${m}`).join(', '), points: Array.isArray(e.points) && e.points.length ? e.points : [e.coaching],
       steps: stepsFor(e), source: src, ageWarn: age && !e.ages.includes(age) ? `ACHTUNG: nicht für ${age} vorgesehen.` : '',
     };
@@ -34,7 +35,7 @@ export function headerData(s, p) {
   const team = teamOf(s, p), slot = slotOf(s, p);
   return {
     title: p.name, team: team?.name || '', type: LABELS[team?.type] || '', age: planAge(s, p) || '', slot: slot ? slotLabel(slot) : '',
-    people: p.people, total: totalMinutes(p, s), goal: p.goal || '', notes: p.notes || '',
+    people: p.people, squad: squadLabel(p), total: totalMinutes(p, s), goal: p.goal || '', notes: p.notes || '',
     pauses: (() => { const ps = pauses(s, p); return ps.length ? `${exerciseMinutes(p)} Min Übungen + ${ps.length} ${ps.length === 1 ? 'Pause' : 'Pausen'} à ${ps[0].minutes} Min` : ''; })(),
     focus: p.focus && p.focus !== 'Alle' ? p.focus : '', foci: keyFirst(planFocus(s, p).list, p.focus).slice(0, 5).map(o => `${o.key} (${o.minutes} Min)`).join(', '),
     material: Object.entries(requirements(s, p)).map(([n, c]) => `${c} ${n}`), checks: check(s, p).filter(c => c.level === 'warn').map(c => c.text),
@@ -51,7 +52,7 @@ export function buildDoc(s, p, layout = 'detailed') {
   const push = (k, text = '', o = {}) => out.push({ k, text: t(text), ...o, ...(o.minutes ? { minutes: t(o.minutes) } : {}), ...(o.cols ? { cols: o.cols.map(c => t(String(c))) } : {}) });
   push('title', h.title);
   push('meta', [h.team, h.age, h.type].filter(Boolean).join(' · '));
-  push('meta', [h.slot, `${h.people} Spieler (ohne Trainer)`, `${h.total} Min`, h.pauses].filter(Boolean).join(' · '));
+  push('meta', [h.slot, h.squad, `${h.total} Min`, h.pauses].filter(Boolean).join(' · '));
   if (h.goal) push('p', `Ziel: ${h.goal}`, { bold: true });
   if (h.foci) push('p', `Schwerpunkte: ${h.focus ? `${h.focus} · ` : ''}${h.foci}`, { size: 9.5 });
   if (layout === 'compact') {
@@ -79,7 +80,7 @@ export function buildDoc(s, p, layout = 'detailed') {
       d.steps.forEach((t, k) => push('li', `${k + 1}. ${t}`, { size: 10, bullet: false }));
       push('p', 'Coaching', { size: 9.5, bold: true });
       for (const t of d.points) push('li', t, { size: 10 });
-      push('p', `Material je Gruppe: ${d.material}`, { size: 9.5 });
+      push('p', `${d.matLabel}: ${d.material}`, { size: 9.5 });
       if (d.b.note) push('p', `Notiz: ${d.b.note}`, { size: 9.5 });
       if (d.ageWarn) push('p', d.ageWarn, { size: 9.5, bold: true, color: 'warn' });
       push('p', `Quelle: ${d.source}`, { size: 8, color: 'muted' });
@@ -198,9 +199,9 @@ export function layoutPages(doc, style = 'brand') {
 // ---------- Text & CSV (wie V20, ergänzt um Ziel und Notizen) ----------
 export function planText(s, p) {
   const h = headerData(s, p), B = blocksData(s, p);
-  return translateLines(`${BRAND} · ${h.title}\n${[h.team, h.age, h.type].filter(Boolean).join(' · ')}\n${h.slot}\n${h.people} Spieler (ohne Trainer)\n${h.total} Minuten${h.pauses ? ` (${h.pauses})` : ''}\n${h.goal ? `Ziel: ${h.goal}\n` : ''}${h.foci ? `Schwerpunkte: ${h.foci}\n` : ''}\n` +
+  return translateLines(`${BRAND} · ${h.title}\n${[h.team, h.age, h.type].filter(Boolean).join(' · ')}\n${h.slot}\n${h.squad}\n${h.total} Minuten${h.pauses ? ` (${h.pauses})` : ''}\n${h.goal ? `Ziel: ${h.goal}\n` : ''}${h.foci ? `Schwerpunkte: ${h.foci}\n` : ''}\n` +
     B.map(d => `${d.i + 1}. ${d.e.name} · ${d.b.minutes} Minuten${d.label ? ` (${d.label})` : ''}\n${d.b.people ? `${d.n} Spieler · ` : ''}${d.groups}\n${d.e.goal ? `Ziel: ${d.e.goal}\n` : ''}${d.e.description}\nCoaching: ${d.points.join(' ')}\nMaterial je Gruppe: ${d.material}\n${d.b.note ? `Notiz: ${d.b.note}\n` : ''}Quelle: ${d.source}\n${d.ageWarn ? d.ageWarn + '\n' : ''}${d.pause ? `\n– ${d.pause.text} –\n` : ''}`).join('\n') +
-    `\nMaterialübersicht (Höchstbedarf, parallele Gruppen):\n${h.material.join('\n') || '–'}\n${h.notes ? `\nCoaching-Ziel / Notizen:\n${h.notes}\n` : ''}\n${SAFETY}`);
+    `\nMaterialübersicht (Höchstbedarf, Gruppen und Schlangen eingerechnet):\n${h.material.join('\n') || '–'}\n${h.notes ? `\nCoaching-Ziel / Notizen:\n${h.notes}\n` : ''}\n${SAFETY}`);
 }
 /** Zeilenweise übersetzen (Text-Export; das Dokument entsteht nicht im DOM). */
 const translateLines = str => str.split('\n').map(l => t(l)).join('\n');
@@ -208,7 +209,7 @@ const translateLines = str => str.split('\n').map(l => t(l)).join('\n');
 export function planCsv(s, p) {
   const h = headerData(s, p), B = blocksData(s, p);
   const cell = v => { let x = t(String(v ?? '')); if (/^[=+@-]/.test(x)) x = "'" + x; return `"${x.replace(/"/g, '""')}"`; };
-  const rows = [['Plan', h.title], ['Mannschaft', h.team], ['Altersklasse', h.age], ['Trainingstag', h.slot], ['Spieler ohne Trainer', h.people], ['Ziel', h.goal], ['Schwerpunkte', h.foci],
+  const rows = [['Plan', h.title], ['Mannschaft', h.team], ['Altersklasse', h.age], ['Trainingstag', h.slot], ['Spieler ohne Trainer', h.people], ['Torwart', p.keepers || 0], ['Trainer', p.coaches ?? 1], ['Ziel', h.goal], ['Schwerpunkte', h.foci],
     ['Block', 'Zeit', 'Übung', 'Kategorie', 'Schwerpunkte', 'Minuten', 'Spieler', 'Gruppen', 'Material je Gruppe', 'Beschreibung', 'Notiz', 'Quelle'],
     ...B.flatMap(d => [[d.i + 1, d.label, d.e.name, d.e.tag, d.foci, d.b.minutes, d.n, d.g || 'Anpassen', d.material, d.e.description, d.b.note || '', d.source], ...(d.pause ? [['Pause', d.pause.label || '', 'Trinkpause', '', '', d.pause.minutes, '', '', '', '', '', '']] : [])]),
     ['Material', 'Höchstbedarf'], ...Object.entries(requirements(s, p)),

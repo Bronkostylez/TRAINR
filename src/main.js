@@ -126,7 +126,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) fill
 initReminders(id => (id ? go('kalender', 'termin', id) : go('kalender')));
 if (info.source === 'v2') toast('Deine Daten aus TRAINR V20 wurden übernommen. Die alten Daten bleiben unverändert.', { ms: 6000 });
 if (info.problem === 'invalid-v3' || info.problem === 'invalid-v2') toast('Gespeicherte Daten waren ungültig und wurden gesichert, nicht überschrieben. Details unter „Mehr“.', { ms: 8000 });
-window.__trainr = { store, timer, version: '21.6.0' }; // für Tests und Fehlersuche
+window.__trainr = { store, timer, version: '21.7.0' }; // für Tests und Fehlersuche
 
 // ---------- Wischen zwischen den Haupt-Tabs (nur Touch, nur schmale Bildschirme) ----------
 {

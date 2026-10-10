@@ -27,12 +27,19 @@ test('Planer: Einheit erstellen, Minuten, Reihenfolge, Teilnehmer, Undo/Redo, En
   // Spielerzahl der Einheit
   await page.click('#pl-pminus');
   await expect.poll(async () => (await plan(page)).people).toBe(11);
-  await expect(page.locator('#pl-blocks')).toContainText('passen nicht');
-  await page.click('#pl-pplus');
+  // 11 Spieler: Gruppen-Übungen lassen einen Wechselspieler übrig, es entstehen keine zusätzlichen Gruppen
+  await expect(page.locator('#pl-blocks')).not.toContainText('zu wenige Spieler');
+  await page.fill('#pl-people', '1');
+  await page.press('#pl-people', 'Tab');
+  await expect.poll(async () => (await plan(page)).people).toBe(1);
+  await expect(page.locator('#pl-blocks')).toContainText('zu wenige Spieler');
+  await page.fill('#pl-people', '12');
+  await page.press('#pl-people', 'Tab');
+  await expect.poll(async () => (await plan(page)).people).toBe(12);
   // Teilnehmer nur für einen Block
   await blocks.first().locator('[data-edit]').click();
   await page.fill('dialog[open] [name=people]', '7');
-  await expect(page.locator('#be-hint')).toContainText('Spieler pro Gruppe');
+  await expect(page.locator('#be-hint')).toContainText(/Spieler pro Gruppe|Alle gemeinsam|Schlange/);
   await page.fill('dialog[open] [name=minutes]', '13');
   await page.click('dialog[open] button[type=submit]');
   let p = await plan(page);

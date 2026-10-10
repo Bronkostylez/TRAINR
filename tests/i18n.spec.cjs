@@ -56,7 +56,7 @@ test.describe('Gerätesprache Englisch', () => {
     // Export-Text auf Englisch
     const text = await planText(page);
     expect(text).toContain('Equipment per group:');
-    expect(text).toContain('players (without coach)');
+    expect(text).toMatch(/[0-9]+ players · 1 coach/);
     expect(text).not.toContain('Material je Gruppe');
     // Kalender: Datum nach englischem Format
     await page.evaluate(() => { location.hash = '#kalender'; });

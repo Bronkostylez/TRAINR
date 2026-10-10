@@ -1,6 +1,6 @@
 // Detail-Sheet einer Übung: Animation, Ziel, Ablauf, Coaching, Material, Varianten, Bewertung, Notiz, Quellen.
 import * as store from '../core/store.js';
-import { exercise, effective, fit, currentPlan, similar, progression, meta, level, LEVEL_LABEL, planAge, foci, FOCUS, AREAS, MAX_FOCI } from '../core/planning.js';
+import { exercise, effective, layout, layoutText, squadOf, flowOf, FLOW_LABEL, currentPlan, similar, progression, meta, level, LEVEL_LABEL, planAge, foci, FOCUS, AREAS, MAX_FOCI } from '../core/planning.js';
 import { focusChips } from '../ui/focus.js';
 import { TAG_VARIANTS } from '../data/drill-meta.js';
 import { localizeVariants } from '../i18n/catalog.js';
@@ -26,7 +26,7 @@ export function openDetail(id, order = null) {
     player?.destroy();
     const s = store.get(), e = exercise(s, ids[idx]);
     if (!e) { sheet.close(); return; }
-    const p = currentPlan(s), x = effective(s, e), m = meta(s, e.id), n = p?.people || 12, g = fit(s, e, n);
+    const p = currentPlan(s), x = effective(s, e), m = meta(s, e.id), L = layout(s, e, squadOf(s, p)), g = L.level !== 'no', flow = flowOf(e);
     const variants = e.variants || localizeVariants(e.tag, TAG_VARIANTS[e.tag]);
     const age = planAge(s, p);
     sheet.setTitle(e.name);
@@ -53,7 +53,7 @@ export function openDetail(id, order = null) {
           <p class="tiny" id="d-disclaimer" style="margin-top:6px">Schematische Darstellung: keine maßstabsgetreuen Positionen oder exakten Laufwege${e.type !== 'field' ? ', keine Fang- oder Falltechnik-Demonstration' : ''}.</p>
         </div>
         <div class="stack">
-          <div class="facts"><span>${icon('clock')} ${x.minutes} Min${m.variant ? ' · deine Variante' : ''}</span><span>${x.min === x.max ? x.min : `${x.min}–${x.max}`} Spieler / Gruppe</span><span>ab ${esc(e.ages[0])}</span><span class="${g ? '' : 'warn'}">${g ? `${g} ${g > 1 ? 'Gruppen' : 'Gruppe'} für ${n}` : `passt nicht zu ${n} Spielern`}</span></div>
+          <div class="facts"><span>${icon('clock')} ${x.minutes} Min${m.variant ? ' · deine Variante' : ''}</span><span>${flow === 'open' ? `ab ${x.min} Spieler` : flow === 'queue' ? `Je Station ${x.min === x.max ? x.min : `${x.min}–${x.max}`} Spieler aktiv` : `${x.min === x.max ? x.min : `${x.min}–${x.max}`} Spieler / Gruppe`}</span><span>${esc(FLOW_LABEL[flow])}</span><span>ab ${esc(e.ages[0])}</span><span class="${g ? '' : 'warn'}">${esc(layoutText(L))}</span></div>
           ${e.goal ? `<section><h3>Ziel</h3><p>${esc(e.goal)}</p></section>` : ''}
           ${foci(e).length ? `<section class="detail-foci"><h3>Schwerpunkte <small class="tiny">antippen: passende Übungen</small></h3>${focusChips(foci(e), { link: true, mark: p?.focus })}
             <ul class="foci-explain">${foci(e).map((k, i) => `<li><strong>${esc(k)}</strong>${i ? '' : ' <span class="tiny">Hauptschwerpunkt</span>'} – ${esc(FOCUS[k]?.hint || '')} <span class="tiny">· ${esc(AREAS[FOCUS[k]?.area]?.label || '')}</span></li>`).join('')}</ul></section>` : ''}

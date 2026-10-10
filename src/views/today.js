@@ -1,6 +1,6 @@
 // Heute: nächste Einheit, Ein-Tipp-Erstellung, Start und Schnellaktionen.
 import * as store from '../core/store.js';
-import { currentPlan, activeTeam, exercise, totalMinutes, timeline, slotOf, slotMinutes, planAge, check, foci, planFocus } from '../core/planning.js';
+import { currentPlan, activeTeam, exercise, squadLabel, blockLayout, layoutText, totalMinutes, timeline, slotOf, slotMinutes, planAge, check, foci, planFocus } from '../core/planning.js';
 import { focusChips, focusOptions, areaBar } from '../ui/focus.js';
 import { propose, STRATEGIES } from '../core/assistant.js';
 import { DAYS, LABELS, esc, uid, time, fmtTime, plural, clamp } from '../core/util.js';
@@ -13,6 +13,7 @@ import { openBlockEditor, swapBlock, openAddSheet } from './blocks.js';
 import { LIMITS } from '../core/schema.js';
 import { upcoming, needsReview, weekday, duration, fmtDate, startOf, endOf, title as evTitle, stats, neglected, addDays, todayIso } from '../core/calendar.js';
 import { eventCard, openEvent, reviewEvent, seriesSheet } from './calendar.js';
+import { openSquadSheet } from './squad.js';
 
 /** Nächster Trainingstermin der Mannschaft ab jetzt. */
 export function nextSession(team, now = new Date()) {
@@ -80,6 +81,7 @@ export const todayView = {
           <div><strong>${p.blocks.length}</strong><small>${p.blocks.length === 1 ? 'Übung' : 'Übungen'}</small></div>
           <div><strong>${p.people}</strong><small>Spieler</small></div>
         </div>
+        <p class="tiny" style="margin:-6px 0 10px"><button class="chip sm-chip" type="button" id="t-squad" aria-haspopup="dialog" title="Wer ist da: Spieler, Torwart, Trainer">${esc(squadLabel(p))}</button></p>
         ${p.blocks.length ? `<div class="hero-bar" aria-hidden="true">${p.blocks.map(b => `<i style="width:${(b.minutes / Math.max(total, avail || total)) * 100}%"></i>`).join('')}</div>` : ''}
         ${fm.list.length ? `<div class="hero-foci"><span class="tiny">Im Fokus</span>${focusChips(fm.list.map(o => ({ key: o.key, minutes: o.minutes })), { max: 3, link: true, mark: p.focus })}</div>` : ''}
         ${warns.length ? `<p class="small hero-warn">${icon('warn')} ${esc(warns[0].text)}</p>` : ''}
@@ -96,7 +98,7 @@ export const todayView = {
           ${gaps.length ? `<p class="tiny" style="margin:-4px 0 10px">Lange nicht trainiert: ${gaps.slice(0, 4).map(k => `<button class="chip sm-chip" type="button" data-gap="${esc(k)}" aria-pressed="${form.focus === k}">${esc(k)}</button>`).join(' ')}</p>` : ''}
           <div class="grid-2">
             <div class="field"><span>Minuten</span><div class="stepper"><button type="button" data-c="minutes" data-d="-5" aria-label="5 Minuten weniger">−</button><input id="c-minutes" type="number" min="20" max="150" value="${form.minutes}" aria-label="Minuten"><button type="button" data-c="minutes" data-d="5" aria-label="5 Minuten mehr">+</button></div></div>
-            <div class="field"><span>Spieler (ohne Trainer)</span><div class="stepper"><button type="button" data-c="people" data-d="-1" aria-label="Ein Spieler weniger">−</button><input id="c-people" type="number" min="1" max="60" value="${form.people}" aria-label="Spieler"><button type="button" data-c="people" data-d="1" aria-label="Ein Spieler mehr">+</button></div></div>
+            <div class="field"><span>Spieler (Feld)</span><div class="stepper"><button type="button" data-c="people" data-d="-1" aria-label="Ein Spieler weniger">−</button><input id="c-people" type="number" min="1" max="60" value="${form.people}" aria-label="Spieler"><button type="button" data-c="people" data-d="1" aria-label="Ein Spieler mehr">+</button></div></div>
           </div>
           <div class="field"><span>Strategie</span><div class="seg" role="radiogroup" aria-label="Strategie">${Object.entries(STRATEGIES).map(([k, v]) => `<button type="button" role="radio" aria-checked="${form.strategy === k}" data-strategy="${k}">${v.name}</button>`).join('')}</div><small class="tiny">${esc(STRATEGIES[form.strategy].short)}</small></div>
           <p class="error" id="c-err" role="alert"></p>
@@ -109,7 +111,7 @@ export const todayView = {
       ${p.blocks.length ? `<div class="timeline" id="t-list">${tl.map(({ block: b, label, pause }, i) => { const e = exercise(s, b.exerciseId); return `
         <div class="tl-item" data-block="${b.id}" role="group" aria-label="Block ${i + 1}: ${esc(e.name)}">
           <span class="tl-time">${label || `#${i + 1}`}</span>
-          <button type="button" class="btn ghost" style="all:unset;cursor:pointer;min-width:0" data-edit="${b.id}"><strong>${e.type === 'keeper' ? '<span class="keeper-dot" aria-label="Torwart"></span> ' : ''}${esc(e.name)}</strong><small>${esc(foci(e).slice(0, 2).join(' · ') || e.tag)}${b.people ? ` · ${b.people} Spieler` : ''}${b.note ? ` · ${esc(b.note)}` : ''}</small></button>
+          <button type="button" class="btn ghost" style="all:unset;cursor:pointer;min-width:0" data-edit="${b.id}"><strong>${e.type === 'keeper' ? '<span class="keeper-dot" aria-label="Torwart"></span> ' : ''}${esc(e.name)}</strong><small>${esc(foci(e).slice(0, 2).join(' · ') || e.tag)}${(() => { const L = blockLayout(s, p, b); return L && L.mode !== 'group' && L.level !== 'no' ? ` · ${esc(layoutText(L))}` : ''; })()}${b.people ? ` · ${b.people} Spieler` : ''}${b.note ? ` · ${esc(b.note)}` : ''}</small></button>
           <span class="row" style="flex-wrap:nowrap;gap:2px"><span class="min">${b.minutes}′</span><button class="icon-btn" type="button" data-swap="${b.id}" aria-label="${esc(e.name)} tauschen">${icon('swap')}</button></span>
         </div>${pause ? `<div class="tl-item pause-item" style="cursor:default"><span class="tl-time">${pause.label || ''}</span><span><strong>${icon('pause')} Trinkpause</strong><small>${esc(pause.why)}</small></span><span class="min">${pause.minutes}′</span></div>` : ''}`; }).join('')}</div>` : `<div class="empty"><h3>Noch keine Übungen</h3><p>Erstelle oben eine Einheit oder füge Übungen hinzu.</p><button class="btn primary" type="button" id="t-add0">${icon('plus')} Übung hinzufügen</button></div>`}
 
@@ -136,6 +138,7 @@ export const todayView = {
     const r = this.root;
     $('#t-start', r)?.addEventListener('click', () => go('training', 'start'));
     $('#t-edit', r).onclick = () => go('planen');
+    $('#t-squad', r).onclick = () => openSquadSheet();
     $('#t-add0', r)?.addEventListener('click', openAddSheet);
     $('#q-add', r).onclick = openAddSheet;
     $('#q-lib', r).onclick = () => go('uebungen');
@@ -163,9 +166,9 @@ export const todayView = {
     const s = store.get(), team = activeTeam(s), p = currentPlan(s);
     if (s.plans.length >= LIMITS.plans) { toast(`Maximal ${LIMITS.plans} Einheiten. Alte unter „Planen“ löschen.`); return; }
     try {
-      const pr = propose(s, { age: planAge(s, p) || team.age, people: form.people, minutes: form.minutes, focus: form.focus, type: team.type, strategy: form.strategy, seed: Date.now() % 100000, pauses: pauseFrom(p) });
+      const pr = propose(s, { age: planAge(s, p) || team.age, people: form.people, keepers: p?.keepers || 0, coaches: p?.coaches ?? 1, minutes: form.minutes, focus: form.focus, type: team.type, strategy: form.strategy, seed: Date.now() % 100000, pauses: pauseFrom(p) });
       const plan = {
-        id: uid(), teamId: team.id, name: `${form.focus === 'Alle' ? 'Abwechslungsreich' : form.focus} · ${STRATEGIES[pr.strategy].name}`.slice(0, 80), people: form.people,
+        id: uid(), teamId: team.id, name: `${form.focus === 'Alle' ? 'Abwechslungsreich' : form.focus} · ${STRATEGIES[pr.strategy].name}`.slice(0, 80), people: form.people, ...(p?.keepers ? { keepers: p.keepers } : {}), ...(p?.coaches !== undefined ? { coaches: p.coaches } : {}),
         slot: p?.slot ?? team.slots[0].day, focus: form.focus, notes: pr.notes.join(' '), goal: '', date: null,
         blocks: pr.blocks.map(b => ({ id: uid(), exerciseId: b.exerciseId, minutes: b.minutes })),
       };

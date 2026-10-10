@@ -29,7 +29,8 @@ export function locale() {
 }
 
 const fill = (tpl, args) => { let i = 0; return tpl.replace(/\{(\d*)\}/g, (_, d) => args[d ? d - 1 : i++] ?? ''); };
-const SEPS = [': ', ' · ', ' – ', '; ', ', '];
+// Starke Trenner zuerst: „3 Gruppen à 4 · 1 wechselt ein“ beginnt mit einer Zahl, besteht aber aus zwei eigenständigen Teilen.
+const STRONG = [' · ', ' – '], SEPS = [': ', '; ', ', '];
 const norm = s =>s.replace(/\s+/g, ' ');
 
 function lookup(core, depth = 0) {
@@ -40,18 +41,23 @@ function lookup(core, depth = 0) {
     const g = re.exec(core);
     if (g) return fill(tpl, g.slice(1).map(x => lookup(x, depth + 1)));
   }
-  const num = /^(\d+(?:[.,]\d+)?) (.+)$/.exec(core); // „5 Einheiten“: Zahl bleibt, Rest wird übersetzt
-  if (num) { const r = lookup(num[2], depth + 1); if (r !== num[2]) return `${num[1]} ${/^[A-Z][a-z]/.test(r) ? r[0].toLowerCase() + r.slice(1) : r}`; }
   const pre = /^([⚠✓✕★♥●▲▣▰▤◇◆⚽🧤→←↗↶↻⏭•+\-–—·]+\s*)(.+)$/u.exec(core); // Symbol-Präfix bleibt, Rest wird übersetzt
   if (pre) { const r = lookup(pre[2], depth + 1); if (r !== pre[2]) return pre[1] + r; }
   const sent = core.split(/(?<=[.!?]) (?=[A-ZÄÖÜ„"(⚠])/); // mehrere Sätze in einem Textknoten: einzeln übersetzen
   if (sent.length > 1) { const out = sent.map(x => lookup(x, depth + 1)); if (out.some((x, i) => x !== sent[i])) return out.join(' '); }
-  for (const sep of SEPS) { // zusammengesetzte Zeilen („Aufwärmen · 2 Gruppen“): Teile einzeln übersetzen
-    if (!core.includes(sep)) continue;
-    const parts = core.split(sep), out = parts.map(x => lookup(x, depth + 1));
-    if (out.some((x, i) => x !== parts[i])) return out.join(sep);
-  }
-  return core;
+  const parted = seps => { // zusammengesetzte Zeilen („Aufwärmen · 2 Gruppen“): Teile einzeln übersetzen
+    for (const sep of seps) {
+      if (!core.includes(sep)) continue;
+      const parts = core.split(sep), out = parts.map(x => lookup(x, depth + 1));
+      if (out.some((x, i) => x !== parts[i])) return out.join(sep);
+    }
+    return null;
+  };
+  const strong = parted(STRONG);
+  if (strong !== null) return strong;
+  const num = /^(\d+(?:[.,]\d+)?) (.+)$/.exec(core); // „5 Einheiten“: Zahl bleibt, Rest wird übersetzt
+  if (num) { const r = lookup(num[2], depth + 1); if (r !== num[2]) return `${num[1]} ${/^[A-Z][a-z]/.test(r) ? r[0].toLowerCase() + r.slice(1) : r}`; }
+  return parted(SEPS) ?? core;
 }
 
 /** Deutschen Text übersetzen. Unbekanntes bleibt unverändert. Führende/abschließende Leerzeichen bleiben erhalten. */

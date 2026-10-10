@@ -2,6 +2,7 @@
 // Validierung verändert Eingaben nicht, außer offensichtliche Zeiger (selected) zu reparieren.
 import { AGES, TAGS, SEED } from '../data/drills.js';
 import { FOCUS_KEYS, MAX_FOCI } from '../data/focus.js';
+import { FLOWS } from '../data/flow.js';
 import { LANG_CODES } from '../i18n/index.js';
 import { LABELS, integer, text, optText, safeURL, time } from './util.js';
 
@@ -65,6 +66,7 @@ export function validCustom(e, ids) {
   if (e.animation !== undefined && !validAnimation(e.animation)) return false;
   if (!optText(e.goal, 300)) return false;
   if (e.focus !== undefined && !validFoci(e.focus)) return false;
+  if (e.flow !== undefined && !FLOWS.includes(e.flow)) return false;
   return true;
 }
 
@@ -143,7 +145,7 @@ export function validGame(g) {
   return true;
 }
 
-/** Kalendertermin. Anwesenheit nur als Zahl – keine Namen. `done` = Momentaufnahme der gehaltenen Einheit. */
+/** Kalendertermin. Anwesenheit nur als Zahlen (Spieler, ab 21.7 getrennt Torwart und Trainer) – keine Namen. `done` = Momentaufnahme der gehaltenen Einheit. */
 function validEvent(ev, tids) {
   if (!text(ev?.id, 100) || !tids.has(ev.teamId) || !/^\d{4}-\d\d-\d\d$/.test(ev.date) || Number.isNaN(Date.parse(ev.date))) return false;
   if (time(ev.start) < 0 || time(ev.end) < 0 || time(ev.end) <= time(ev.start)) return false;
@@ -153,6 +155,7 @@ function validEvent(ev, tids) {
   if (ev.seriesId !== undefined && !text(ev.seriesId, 100)) return false;
   if (ev.game !== undefined && (!validGame(ev.game) || (ev.kind !== 'spiel' && ev.kind !== 'turnier'))) return false;
   if (ev.attendance !== undefined && !integer(ev.attendance, 0, 100)) return false;
+  if ((ev.keepers !== undefined && !integer(ev.keepers, 0, 20)) || (ev.coaches !== undefined && !integer(ev.coaches, 0, 10))) return false;
   if (ev.rating !== undefined && !integer(ev.rating, 1, 5)) return false;
   if (ev.done !== undefined) {
     const d = ev.done;
@@ -185,12 +188,13 @@ export function validateV3(x) {
       !(p.slot === null || integer(p.slot, 0, 6)) || !Array.isArray(p.blocks) || p.blocks.length > LIMITS.blocks ||
       !(p.teamId === null || tids.has(p.teamId)) || !optText(p.notes, LIMITS.notes) || !optText(p.goal, 200) ||
       (p.age !== undefined && !AGES.includes(p.age)) || (p.template !== undefined && typeof p.template !== 'boolean') ||
-      (p.date !== undefined && p.date !== null && !/^\d{4}-\d\d-\d\d$/.test(p.date)) || (p.pauses !== undefined && !validPauses(p.pauses))) fail('Ungültige Einheit.');
+      (p.date !== undefined && p.date !== null && !/^\d{4}-\d\d-\d\d$/.test(p.date)) || (p.pauses !== undefined && !validPauses(p.pauses)) ||
+      (p.keepers !== undefined && !integer(p.keepers, 0, 20)) || (p.coaches !== undefined && !integer(p.coaches, 0, 10))) fail('Ungültige Einheit.');
     pids.add(p.id);
     for (const b of p.blocks) {
       if (!text(b.id, 100) || bids.has(b.id) || !ids.has(b.exerciseId) || !integer(b.minutes, 1, 120) ||
         (b.people !== undefined && !integer(b.people, 1, 100)) || !optText(b.note, 300) ||
-        (b.groupLabel !== undefined && !optText(b.groupLabel, 40))) fail('Ungültiger Block.');
+        (b.groupLabel !== undefined && !optText(b.groupLabel, 40)) || (b.stations !== undefined && !integer(b.stations, 1, 6))) fail('Ungültiger Block.');
       bids.add(b.id);
     }
   }

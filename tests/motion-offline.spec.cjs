@@ -57,8 +57,8 @@ test('Offline: Service Worker cached die App; Neustart und Planen ohne Netz', as
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
   const keys = await page.evaluate(() => caches.keys());
-  expect(keys).toEqual(['trainr-v21.6.0']);
-  const cached = await page.evaluate(async () => (await (await caches.open('trainr-v21.6.0')).keys()).length);
+  expect(keys).toEqual(['trainr-v21.7.0']);
+  const cached = await page.evaluate(async () => (await (await caches.open('trainr-v21.7.0')).keys()).length);
   expect(cached).toBeGreaterThan(40);
   await context.setOffline(true);
   await page.reload();

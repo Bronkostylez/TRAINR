@@ -14,7 +14,10 @@ export function undoToast(msg) {
 /** Leere Einheit für die aktive Mannschaft (ohne Speichern). */
 export function blankPlan(s, name = 'Neue Einheit') {
   const team = activeTeam(s), from = currentPlan(s);
-  return { id: uid(), teamId: team?.id ?? null, name, people: from?.teamId === team?.id ? from.people : 12, slot: team?.slots[0]?.day ?? null, focus: 'Alle', notes: '', goal: '', blocks: [], date: null };
+  const same = from?.teamId === team?.id, p = { id: uid(), teamId: team?.id ?? null, name, people: same ? from.people : 12, slot: team?.slots[0]?.day ?? null, focus: 'Alle', notes: '', goal: '', blocks: [], date: null };
+  if (same && from.keepers) p.keepers = from.keepers; // Besetzung der letzten Einheit übernehmen
+  if (same && from.coaches !== undefined) p.coaches = from.coaches;
+  return p;
 }
 
 /** Sorgt dafür, dass eine Einheit der aktiven Mannschaft ausgewählt ist. */

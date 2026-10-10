@@ -1,7 +1,7 @@
 // Trainingsmodus: großer Timer mit Ring, Blockwechsel, Vorschau, Animation und Coaching.
 import * as store from '../core/store.js';
 import * as timer from '../core/timer.js';
-import { currentPlan, exercise, effective, fit, blockPeople, planAge, totalMinutes, foci, planFocus, keyFirst, sessionSteps } from '../core/planning.js';
+import { currentPlan, exercise, effective, blockLayout, layoutText, layoutAdvice, blockPeople, planAge, totalMinutes, foci, planFocus, keyFirst, sessionSteps } from '../core/planning.js';
 import { focusChips } from '../ui/focus.js';
 import { esc, fmtClock, sum } from '../core/util.js';
 import { icon, $, on } from '../ui/dom.js';
@@ -40,7 +40,7 @@ export const trainingView = {
     const num = steps.slice(0, snap.index + 1).filter(x => !x.pause).length;
     const nextB = steps[snap.index + 1], nextEx = steps.slice(snap.index + 1).find(x => !x.pause), nextE = nextEx && exercise(s, nextEx.exerciseId);
     if (b.pause) { this.paintPause(s, p, snap, steps, num, nextB, nextE); return; }
-    const e = exercise(s, b.exerciseId), n = blockPeople(p, b), g = fit(s, e, n), age = planAge(s, p);
+    const e = exercise(s, b.exerciseId), n = blockPeople(p, b), L = blockLayout(s, p, b), g = L.level !== 'no', age = planAge(s, p);
     r.innerHTML = `
       <div class="live ${e.type === 'keeper' ? 'keeper' : ''}">
         <div>
@@ -68,7 +68,7 @@ export const trainingView = {
           <section class="card">
             ${e.goal ? `<h3>Ziel</h3><p>${esc(e.goal)}</p>` : ''}
             <h3>Darauf achten</h3>${Array.isArray(e.points) && e.points.length ? `<ul class="points">${e.points.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : `<p>${esc(e.coaching)}</p>`}
-            <h3 style="margin-top:12px">Vorbereiten</h3><div>${materialChips(e.equipment)}</div><p class="small ${g ? 'muted' : 'block-warn'}">${g ? `${g} ${g > 1 ? 'parallele Gruppen' : 'Gruppe'} für ${n} Spieler` : '⚠ Gruppengröße im Plan anpassen'}${age && !e.ages.includes(age) ? ' · ⚠ Altersklasse prüfen' : ''}</p>
+            <h3 style="margin-top:12px">Vorbereiten</h3><div>${materialChips(e.equipment)}</div><p class="small ${g ? 'muted' : 'block-warn'}">${g ? `${layoutText(L)}${L.level === 'tight' && layoutAdvice(L) ? ` · ${layoutAdvice(L)}` : ''}` : `⚠ ${L.why === 'nokeeper' ? layoutAdvice(L) : 'Besetzung im Plan anpassen'}`}${age && !e.ages.includes(age) ? ' · ⚠ Altersklasse prüfen' : ''}</p>
             ${b.note ? `<p class="notice">${esc(b.note)}</p>` : ''}
             ${p.goal ? `<p class="small muted">Ziel der Einheit: ${esc(p.goal)}</p>` : ''}
             <button class="btn sm" type="button" id="lv-detail">${icon('info')} Alles zur Übung</button>

@@ -2,14 +2,16 @@
 import { SEED, AGES, TAGS } from '../data/drills.js';
 import { META } from '../data/drill-meta.js';
 import { FOCUS, FOCUS_KEYS, DRILL_FOCUS } from '../data/focus.js';
+import { flowOf } from '../data/flow.js';
 import { localizeExercise } from '../i18n/catalog.js';
 import { time, fmtTime, sum, DAYS } from './util.js';
 
 export { AGES, TAGS, SEED };
+export { FLOWS, FLOW_LABEL, FLOW_HELP, flowOf } from '../data/flow.js';
 export { FOCI, FOCUS, FOCUS_KEYS, AREAS, RELEVANT, MAX_FOCI } from '../data/focus.js';
 
 // Katalog einmal zusammensetzen: Grunddaten + Redaktion (Ziel, Coaching-Punkte, Quellen, Archiv-Status) + Schwerpunkte.
-const seedById = new Map(SEED.map(e => [e.id, { ...e, ...META[e.id], focus: DRILL_FOCUS[e.id] || (FOCUS[e.tag] ? [e.tag] : []) }]));
+const seedById = new Map(SEED.map(e => [e.id, { ...e, ...META[e.id], flow: flowOf(e), focus: DRILL_FOCUS[e.id] || (FOCUS[e.tag] ? [e.tag] : []) }]));
 
 /** Übung inkl. redaktioneller Ergänzungen und Schwerpunkte. */
 export function exercise(s, id) {
@@ -67,6 +69,83 @@ export function groupsFor(e, n) {
   return 0;
 }
 export const fit = (s, e, n) => groupsFor(effective(s, e), n);
+
+// ---------- Besetzung und Ablauf ----------
+// Wer ist da: Spieler (Feld), Torwart, Trainer. Spieler und Torwart üben; Trainer betreuen und füllen nur im Notfall auf.
+// Ob daraus Gruppen entstehen, entscheidet die Übung (Ablaufart): feste Gruppen, eine Schlange oder alle gemeinsam.
+export const DEFAULT_SQUAD = Object.freeze({ players: 12, keepers: 0, coaches: 1 });
+export const STATION_MAX = 6;
+/** Besetzung einer Einheit (oder eines Blocks: dort überschreibt `people` die Spielerzahl). In Torwart-Mannschaften üben alle als Torwart. */
+export function squadOf(s, p, b) {
+  if (!p) return { ...DEFAULT_SQUAD };
+  const n = b ? blockPeople(p, b) : p.people, k = p.keepers || 0, coaches = p.coaches ?? 1;
+  return planType(s, p) === 'keeper' ? { players: 0, keepers: n + k, coaches } : { players: n, keepers: k, coaches };
+}
+/** Kurzform: „12 Spieler · 2 Torwart · 1 Trainer“ (Rollen ohne Personen entfallen, Spieler stehen immer da). */
+export function squadLabel(p) {
+  const k = p?.keepers || 0, c = p?.coaches ?? 1;
+  return [`${p?.people ?? 0} Spieler`, k ? `${k} Torwart` : '', c ? `${c} Trainer` : ''].filter(Boolean).join(' · ');
+}
+
+/**
+ * Wie läuft eine Übung mit dieser Besetzung?
+ * { mode, level: 'ok'|'tight'|'no', why, groups, active, waiting, sets, size: [von, bis], keepersMissing, coachFill, stationsHint }
+ * `groups` = parallele Gruppen bzw. Schlangen, `active` = gleichzeitig aktiv, `waiting` = Schlange / Wechselspieler / Unbeteiligte,
+ * `sets` = wie oft Material und Feld gebraucht werden. Gruppen entstehen nur bei „group“ – und dort so wenige wie möglich.
+ */
+export function layout(s, e, sq, stations = 1) {
+  const x = effective(s, e), mode = flowOf(e), bodies = sq.players + sq.keepers, K = sq.keepers;
+  const L = { mode, bodies, level: 'ok', why: '', groups: 1, active: bodies, waiting: 0, sets: 1, size: [x.min, x.max], keepersMissing: 0, coachFill: 0, stationsHint: 0 };
+  if (bodies < x.min) return { ...L, level: 'no', why: 'few', active: 0, waiting: bodies };
+  if (e.type === 'keeper' && K < 1) return { ...L, level: 'no', why: 'nokeeper', active: 0 };
+  if (mode === 'open') return { ...L, sets: Math.ceil(bodies / x.max) };
+  if (mode === 'queue') {
+    const st = Math.max(1, Math.min(STATION_MAX, Math.floor(stations) || 1, Math.floor(bodies / x.min))), active = Math.min(bodies, st * x.max), waiting = bodies - active;
+    const out = { ...L, groups: st, sets: st, active, waiting };
+    if (waiting > active) { out.level = 'tight'; out.why = 'longqueue'; out.stationsHint = Math.min(STATION_MAX, Math.ceil(bodies / (2 * x.max))); }
+    return out;
+  }
+  // feste Gruppen: so wenige wie möglich; passt keine ganze Zahl, wechseln die übrigen Spieler ein
+  const cap = e.type === 'keeper' ? K : Infinity, gMin = Math.ceil(bodies / x.max), gMax = Math.max(1, Math.min(Math.floor(bodies / x.min), cap));
+  const groups = Math.min(gMin, gMax), active = Math.min(bodies, groups * x.max), waiting = bodies - active;
+  const out = { ...L, groups, sets: groups, active, waiting };
+  if (waiting) {
+    out.why = e.type === 'keeper' ? 'idle' : 'spare';
+    const need = x.min - waiting;
+    if (e.type !== 'keeper' && waiting < x.min && need <= sq.coaches) out.coachFill = need;
+    if ((waiting > 2 && !out.coachFill) || e.type === 'keeper') out.level = 'tight';
+  }
+  if (e.type === 'both' && groups > K) { out.keepersMissing = groups - K; out.level = 'tight'; out.why = out.why || 'keeperfill'; }
+  return out;
+}
+
+/** Kurztext zur Verteilung, z. B. „3 Gruppen à 4–5“ oder „Schlange · 4 aktiv, 6 in der Reihe“. */
+export function layoutText(L) {
+  const n = (k, one, many) => `${k} ${k === 1 ? one : many}`;
+  if (L.level === 'no') return L.why === 'nokeeper' ? 'Torwart fehlt' : `zu wenige Spieler, mind. ${L.size[0]}`;
+  if (L.mode === 'open') return L.sets > 1 ? `Alle gemeinsam · Feld und Material ×${L.sets}` : 'Alle gemeinsam';
+  if (L.mode === 'queue') return `${L.groups === 1 ? 'Schlange' : `${L.groups} Schlangen`} · ${L.active} aktiv${L.waiting ? `, ${L.waiting} in der Reihe` : ''}`;
+  const base = Math.floor(L.active / L.groups), rest = L.active % L.groups;
+  return `${n(L.groups, 'Gruppe', 'Gruppen')} à ${rest ? `${base}–${base + 1}` : base}${L.waiting ? ` · ${L.waiting} ${L.why === 'idle' ? 'unbeteiligt' : L.waiting === 1 ? 'wechselt ein' : 'wechseln ein'}` : ''}`;
+}
+/** Hinweis zur Verteilung für den Trainer; leer, wenn alles passt. */
+export function layoutAdvice(L) {
+  const keeper = L.keepersMissing && L.why !== 'keeperfill' ? ' Nicht für jede Gruppe ein Torwart da. Ein Feldspieler geht ins Tor.' : '';
+  return (advice(L) + keeper).trim();
+}
+function advice(L) {
+  switch (L.why) {
+    case 'few': return `Zu wenige Spieler: mindestens ${L.size[0]} nötig.`;
+    case 'nokeeper': return 'Diese Übung braucht einen Torwart. Torwart eintragen oder andere Übung wählen.';
+    case 'longqueue': return `In der Schlange warten ${L.waiting} Spieler. ${L.stationsHint > L.groups ? `Mit ${L.stationsHint} Schlangen ist mehr los.` : 'Ball holen oder Passgeber sein lässt die Wartenden mitarbeiten.'}`;
+    case 'spare': return `${L.waiting === 1 ? 'Ein Spieler wechselt ein.' : `Es wechseln ${L.waiting} Spieler ein.`}${L.coachFill ? ' Ein Trainer kann auffüllen.' : ''}`;
+    case 'idle': return `Bei dieser Übung sind ${L.waiting} Spieler nicht beteiligt. Zweite Aufgabe für sie vorsehen.`;
+    case 'keeperfill': return 'Nicht für jede Gruppe ein Torwart da. Ein Feldspieler geht ins Tor.';
+    default: return L.coachFill ? 'Ein Trainer kann auffüllen.' : '';
+  }
+}
+/** Verteilung eines Blocks in der Einheit. */
+export const blockLayout = (s, p, b) => { const e = exercise(s, b.exerciseId); return e ? layout(s, e, squadOf(s, p, b), b.stations) : null; };
 
 export const activeTeam = s => s.teams.find(t => t.id === s.activeTeamId) || null;
 export const teamOf = (s, p) => s.teams.find(t => t.id === p?.teamId) || activeTeam(s);
@@ -186,7 +265,7 @@ export function requirements(s, p) {
   const items = {};
   for (const b of p.blocks) {
     const e = exercise(s, b.exerciseId); if (!e) continue;
-    const g = fit(s, e, blockPeople(p, b)) || 1;
+    const g = layout(s, e, squadOf(s, p, b), b.stations).sets;
     for (const [name, count] of e.equipment) items[name] = Math.max(items[name] || 0, count * g);
   }
   return items;
@@ -220,8 +299,14 @@ export function timeline(s, p) {
 export function check(s, p) {
   const out = [], age = planAge(s, p), slot = slotOf(s, p), total = totalMinutes(p, s), ps = pauses(s, p);
   if (!p.blocks.length) return [{ level: 'info', text: 'Noch keine Übungen in der Einheit.' }];
-  const bad = p.blocks.filter(b => { const e = exercise(s, b.exerciseId); return e && !fit(s, e, blockPeople(p, b)); });
-  out.push(bad.length ? { level: 'warn', text: `${bad.length} ${bad.length === 1 ? 'Block passt' : 'Blöcke passen'} nicht zur Spielerzahl. Gruppen oder Spieler anpassen.` } : { level: 'ok', text: 'Gruppengrößen passen in allen Blöcken.' });
+  const rows = p.blocks.map(b => ({ b, e: exercise(s, b.exerciseId), L: blockLayout(s, p, b) })).filter(r => r.e && r.L);
+  const no = rows.filter(r => r.L.level === 'no'), tight = rows.filter(r => r.L.level === 'tight');
+  for (const r of no.slice(0, 3)) out.push({ level: 'warn', text: `„${r.e.name}“: ${layoutAdvice(r.L)}` });
+  for (const r of tight.slice(0, 4)) out.push({ level: r.L.why === 'longqueue' || r.L.why === 'idle' ? 'warn' : 'info', text: `„${r.e.name}“: ${layoutAdvice(r.L)}` });
+  if (no.length + tight.length > 7) out.push({ level: 'info', text: `${no.length + tight.length - 7} weitere Blöcke mit Wartenden oder Wechseln.` });
+  if (!no.length && !tight.length) out.push({ level: 'ok', text: 'Gruppengrößen und Schlangen passen in allen Blöcken.' });
+  const parallel = Math.max(0, ...rows.filter(r => r.L.level !== 'no' && r.L.mode !== 'open').map(r => r.L.groups)), coaches = p.coaches ?? 1;
+  if (parallel >= 2 && parallel > coaches) out.push({ level: 'info', text: `Bis zu ${parallel} Gruppen oder Schlangen gleichzeitig, aber ${coaches === 0 ? 'kein Trainer' : coaches === 1 ? 'ein Trainer' : `${coaches} Trainer`}. Aufgaben vorab erklären und Gruppen selbstständig laufen lassen.` });
   const ages = p.blocks.filter(b => { const e = exercise(s, b.exerciseId); return e && age && !e.ages.includes(age); });
   if (ages.length) out.push({ level: 'warn', text: `${ages.length} ${ages.length === 1 ? 'Übung ist' : 'Übungen sind'} nicht für ${age} vorgesehen.` });
   if (slot) {
@@ -247,10 +332,9 @@ export function check(s, p) {
 
 /** Rangliste für die Bibliothek mit nachvollziehbarer Begründung. */
 export function score(s, p, e) {
-  const n = p?.people || 12, reasons = [];
+  const reasons = [], L = layout(s, e, squadOf(s, p));
   let pts = 0;
-  const g = fit(s, e, n);
-  if (g) { pts += 100; reasons.push(`${g} ${g > 1 ? 'Gruppen' : 'Gruppe'} für ${n} Spieler`); } else reasons.push('Spielerzahl passt nicht');
+  if (L.level !== 'no') { pts += L.level === 'ok' ? 100 : 70; reasons.push(layoutText(L)); } else reasons.push(L.why === 'nokeeper' ? 'Torwart fehlt' : 'Spielerzahl passt nicht');
   if (p && p.focus !== 'Alle' && hasFocus(e, p.focus)) { pts += foci(e)[0] === p.focus || e.tag === p.focus ? 40 : 28; reasons.push('dein Schwerpunkt'); }
   const slot = p ? slotOf(s, p) : null, left = slot ? slotMinutes(slot) - totalMinutes(p, s) : 90;
   if (effective(s, e).minutes <= Math.max(0, left)) { pts += 20; reasons.push('passt in die Restzeit'); } else reasons.push('länger als die Restzeit');

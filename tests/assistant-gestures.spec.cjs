@@ -16,7 +16,7 @@ test('Planassistent-Matrix: Altersklasse × Trainerart × Spieler × Minuten × 
         const e = P.exercise(s, b.exerciseId);
         if (e.tag === 'Falltechnik') out.bugs.push(`Falltechnik ${age}`);
         if (!e.ages.includes(age)) out.bugs.push(`Alter ${e.id} ${age}`);
-        if (!P.groupsFor(e, people)) out.bugs.push(`Gruppen ${e.id} ${people}`);
+        if (P.layout(s, e, type === 'keeper' ? { players: 0, keepers: people, coaches: 1 } : { players: people, keepers: 0, coaches: 1 }).level === 'no') out.bugs.push(`Besetzung ${e.id} ${people}`);
         if (P.AGES.indexOf(age) <= 1 && e.type === 'keeper') out.bugs.push(`Keeper-Spezialisierung ${age}`);
         if (e.archived) out.bugs.push(`archiviert ${e.id}`);
         if (b.minutes < 3) out.bugs.push(`zu kurz ${e.id}`);

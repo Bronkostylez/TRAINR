@@ -51,7 +51,7 @@ export function eventCard(s, ev, { showDate = false } = {}) {
   const p = planOf(s, ev), open = ev.kind === 'training' && ev.status === 'geplant';
   const sub = ev.status === 'ausgefallen' ? `Ausgefallen${ev.reason ? ` · ${ev.reason}` : ''}`
     : isGame(ev) ? [gameSub(ev), ev.place].filter(Boolean).join(' · ')
-    : ev.status === 'erledigt' ? [ev.done?.name || p?.name, ev.attendance !== undefined ? `${ev.attendance} Spieler` : '', ev.rating ? '★'.repeat(ev.rating) : ''].filter(Boolean).join(' · ') || 'Gehalten'
+    : ev.status === 'erledigt' ? [ev.done?.name || p?.name, ev.attendance !== undefined ? attendText(ev) : '', ev.rating ? '★'.repeat(ev.rating) : ''].filter(Boolean).join(' · ') || 'Gehalten'
       : p ? `${p.name} · ${totalMinutes(p, s)} Min` : open ? 'Noch keine Einheit geplant' : ev.place || '';
   const fm = ev.kind === 'training' && ev.status !== 'ausgefallen' ? eventFocus(s, ev) : null, fl = fm?.list.slice(0, 3).map(o => o.key) || [];
   return `<button class="ev-card k-${ev.kind} s-${ev.status}" type="button" data-ev="${esc(ev.id)}">
@@ -211,7 +211,7 @@ export function openEvent(id) {
       <p><strong>${esc(fmtDate(ev.date, { long: true }))}</strong><br>${esc(ev.start)}–${esc(ev.end)} Uhr · ${duration(ev)} Min${ev.place ? ` · ${esc(ev.place)}` : ''}</p>
       <p class="small muted">${esc(team?.name || '')}${ev.status === 'geplant' ? ` · ${ev.remind === null ? 'Keine Erinnerung' : `Erinnerung ${esc(remindLabel(ev.remind))}`}` : ''}</p>
       ${ev.status === 'ausgefallen' ? `<p class="notice warn">${icon('warn')}<span>Ausgefallen${ev.reason ? `: ${esc(ev.reason)}` : ''}</span></p>` : ''}
-      ${ev.status === 'erledigt' && !game ? `<div class="notice ok">${icon('check')}<span class="grow">Gehalten${ev.done ? `: ${esc(ev.done.name)} (${ev.done.minutes} Min)` : ''}${ev.attendance !== undefined ? ` · ${ev.attendance} Spieler` : ''}${ev.rating ? ` · ${stars(ev.rating)}` : ''}</span></div>` : ''}
+      ${ev.status === 'erledigt' && !game ? `<div class="notice ok">${icon('check')}<span class="grow">Gehalten${ev.done ? `: ${esc(ev.done.name)} (${ev.done.minutes} Min)` : ''}${ev.attendance !== undefined ? ` · ${attendText(ev)}` : ''}${ev.rating ? ` · ${stars(ev.rating)}` : ''}</span></div>` : ''}
       ${ev.done ? (() => { const fm = eventFocus(s, ev); return fm?.list.length ? `<div class="focus-strip"><strong class="small">Trainiert</strong>${focusSummary(fm, { max: 6 })}</div>` : ''; })() : ''}
       ${ev.note ? `<p class="small" style="white-space:pre-line">${esc(ev.note)}</p>` : ''}
       ${game ? `<div class="stack" style="margin-top:12px">${gameBody(s, ev)}</div>` : ''}
@@ -378,15 +378,21 @@ function newPlanFor(id) {
   go('planen');
 }
 
+/** „11 Spieler · 2 Torwart · 1 Trainer“ aus der Nachbereitung (Torwart/Trainer nur, wenn eingetragen). */
+export const attendText = ev => [`${ev.attendance} Spieler`, ev.keepers ? `${ev.keepers} Torwart` : '', ev.coaches ? `${ev.coaches} Trainer` : ''].filter(Boolean).join(' · ');
+
 /** Nachbereitung: Teilnehmerzahl (ohne Namen), Stimmung, Notizen. Speichert eine Momentaufnahme der Einheit. */
 export function reviewEvent(id) {
   const s = store.get(), ev = findEvent(id); if (!ev) return;
   const plans = plansOfTeam(s), p0 = planOf(s, ev);
-  const f = { attendance: ev.attendance ?? p0?.people ?? 12, rating: ev.rating || 0, planId: ev.planId || '' };
+  const keeperTeam = s.teams.find(t => t.id === ev.teamId)?.type === 'keeper';
+  const f = { attendance: ev.attendance ?? p0?.people ?? 12, keepers: ev.keepers ?? p0?.keepers ?? 0, coaches: ev.coaches ?? p0?.coaches ?? 1, rating: ev.rating || 0, planId: ev.planId || '' };
+  const roleRow = (key, label, hint, max) => `<div class="field"><span>${label}</span><div class="stepper"><button type="button" data-role="${key}" data-d="-1" aria-label="${label}: einer weniger">−</button><input id="rv-${key}" type="number" min="0" max="${max}" value="${f[key]}" aria-label="${label}"><button type="button" data-role="${key}" data-d="1" aria-label="${label}: einer mehr">+</button></div><small class="tiny">${hint}</small></div>`;
   openSheet({
     title: 'Nachbereitung',
     body: `<p class="small muted">${esc(title(ev))} · ${esc(fmtDate(ev.date, { long: true }))}, ${ev.start}</p>
-      <div class="field"><span>Wie viele Spieler waren da? (ohne Trainer, keine Namen)</span><div class="stepper"><button type="button" data-att="-1" aria-label="Ein Spieler weniger">−</button><input id="rv-att" type="number" min="0" max="100" value="${f.attendance}" aria-label="Anzahl Spieler"><button type="button" data-att="1" aria-label="Ein Spieler mehr">+</button></div></div>
+      <div class="field"><span>${keeperTeam ? 'Wie viele Torwarte waren da?' : 'Wie viele Spieler waren da? (Feldspieler, keine Namen)'}</span><div class="stepper"><button type="button" data-att="-1" aria-label="Ein Spieler weniger">−</button><input id="rv-att" type="number" min="0" max="100" value="${f.attendance}" aria-label="Anzahl Spieler"><button type="button" data-att="1" aria-label="Ein Spieler mehr">+</button></div></div>
+      <div class="grid-2">${keeperTeam ? '' : roleRow('keepers', 'Torwart', 'Wer im Tor stand', 20)}${roleRow('coaches', 'Trainer', 'Wer das Training betreut hat', 10)}</div>
       <div class="field"><span>Wie lief's?</span><div class="stars" role="group" aria-label="Stimmung">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-star="${n}" aria-pressed="${n <= f.rating}" aria-label="${n} von 5 Sternen">★</button>`).join('')}</div></div>
       <label class="field"><span>Gehaltene Einheit</span><select class="input" id="rv-plan"><option value="">— keine / frei —</option>${plans.map(p => `<option value="${esc(p.id)}" ${p.id === f.planId ? 'selected' : ''}>${esc(p.name)} · ${totalMinutes(p, s)} Min</option>`).join('')}</select></label>
       <div id="rv-foci" class="focus-strip" aria-live="polite"></div>
@@ -400,14 +406,17 @@ export function reviewEvent(id) {
         el.hidden = !fm?.list.length; el.innerHTML = fm?.list.length ? `<strong class="small">Damit trainiert</strong>${focusSummary(fm, { max: 6, link: false })}` : '';
       };
       $('#rv-plan', b).onchange = paintFoci; paintFoci();
+      on(b, 'click', '[data-role]', (_, x) => { const k = x.dataset.role, inp = $(`#rv-${k}`, b); inp.value = clamp((Number(inp.value) || 0) + Number(x.dataset.d), 0, k === 'keepers' ? 20 : 10); haptic('tap'); });
       on(b, 'click', '[data-att]', (_, x) => { att.value = clamp((Number(att.value) || 0) + Number(x.dataset.att), 0, 100); haptic('tap'); });
       on(b, 'click', '[data-star]', (_, x) => { f.rating = Number(x.dataset.star) === f.rating ? 0 : Number(x.dataset.star); $$('[data-star]', b).forEach(y => y.setAttribute('aria-pressed', String(Number(y.dataset.star) <= f.rating))); haptic('tap'); });
       $('#rv-save', sh.foot).onclick = () => {
         const n = Number(att.value);
         if (!Number.isInteger(n) || n < 0 || n > 100) { toast('0–100 Spieler eintragen.'); att.focus(); return; }
+        const kp = keeperTeam ? 0 : Number($('#rv-keepers', b).value), co = Number($('#rv-coaches', b).value);
+        if (!Number.isInteger(kp) || kp < 0 || kp > 20 || !Number.isInteger(co) || co < 0 || co > 10) { toast('Torwart 0–20, Trainer 0–10.'); return; }
         const planId = $('#rv-plan', b).value || null, plan = store.get().plans.find(p => p.id === planId);
         updateEvent('Training nachbereitet', id, x => {
-          x.status = 'erledigt'; x.attendance = n; x.note = $('#rv-note', b).value.slice(0, 2000); x.planId = planId; delete x.reason;
+          x.status = 'erledigt'; x.attendance = n; if (kp) x.keepers = kp; else delete x.keepers; x.coaches = co; x.note = $('#rv-note', b).value.slice(0, 2000); x.planId = planId; delete x.reason;
           if (f.rating) x.rating = f.rating; else delete x.rating;
           if (plan) x.done = snapshot(plan, store.get()); else delete x.done;
         });

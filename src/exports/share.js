@@ -66,9 +66,11 @@ export function importSharedPlan(obj) {
   const plan = {
     id: uid(), teamId: team.id, name: isText(p.name, 80) ? p.name : 'Geteilte Einheit', people: Number.isInteger(p.people) ? p.people : 12,
     slot: team.slots[0].day, focus: p.focus || 'Alle', notes: typeof p.notes === 'string' ? p.notes.slice(0, 2000) : '', goal: typeof p.goal === 'string' ? p.goal.slice(0, 200) : '', date: null,
-    blocks: p.blocks.map(b => { const n = { id: uid(), exerciseId: remap.get(b.exerciseId) || b.exerciseId, minutes: b.minutes }; ids.set(b.id, n.id); if (b.people !== undefined) n.people = b.people; if (typeof b.note === 'string' && b.note) n.note = b.note.slice(0, 300); return n; }),
+    blocks: p.blocks.map(b => { const n = { id: uid(), exerciseId: remap.get(b.exerciseId) || b.exerciseId, minutes: b.minutes }; ids.set(b.id, n.id); if (b.people !== undefined) n.people = b.people; if (Number.isInteger(b.stations) && b.stations >= 1 && b.stations <= 6) n.stations = b.stations; if (typeof b.note === 'string' && b.note) n.note = b.note.slice(0, 300); return n; }),
   };
   if (p.age) plan.age = p.age;
+  if (Number.isInteger(p.keepers) && p.keepers >= 1 && p.keepers <= 20) plan.keepers = p.keepers;
+  if (Number.isInteger(p.coaches) && p.coaches >= 0 && p.coaches <= 10 && p.coaches !== 1) plan.coaches = p.coaches;
   if (p.pauses !== undefined && validPauses(p.pauses)) plan.pauses = remapPauses(p.pauses, ids);
   for (const b of plan.blocks) if (!exercise({ ...s, custom: [...s.custom, ...addCustom] }, b.exerciseId)) throw new Error('Die Einheit enthält eine unbekannte Übung.');
   store.update('Einheit importiert', d => { d.custom.push(...addCustom); d.plans.push(plan); d.selectedPlanId = plan.id; });

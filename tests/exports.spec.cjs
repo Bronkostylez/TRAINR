@@ -49,7 +49,7 @@ test('Alle Exporte: PDF (alle Layouts), PNG, Text, CSV, Druck, TRAINR-Datei', as
   expect(text).toContain(p.name);
   expect(text).toContain(firstName);
   expect(text).toContain('Materialübersicht');
-  expect(text).toContain('Spieler (ohne Trainer)');
+  expect(text).toMatch(/[0-9]+ Spieler · 1 Trainer/);
   // CSV mit BOM, Semikolon, Formelschutz
   const csv = await grab(page, 'dialog[open] [data-do=csv]');
   expect(csv.buf[0]).toBe(0xef);

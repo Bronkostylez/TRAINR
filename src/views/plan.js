@@ -1,7 +1,7 @@
 // Planen: Einheit bearbeiten (Ablauf, Check, Packliste, Notizen), Einheiten verwalten, Assistent, Vorlagen.
 import * as store from '../core/store.js';
 import {
-  currentPlan, activeTeam, exercise, effective, fit, totalMinutes, timeline, slotOf, slotMinutes, slotLabel, planAge, planType,
+  currentPlan, activeTeam, exercise, effective, blockLayout, layoutText, layoutAdvice, squadLabel, totalMinutes, timeline, slotOf, slotMinutes, slotLabel, planAge, planType,
   check, packList, plansOfTeam, templates, blockPeople, foci, planFocus, focusMinutes, pauses, remapPauses, AGES,
 } from '../core/planning.js';
 import { focusSummary, focusBars, focusChips, focusOptions, openFocusPick, areaBar } from '../ui/focus.js';
@@ -21,6 +21,7 @@ import { openDetail } from './detail.js';
 import { card, filtered } from './library.js';
 import { cardAnimator } from '../scene/player.js';
 import { scheduleSheet, openEvent } from './calendar.js';
+import { openSquadSheet } from './squad.js';
 import { upcoming, fmtDate, neglected } from '../core/calendar.js';
 
 const TABS = [['ablauf', 'Ablauf'], ['check', 'Check'], ['packliste', 'Packliste'], ['notizen', 'Notizen']];
@@ -75,6 +76,7 @@ export const planView = {
         <div class="plan-facts">
           <button class="fact" type="button" id="pl-slot">${icon('clock')} ${slot ? esc(slotLabel(slot)) : 'Kein Termin'}</button>
           <span class="fact" style="padding:0 4px;cursor:default">${icon('users')}<span class="stepper" style="border:0"><button type="button" id="pl-pminus" aria-label="Ein Spieler weniger">−</button><input id="pl-people" type="number" min="1" max="100" value="${p.people}" aria-label="Spieler insgesamt ohne Trainer"><button type="button" id="pl-pplus" aria-label="Ein Spieler mehr">+</button></span></span>
+          <button class="fact" type="button" id="pl-squad" aria-haspopup="dialog" title="Wer ist da: Spieler, Torwart, Trainer">${p.keepers ? `${p.keepers} Torwart · ` : ''}${(p.coaches ?? 1) === 1 ? '1 Trainer' : `${p.coaches} Trainer`}</button>
           <button class="fact" type="button" id="pl-focus">${icon('target')} ${esc(p.focus === 'Alle' ? 'Kein Schwerpunkt' : p.focus)}</button>
           <button class="fact" type="button" id="pl-date" data-ev="${esc(linked?.id || '')}">${icon('calendar')} ${linked ? esc(fmtDate(linked.date, { relative: true })) + (more > 1 ? ` +${more - 1}` : '') : 'Im Kalender eintragen'}</button>
           <button class="fact" type="button" id="pl-pause">${icon('pause')} ${esc(pauseLabel(s, p))}</button>
@@ -130,7 +132,7 @@ export const planView = {
       body.innerHTML = `
         <div class="card"><h2 style="font-size:1.1rem;margin-bottom:10px">Einheitencheck</h2><ul class="check-list">${items.map(c => `<li class="${c.level}">${esc(c.text)}</li>`).join('')}<li class="info">Tore sichern, Wege freihalten, Trinkpausen und Material prüfen.</li></ul></div>
         ${p.blocks.length ? (() => { const fm = planFocus(s, p); return fm.list.length ? `<div class="card" style="margin-top:12px"><h2 style="font-size:1.1rem;margin-bottom:4px">Schwerpunkte</h2><p class="tiny" style="margin-top:0">Minuten je Schwerpunkt – eine Übung zählt für alle ihre Schwerpunkte. Bereiche nach Hauptschwerpunkt.</p>${areaBar(fm)}<div style="margin-top:10px">${focusBars(fm, { limit: 10 })}</div></div>` : ''; })() : ''}
-        ${p.blocks.length ? `<div class="card" style="margin-top:12px"><h2 style="font-size:1.1rem;margin-bottom:10px">Zeitplan</h2><div class="timeline">${tl.map(({ block: b, label, pause }) => { const e = exercise(s, b.exerciseId), g = fit(s, e, blockPeople(p, b)); return `<div class="tl-item" style="cursor:default"><span class="tl-time">${label || '–'}</span><span><strong>${esc(e.name)}</strong><small>${g ? `${g} ${g > 1 ? 'Gruppen' : 'Gruppe'} à ${effective(s, e).min === effective(s, e).max ? effective(s, e).min : `${effective(s, e).min}–${effective(s, e).max}`}` : '⚠ Gruppen passen nicht'} · ${blockPeople(p, b)} Spieler</small></span><span class="min">${b.minutes}′</span></div>${pause ? `<div class="tl-item pause-item" style="cursor:default"><span class="tl-time">${pause.label || '–'}</span><span><strong>Pause</strong><small>${esc(pause.why)}</small></span><span class="min">${pause.minutes}′</span></div>` : ''}`; }).join('')}</div></div>` : ''}
+        ${p.blocks.length ? `<div class="card" style="margin-top:12px"><h2 style="font-size:1.1rem;margin-bottom:10px">Zeitplan</h2><div class="timeline">${tl.map(({ block: b, label, pause }) => { const e = exercise(s, b.exerciseId), L = blockLayout(s, p, b); return `<div class="tl-item" style="cursor:default"><span class="tl-time">${label || '–'}</span><span><strong>${esc(e.name)}</strong><small>${L.level !== 'no' ? esc(layoutText(L)) : `⚠ ${esc(layoutText(L))}`} · ${blockPeople(p, b)} Spieler</small></span><span class="min">${b.minutes}′</span></div>${pause ? `<div class="tl-item pause-item" style="cursor:default"><span class="tl-time">${pause.label || '–'}</span><span><strong>Pause</strong><small>${esc(pause.why)}</small></span><span class="min">${pause.minutes}′</span></div>` : ''}`; }).join('')}</div></div>` : ''}
         <div class="card" style="margin-top:12px"><h2 style="font-size:1.1rem">Gruppen ohne Namen</h2><p class="small muted">Vergib Nummern an die Spieler. Keeper und Können vor Ort fair verteilen. Keine Rangfolge.</p>
           <div class="row"><label class="field grow" style="margin:0"><span>Gruppen</span><input class="input" id="gr-n" type="number" min="1" max="20" value="${Math.min(3, p.people)}"></label><button class="btn" type="button" id="gr-go" style="align-self:end">${icon('dice')} Mischen</button></div>
           <div id="gr-out" aria-live="polite" class="stack" style="margin-top:10px"></div></div>`;
@@ -163,6 +165,7 @@ export const planView = {
     $('#pl-people', r).onchange = ev => setPeople(Number(ev.target.value));
     $('#pl-pminus', r).onclick = () => setPeople(p.people - 1);
     $('#pl-pplus', r).onclick = () => setPeople(p.people + 1);
+    $('#pl-squad', r).onclick = () => openSquadSheet();
     $('#pl-undo', r).onclick = () => { const l = store.undo(); if (l) toast(`„${l}“ rückgängig.`); };
     $('#pl-redo', r).onclick = () => { const l = store.redo(); if (l) toast(`„${l}“ wiederhergestellt.`); };
     $('#pl-switch', r).onclick = () => this.plansSheet();
@@ -277,7 +280,7 @@ export const planView = {
 
   assistant() {
     const s = store.get(), team = activeTeam(s), p = currentPlan(s), slot = slotOf(s, p);
-    const f = { strategy: 'classic', focus: p.focus, minutes: clamp(slotMinutes(slot) || 60, 20, 150), people: Math.min(60, p.people), age: planAge(s, p), type: team.type, seed: 1, pauses: { count: p.pauses?.after ? p.pauses.after.length : p.pauses?.count ?? 'auto', minutes: p.pauses?.minutes || 2 } };
+    const f = { strategy: 'classic', focus: p.focus, minutes: clamp(slotMinutes(slot) || 60, 20, 150), people: Math.min(60, p.people), keepers: Math.min(20, p.keepers || 0), coaches: p.coaches ?? 1, age: planAge(s, p), type: team.type, seed: 1, pauses: { count: p.pauses?.after ? p.pauses.after.length : p.pauses?.count ?? 'auto', minutes: p.pauses?.minutes || 2 } };
     let pr = null;
     const run = sh => {
       try { pr = propose(store.get(), f); sh.body.querySelector('#as-out').innerHTML = proposalHtml(store.get(), pr); sh.foot.querySelectorAll('button').forEach(b => { b.disabled = false; }); stagger(sh.body.querySelectorAll('.proposal-item')); }
@@ -291,7 +294,9 @@ export const planView = {
           <label class="field"><span>Schwerpunkt</span><select class="input" id="as-focus">${focusOptions(f.focus, { exclude: ['Falltechnik'] })}</select></label>
           <label class="field"><span>Altersklasse</span><select class="input" id="as-age">${AGES.map(a => `<option ${f.age === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
           <label class="field"><span>Minuten (inkl. Pausen)</span><input class="input" id="as-min" type="number" min="20" max="150" value="${f.minutes}"></label>
-          <label class="field"><span>Spieler ohne Trainer</span><input class="input" id="as-people" type="number" min="1" max="60" value="${f.people}"></label>
+          <label class="field"><span>${team.type === 'keeper' ? 'Torwarte' : 'Spieler'}</span><input class="input" id="as-people" type="number" min="1" max="60" value="${f.people}"></label>
+          ${team.type === 'keeper' ? '' : `<label class="field"><span>Torwart</span><input class="input" id="as-keepers" type="number" min="0" max="20" value="${f.keepers}"></label>`}
+          <label class="field"><span>Trainer</span><input class="input" id="as-coaches" type="number" min="0" max="10" value="${f.coaches}"></label>
           <label class="field"><span>Pausen</span><select class="input" id="as-pz">${[['0', 'Keine'], ['auto', 'Automatisch'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4']].map(([v, t]) => `<option value="${v}" ${String(f.pauses.count) === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
           <label class="field"><span>Minuten je Pause</span><input class="input" id="as-pzm" type="number" min="1" max="15" value="${f.pauses.minutes}"></label>
         </div>
@@ -304,6 +309,8 @@ export const planView = {
         $('#as-age', b).onchange = ev => { f.age = ev.target.value; run(sh); };
         $('#as-min', b).onchange = ev => { f.minutes = clamp(Number(ev.target.value) || 60, 20, 150); ev.target.value = f.minutes; run(sh); };
         $('#as-people', b).onchange = ev => { f.people = clamp(Number(ev.target.value) || 12, 1, 60); ev.target.value = f.people; run(sh); };
+        if ($('#as-keepers', b)) $('#as-keepers', b).onchange = ev => { f.keepers = clamp(Math.round(Number(ev.target.value)) || 0, 0, 20); ev.target.value = f.keepers; run(sh); };
+        $('#as-coaches', b).onchange = ev => { f.coaches = clamp(Math.round(Number(ev.target.value)) || 0, 0, 10); ev.target.value = f.coaches; run(sh); };
         $('#as-pz', b).onchange = ev => { f.pauses.count = ev.target.value === 'auto' ? 'auto' : Number(ev.target.value); run(sh); };
         $('#as-pzm', b).onchange = ev => { f.pauses.minutes = clamp(Number(ev.target.value) || 2, 1, 15); ev.target.value = f.pauses.minutes; run(sh); };
         $('#as-reroll', sh.foot).onclick = () => { f.seed = Math.floor(Math.random() * 1e6); run(sh); haptic('tap'); };
@@ -314,12 +321,12 @@ export const planView = {
           const blocks = pr.blocks.map(bb => ({ id: uid(), exerciseId: bb.exerciseId, minutes: bb.minutes }));
           if (x.dataset.apply === 'new') {
             if (store.get().plans.length >= LIMITS.plans) return toast(`Maximal ${LIMITS.plans} Einheiten.`);
-            const n = { ...blankPlan(store.get(), `${f.focus === 'Alle' ? 'Abwechslungsreich' : f.focus} · ${STRATEGIES[pr.strategy].name}`), people: f.people, focus: f.focus, blocks, notes: pr.notes.join(' '), pauses: pr.pauses || { count: 0, minutes: f.pauses.minutes } };
+            const n = { ...blankPlan(store.get(), `${f.focus === 'Alle' ? 'Abwechslungsreich' : f.focus} · ${STRATEGIES[pr.strategy].name}`), people: f.people, ...(f.keepers && team.type !== 'keeper' ? { keepers: f.keepers } : {}), ...(f.coaches !== 1 ? { coaches: f.coaches } : {}), focus: f.focus, blocks, notes: pr.notes.join(' '), pauses: pr.pauses || { count: 0, minutes: f.pauses.minutes } };
             if (f.age !== team.age) n.age = f.age;
             store.update('Vorschlag als neue Einheit', d => { d.plans.push(n); d.selectedPlanId = n.id; blocks.forEach(bb => markUsed(d, bb.exerciseId)); });
             undoToast('Neue Einheit übernommen. Bestehende bleiben erhalten.');
           } else {
-            updatePlan('Vorschlag übernommen', (x2, d) => { x2.blocks = blocks; x2.people = f.people; x2.focus = f.focus; x2.pauses = pr.pauses || { count: 0, minutes: f.pauses.minutes }; if (f.age !== team.age) x2.age = f.age; else delete x2.age; blocks.forEach(bb => markUsed(d, bb.exerciseId)); });
+            updatePlan('Vorschlag übernommen', (x2, d) => { x2.blocks = blocks; x2.people = f.people; if (f.keepers && team.type !== 'keeper') x2.keepers = f.keepers; else delete x2.keepers; if (f.coaches !== 1) x2.coaches = f.coaches; else delete x2.coaches; x2.focus = f.focus; x2.pauses = pr.pauses || { count: 0, minutes: f.pauses.minutes }; if (f.age !== team.age) x2.age = f.age; else delete x2.age; blocks.forEach(bb => markUsed(d, bb.exerciseId)); });
             undoToast('Vorschlag übernommen. Rückgängig stellt den alten Ablauf wieder her.');
           }
           sh.close();
@@ -333,13 +340,13 @@ export const planView = {
 function checkBadge(s, p) { const w = check(s, p).filter(c => c.level === 'warn').length; return w ? ` <span class="badge" style="background:var(--warn-soft);color:var(--warn)" aria-label="${w} Hinweise">${w}</span>` : ''; }
 
 function blockHtml(s, p, b, i, label) {
-  const e = exercise(s, b.exerciseId), n = blockPeople(p, b), g = fit(s, e, n), x = effective(s, e), age = planAge(s, p);
-  const warn = !g ? `⚠ ${n} Spieler passen nicht in Gruppen von ${x.min}–${x.max}` : age && !e.ages.includes(age) ? '⚠ Altersklasse prüfen' : '';
+  const e = exercise(s, b.exerciseId), n = blockPeople(p, b), L = blockLayout(s, p, b), age = planAge(s, p);
+  const warn = L.level === 'no' ? `⚠ ${layoutText(L)}` : L.why === 'longqueue' ? `⚠ ${layoutAdvice(L)}` : age && !e.ages.includes(age) ? '⚠ Altersklasse prüfen' : '';
   return `<li class="block ${e.type === 'keeper' ? 'keeper-block' : ''}" data-key="${b.id}">
     <button class="block-handle" type="button" data-handle aria-label="Block ${i + 1} verschieben (Pfeiltasten)"><span class="num">${i + 1}</span>${icon('drag')}</button>
     <div class="block-main">
       <button class="title" type="button" data-edit="${b.id}" aria-label="${esc(e.name)} bearbeiten">${esc(e.name)}</button>
-      <div class="block-sub"><span>${label || ''}</span><span title="Kategorie: ${esc(e.tag)}">${esc(foci(e).slice(0, 2).join(' · ') || e.tag)}</span><span>${n} Spieler${b.people ? ' (nur hier)' : ''}</span>${g ? `<span>${g} ${g > 1 ? 'Gruppen' : 'Gruppe'}</span>` : ''}${b.note ? `<span>${esc(b.note)}</span>` : ''}</div>
+      <div class="block-sub"><span>${label || ''}</span><span title="Kategorie: ${esc(e.tag)}">${esc(foci(e).slice(0, 2).join(' · ') || e.tag)}</span><span>${n} Spieler${b.people ? ' (nur hier)' : ''}</span>${L.level !== 'no' ? `<span class="flow flow-${L.mode}">${esc(layoutText(L))}</span>` : ''}${b.note ? `<span>${esc(b.note)}</span>` : ''}</div>
       ${warn ? `<div class="block-sub block-warn">${esc(warn)}</div>` : ''}
     </div>
     <div class="block-actions">
@@ -364,7 +371,7 @@ function pauseHtml(p, x) {
 
 function proposalHtml(s, pr) {
   return `<div class="proposal" style="margin-top:12px">
-    <div class="row between"><strong>${pr.minutes} Min${pr.pauseCount ? ` (inkl. ${pr.pauseCount} ${pr.pauseCount === 1 ? 'Pause' : 'Pausen'})` : ''} · ${esc(pr.age)} · ${pr.people} Spieler</strong><span class="tiny">${STRATEGIES[pr.strategy].name}</span></div>
+    <div class="row between"><strong>${pr.minutes} Min${pr.pauseCount ? ` (inkl. ${pr.pauseCount} ${pr.pauseCount === 1 ? 'Pause' : 'Pausen'})` : ''} · ${esc(pr.age)} · ${esc(squadLabel(pr))}</strong><span class="tiny">${STRATEGIES[pr.strategy].name}</span></div>
     ${pr.notes.map(n => `<p class="notice">${esc(n)}</p>`).join('')}
     ${(() => { const fm = focusMinutes(pr.blocks.map(b => [exercise(s, b.exerciseId), b.minutes])); return fm.list.length ? `<div class="focus-strip" style="margin:8px 0">${focusSummary(fm, { mark: pr.focus, max: 5, link: false })}</div>` : ''; })()}
     ${pr.blocks.map((b, i) => { const e = exercise(s, b.exerciseId); return `<div class="proposal-item">

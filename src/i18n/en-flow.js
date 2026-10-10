@@ -1,0 +1,55 @@
+// Englisch: Ablaufarten (Gruppen, Schlange, alle gemeinsam) und Besetzung (Spieler, Torwart, Trainer).
+export const FLOW = {
+  // Rollen
+  'Torwarte': 'Goalkeepers', 'Trainer': 'Coaches', '1 Trainer': '1 coach', '{#} Trainer': '{} coaches', '1 Torwart': '1 goalkeeper', '{#} Torwart': '{} goalkeepers',
+  'Spieler (Feld)': 'Players (outfield)', 'kein Trainer': 'no coach', 'ein Trainer': 'one coach',
+  'Wer ist da?': 'Who is here?', 'Wer ist da: Spieler, Torwart, Trainer': 'Who is here: players, goalkeepers, coaches',
+  'Spieler und Torwart üben, Trainer betreuen. Gruppen bildet TRAINR nur dort, wo eine Übung sie braucht. Bei Schlangen-Übungen reihen sich alle weiteren ein, bei Übungen für alle wächst das Feld.':
+    'Players and goalkeepers train, coaches supervise. TRAINR only forms groups where an exercise needs them. In queue exercises everyone else joins the line; in whole-team exercises the pitch grows.',
+  'Alle Anwesenden trainieren als Torwart.': 'Everyone present trains as a goalkeeper.', 'Feldspieler, ohne Torwart.': 'Outfield players, without goalkeepers.',
+  'Spielen bei Feldübungen mit, im Tor nur, wo es nötig ist.': 'Join in outfield exercises, in goal only where needed.',
+  'Betreuen Gruppen und können Gruppen notfalls auffüllen.': 'Supervise groups and can fill a group if needed.',
+  '{}: einer weniger': '{}: one fewer', '{}: einer mehr': '{}: one more',
+  '{#} Torwart · {#} Trainer': '{1} goalkeepers · {2} coaches',
+  '{#} auf dem Platz ({#} Feld, {#} Tor)': '{1} on the pitch ({2} outfield, {3} in goal)',
+  'So läuft jeder Block': 'How each block runs',
+  'Sobald Übungen im Plan stehen, siehst du hier, wie sich die Besetzung auf jede einzelne auswirkt.': 'Once the plan has exercises, you will see here how the line-up affects each one.',
+  'wie in der Einheit': 'as in the session', 'Besetzung gespeichert.': 'Line-up saved.', 'Besetzung geändert': 'Line-up changed', 'Spieler: 1–100.': 'Players: 1–100.', 'Besetzung im Plan anpassen': 'Adjust the line-up in the plan',
+  // Ablaufarten
+  'Schlange': 'Queue', 'Alle gemeinsam': 'Everyone together', 'Ablauf': 'Flow',
+  'Feste Gruppen, zum Beispiel Teams oder Paare. Mehr Spieler ergeben mehr parallele Gruppen.': 'Fixed groups, for example teams or pairs. More players mean more parallel groups.',
+  'Eine Station mit Schlange: Wenige sind aktiv, die anderen warten in der Reihe und rotieren durch.': 'One station with a queue: a few are active, the others wait in line and rotate through.',
+  'Alle machen gleichzeitig dasselbe. Mehr Spieler brauchen ein größeres Feld und mehr Material, aber keine Gruppen.': 'Everyone does the same thing at once. More players need a bigger pitch and more equipment, but no groups.',
+  'Spieler pro Gruppe': 'Players per group', 'Spieler aktiv je Station': 'Players active per station', 'Spieler: mindestens bis Platz für': 'Players: at least, up to room for',
+  // Verteilung
+  'Torwart fehlt': 'Goalkeeper missing', 'zu wenige Spieler, mind. {#}': 'too few players, at least {}',
+  'Alle gemeinsam · Feld und Material ×{#}': 'Everyone together · pitch and equipment ×{}',
+  '{#} aktiv': '{} active', '{#} aktiv, {#} in der Reihe': '{1} active, {2} in line', '{#} Schlangen': '{} queues', 'Feld und Material ×{#}': 'pitch and equipment ×{}', '{#} Gruppe à {}': '{1} group of {2}',
+  '{#} Gruppe à {}': '{1} group of {2}', '{#} Gruppen à {}': '{1} groups of {2}',
+  '{#} wechseln ein': '{} rotate in', '1 wechselt ein': '1 rotates in', '{#} unbeteiligt': '{} not involved',
+  'Zu wenige Spieler: mindestens {#} nötig.': 'Too few players: at least {} needed.',
+  'Diese Übung braucht einen Torwart. Torwart eintragen oder andere Übung wählen.': 'This exercise needs a goalkeeper. Add a goalkeeper or choose another exercise.',
+  'In der Schlange warten {#} Spieler.': '{} players are waiting in the queue.', 'Mit {#} Schlangen ist mehr los.': 'With {} queues there is more going on.',
+  'Ball holen oder Passgeber sein lässt die Wartenden mitarbeiten.': 'Fetching balls or acting as the passer keeps those waiting involved.',
+  'Es wechseln {#} Spieler ein.': '{} players rotate in.', 'Ein Spieler wechselt ein.': 'One player rotates in.', 'Ein Trainer kann auffüllen.': 'A coach can fill in.',
+  'Bei dieser Übung sind {#} Spieler nicht beteiligt.': '{} players are not involved in this exercise.', 'Zweite Aufgabe für sie vorsehen.': 'Plan a second task for them.',
+  'Nicht für jede Gruppe ein Torwart da.': 'Not every group has a goalkeeper.', 'Ein Feldspieler geht ins Tor.': 'An outfield player goes in goal.',
+  '„{}“: {}': '“{1}”: {2}', 'Spielerzahl passt nicht': 'Player number does not fit',
+  '{#} weitere Blöcke mit Wartenden oder Wechseln.': '{} more blocks with waiting players or rotations.',
+  'Gruppengrößen und Schlangen passen in allen Blöcken.': 'Group sizes and queues fit in all blocks.',
+  'Bis zu {#} Gruppen oder Schlangen gleichzeitig, aber {}.': 'Up to {1} groups or queues at once, but {2}.',
+  'Aufgaben vorab erklären und Gruppen selbstständig laufen lassen.': 'Explain the tasks beforehand and let the groups run on their own.',
+  // Blöcke
+  'Je Station {} Spieler aktiv': 'Per station {} players active', 'Ab {#} Spielern': 'From {} players', 'passt nicht: {}': 'does not fit: {}',
+  'Schlangen (Stationen)': 'Queues (stations)', 'Eine Schlange weniger': 'One queue fewer', 'Eine Schlange mehr': 'One queue more', 'Schlangen': 'Queues',
+  'ab {#} Spieler': 'from {} players',
+  // Export
+  'Material je Schlange': 'Equipment per queue', 'Material insgesamt': 'Equipment in total', 'Material je Schlange: {}': 'Equipment per queue: {}', 'Material insgesamt: {}': 'Equipment in total: {}',
+  'Materialübersicht (Höchstbedarf, Gruppen und Schlangen eingerechnet):': 'Equipment overview (peak need, groups and queues included):',
+  'Spieler, Torwart und Trainer sind getrennt gezählt.': 'Players, goalkeepers and coaches are counted separately.',
+  'Spieler, Torwart und Trainer sind getrennt gezählt. Minuten enthalten Erklären, Trinken und Wechsel. Materialmengen: Höchstbedarf pro Block, Gruppen und Schlangen eingerechnet; bei unpassender Besetzung vorläufig. Altersgrenzen, Maße und Mengen sind Vorschläge, keine Normen. Tore sichern, freie Schusswege; Falltechnik nur auf weichem Boden mit geschulter Anleitung.':
+    'Players, goalkeepers and coaches are counted separately. Minutes include explaining, drinking and changeovers. Equipment quantities: peak need per block, groups and queues included; provisional if the line-up does not fit. Age limits, dimensions and quantities are suggestions, not standards. Secure goals, keep shooting lanes clear; diving technique only on soft ground with trained supervision.',
+  // Nachbereitung
+  'Wie viele Torwarte waren da?': 'How many goalkeepers were there?', 'Wie viele Spieler waren da? (Feldspieler, keine Namen)': 'How many players were there? (outfield players, no names)',
+  'Wer im Tor stand': 'Who played in goal', 'Wer das Training betreut hat': 'Who supervised the session', 'Torwart 0–20, Trainer 0–10.': 'Goalkeepers 0–20, coaches 0–10.',
+};

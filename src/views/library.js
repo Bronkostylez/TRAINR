@@ -1,6 +1,6 @@
 // Übungsbibliothek: Suche, Filterchips, Sortierung, Merkliste, Zuletzt, Zufall, eigene Übungen, Drag & Drop.
 import * as store from '../core/store.js';
-import { allExercises, exercise, effective, fit, currentPlan, score, meta, recent, level, LEVEL_LABEL, planAge, planType, foci, hasFocus, AGES, TAGS, FOCUS } from '../core/planning.js';
+import { allExercises, exercise, effective, layout, layoutText, squadOf, flowOf, FLOW_LABEL, currentPlan, score, meta, recent, level, LEVEL_LABEL, planAge, planType, foci, hasFocus, AGES, TAGS, FOCUS } from '../core/planning.js';
 import { esc, TYPE_SHORT, plural } from '../core/util.js';
 import { icon, on, $, $$ } from '../ui/dom.js';
 import { drillPitch } from '../scene/pitch.js';
@@ -62,7 +62,7 @@ export function filtered(s) {
 }
 
 export function card(s, p, e) {
-  const m = meta(s, e.id), x = effective(s, e), n = p?.people || 12, g = fit(s, e, n), sc = score(s, p, e);
+  const m = meta(s, e.id), x = effective(s, e), g = layout(s, e, squadOf(s, p)).level !== 'no', sc = score(s, p, e);
   const desktop = matchMedia('(min-width: 1100px)').matches;
   return `<article class="drill${e.archived ? ' archived' : ''}" data-id="${esc(e.id)}" data-key="${esc(e.id)}" ${desktop ? 'draggable="true"' : ''} aria-labelledby="dn-${esc(e.id)}">
     <button class="fav" type="button" data-fav="${esc(e.id)}" aria-pressed="${!!m.favorite}" aria-label="${esc(e.name)} ${m.favorite ? 'von der Merkliste entfernen' : 'merken'}">${icon('heart')}</button>
@@ -80,12 +80,12 @@ export function card(s, p, e) {
 
 /** Kompakte Listenzeile: kleine Skizze, Name, Kerndaten, Plan-Knopf. */
 export function row(s, p, e) {
-  const m = meta(s, e.id), x = effective(s, e), g = fit(s, e, p?.people || 12);
+  const m = meta(s, e.id), x = effective(s, e), L = layout(s, e, squadOf(s, p)), g = L.level !== 'no', flow = flowOf(e);
   return `<article class="drill drill-row${e.archived ? ' archived' : ''}" data-id="${esc(e.id)}" data-key="${esc(e.id)}" aria-labelledby="dn-${esc(e.id)}">
     ${drillPitch(e)}
     <div class="drill-body">
       <h3 id="dn-${esc(e.id)}">${esc(e.name)}${m.favorite ? ' <span class="row-fav" aria-label="gemerkt">♥</span>' : ''}</h3>
-      <div class="drill-meta"><span class="row-tag">${esc(e.tag)}</span>${e.type !== 'field' ? `<span>${esc(TYPE_SHORT[e.type])}</span>` : ''}${isNew(e) ? '<span class="tag new">Neu</span>' : ''}<span>${icon('clock')} ${x.minutes} Min</span><span>${icon('users')} ${x.min === x.max ? x.min : `${x.min}–${x.max}`}</span><span class="${g ? '' : 'warn'}">${g ? plural(g, 'Gruppe', 'Gruppen') : 'passt nicht'}</span></div>
+      <div class="drill-meta"><span class="row-tag">${esc(e.tag)}</span>${e.type !== 'field' ? `<span>${esc(TYPE_SHORT[e.type])}</span>` : ''}${isNew(e) ? '<span class="tag new">Neu</span>' : ''}<span>${icon('clock')} ${x.minutes} Min</span><span>${icon('users')} ${x.min === x.max ? x.min : `${x.min}–${x.max}`}</span><span class="${g ? '' : 'warn'}">${g ? (flow === 'group' ? plural(L.groups, 'Gruppe', 'Gruppen') : esc(FLOW_LABEL[flow])) : 'passt nicht'}</span></div>
     </div>
     <button class="btn primary sm row-add" type="button" data-add="${esc(e.id)}" aria-label="${esc(e.name)} in den Plan">${icon('plus')}</button>
   </article>`;
@@ -191,7 +191,7 @@ export const libraryView = {
     this.chunk = idle(more);
   },
   random() {
-    const s = store.get(), p = currentPlan(s), list = filtered(s).filter(e => e.tag !== 'Falltechnik' && fit(s, e, p.people));
+    const s = store.get(), p = currentPlan(s), list = filtered(s).filter(e => e.tag !== 'Falltechnik' && layout(s, e, squadOf(s, p)).level !== 'no');
     const pool = list.length ? list : filtered(s);
     if (!pool.length) { toast('Keine Übung mit diesen Filtern.'); return; }
     const e = pool[Math.floor(Math.random() * pool.length)];

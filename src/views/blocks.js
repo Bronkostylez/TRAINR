@@ -1,7 +1,7 @@
 // Block-Werkzeuge, die Heute und Planen gemeinsam nutzen: bearbeiten, tauschen, schnell hinzufügen.
 import * as store from '../core/store.js';
 import {
-  exercise, effective, fit, currentPlan, allExercises, suits, score, blockPeople, planAge, foci, focusOverlap,
+  exercise, effective, layout, layoutText, layoutAdvice, squadOf, squadLabel, flowOf, FLOW_LABEL, STATION_MAX, currentPlan, allExercises, suits, score, blockPeople, planAge, foci, focusOverlap,
   pauses, pauseEvery, timeline, slotOf, slotMinutes, totalMinutes, exerciseMinutes, fitBlocks, PAUSE_MAX, PAUSE_MINUTES,
 } from '../core/planning.js';
 import { focusChips } from '../ui/focus.js';
@@ -12,12 +12,17 @@ import { undoToast, addExercise, updatePlan, markUsed } from '../ui/actions.js';
 import { toast } from '../ui/feedback.js';
 import { drillPitch } from '../scene/pitch.js';
 
-const groupText = (s, e, n) => { const g = fit(s, e, n), x = effective(s, e); return `${x.min === x.max ? x.min : `${x.min}–${x.max}`} Spieler pro Gruppe · ${g ? `${g} parallele ${g > 1 ? 'Gruppen' : 'Gruppe'}` : 'passt nicht in Gruppen – Zahl ändern'}`; };
+/** Erklärung zur Verteilung eines Blocks bei `n` Spielern (Feld) und `stations` Schlangen. */
+const groupText = (s, p, e, n, stations = 1) => {
+  const x = effective(s, e), L = layout(s, e, squadOf(s, p, { people: n }), stations), flow = flowOf(e), range = x.min === x.max ? x.min : `${x.min}–${x.max}`;
+  const lead = flow === 'queue' ? `Je Station ${range} Spieler aktiv` : flow === 'open' ? `Ab ${x.min} Spielern` : `${range} Spieler pro Gruppe`, adv = layoutAdvice(L);
+  return `${lead} · ${L.level === 'no' ? `passt nicht: ${layoutText(L)}` : layoutText(L)}${adv && L.level !== 'no' ? ` · ${adv}` : ''}`;
+};
 
 /** Passende Alternativen für einen Block (gleiche Kategorie zuerst). */
 export function alternatives(s, p, b, limit = 6) {
-  const e = exercise(s, b.exerciseId), used = new Set(p.blocks.map(x => x.exerciseId)), n = blockPeople(p, b);
-  return allExercises(s).filter(x => !used.has(x.id) && suits(s, p, x) && fit(s, x, n))
+  const e = exercise(s, b.exerciseId), used = new Set(p.blocks.map(x => x.exerciseId)), sq = squadOf(s, p, b);
+  return allExercises(s).filter(x => !used.has(x.id) && suits(s, p, x) && layout(s, x, sq).level !== 'no')
     .map(x => ({ x, d: (x.tag === e.tag ? 0 : 8) - focusOverlap(x, e) * 3 + (x.type === e.type ? 0 : 3) + Math.abs(effective(s, x).minutes - b.minutes) * .2 }))
     .sort((a, b2) => a.d - b2.d || a.x.name.localeCompare(b2.x.name)).slice(0, limit).map(o => o.x);
 }
@@ -27,7 +32,7 @@ export function swapBlock(blockId, toId) {
   if (!b) return;
   const next = toId ? exercise(s, toId) : alternatives(s, p, b, 1)[0];
   if (!next) { toast('Keine weitere passende Übung. Über „Hinzufügen“ manuell wählen.'); return; }
-  updatePlan('Übung getauscht', (plan, d) => { const x = plan.blocks.find(y => y.id === blockId); x.exerciseId = next.id; markUsed(d, next.id); });
+  updatePlan('Übung getauscht', (plan, d) => { const x = plan.blocks.find(y => y.id === blockId); x.exerciseId = next.id; delete x.stations; markUsed(d, next.id); });
   undoToast(`Getauscht gegen „${next.name}“. Blockzeit bleibt gleich.`);
 }
 
@@ -39,12 +44,13 @@ export function openBlockEditor(blockId) {
   openSheet({
     title: e.name,
     body: `
-      <div class="row" style="margin-bottom:8px"><span class="tag ${e.type === 'keeper' ? 'keeper' : e.type === 'both' ? 'both' : ''}">${esc(e.tag)}</span>${focusChips(foci(e), { max: 3 })}<span class="tiny">Einheit: ${p.people} Spieler</span></div>
+      <div class="row" style="margin-bottom:8px"><span class="tag ${e.type === 'keeper' ? 'keeper' : e.type === 'both' ? 'both' : ''}">${esc(e.tag)}</span>${focusChips(foci(e), { max: 3 })}<span class="tag">${esc(FLOW_LABEL[flowOf(e)])}</span><span class="tiny">Einheit: ${esc(squadLabel(p))}</span></div>
       <form id="be" novalidate>
         <div class="grid-2">
           <div class="field"><span>Minuten</span><div class="stepper"><button type="button" data-step="m" data-d="-1" aria-label="Eine Minute weniger">−</button><input name="minutes" type="number" inputmode="numeric" min="1" max="120" value="${b.minutes}" aria-label="Minuten"><button type="button" data-step="m" data-d="1" aria-label="Eine Minute mehr">+</button></div></div>
           <div class="field"><span>Spieler bei dieser Übung</span><div class="stepper"><button type="button" data-step="p" data-d="-1" aria-label="Ein Spieler weniger">−</button><input name="people" type="number" inputmode="numeric" min="1" max="100" value="${blockPeople(p, b)}" aria-label="Spieler"><button type="button" data-step="p" data-d="1" aria-label="Ein Spieler mehr">+</button></div></div>
         </div>
+        ${flowOf(e) === 'queue' ? `<div class="field"><span>Schlangen (Stationen)</span><div class="stepper"><button type="button" data-step="s" data-d="-1" aria-label="Eine Schlange weniger">−</button><input name="stations" type="number" inputmode="numeric" min="1" max="${STATION_MAX}" value="${b.stations || 1}" aria-label="Schlangen"><button type="button" data-step="s" data-d="1" aria-label="Eine Schlange mehr">+</button></div></div>` : ''}
         <p class="small muted" id="be-hint" aria-live="polite"></p>
         <label class="field"><span>Notiz zu diesem Block (optional)</span><input class="input" name="note" maxlength="300" value="${esc(b.note || '')}" placeholder="z. B. Feld B, Leibchen rot"></label>
         <p class="error" id="be-err" role="alert"></p>
@@ -55,10 +61,12 @@ export function openBlockEditor(blockId) {
     foot: `<button class="btn" type="button" data-close>Abbrechen</button><button class="btn primary" type="submit" form="be">Speichern</button>`,
     onMount(sh) {
       const f = sh.body.querySelector('#be');
-      const hint = () => { const n = Number(f.people.value); sh.body.querySelector('#be-hint').textContent = integer(n, 1, 100) ? groupText(store.get(), e, n) + (n === p.people ? ' · wie in der Einheit' : '') : '1–100 Spieler eintragen.'; };
+      const stations = () => (f.stations ? Math.min(STATION_MAX, Math.max(1, Number(f.stations.value) || 1)) : 1);
+      const hint = () => { const n = Number(f.people.value); sh.body.querySelector('#be-hint').textContent = integer(n, 1, 100) ? groupText(store.get(), p, e, n, stations()) + (n === p.people ? ' · wie in der Einheit' : '') : '1–100 Spieler eintragen.'; };
       hint();
       f.people.addEventListener('input', hint);
-      on(sh.body, 'click', '[data-step]', (_, btn) => { const inp = btn.dataset.step === 'm' ? f.minutes : f.people, max = btn.dataset.step === 'm' ? 120 : 100; inp.value = Math.min(max, Math.max(1, (Number(inp.value) || 0) + Number(btn.dataset.d))); hint(); });
+      f.stations?.addEventListener('input', hint);
+      on(sh.body, 'click', '[data-step]', (_, btn) => { const k = btn.dataset.step, inp = k === 'm' ? f.minutes : k === 's' ? f.stations : f.people, max = k === 'm' ? 120 : k === 's' ? STATION_MAX : 100; inp.value = Math.min(max, Math.max(1, (Number(inp.value) || 0) + Number(btn.dataset.d))); hint(); });
       sh.body.querySelector('#be-same').onclick = () => { f.people.value = p.people; hint(); };
       sh.body.querySelector('#be-detail').onclick = () => { sh.close(); import('./detail.js').then(m => m.openDetail(e.id)); };
       on(sh.body, 'click', '[data-swap]', (_, btn) => { sh.close(); swapBlock(blockId, btn.dataset.swap); });
@@ -74,6 +82,7 @@ export function openBlockEditor(blockId) {
           const x = plan.blocks.find(y => y.id === blockId); if (!x) return;
           x.minutes = m;
           if (n === plan.people) delete x.people; else x.people = n;
+          if (stations() > 1) x.stations = stations(); else delete x.stations;
           if (note) x.note = note; else delete x.note;
         });
         sh.close();
@@ -185,7 +194,7 @@ export function openAddSheet() {
   const list = () => {
     const st = store.get(), plan = currentPlan(st), used = new Set(plan.blocks.map(b => b.exerciseId));
     const ql = q.toLowerCase();
-    return allExercises(st).filter(e => !used.has(e.id) && (ql ? `${e.name} ${e.tag} ${foci(e).join(' ')} ${e.description}`.toLowerCase().includes(ql) : suits(st, plan, e) && fit(st, e, plan.people)))
+    return allExercises(st).filter(e => !used.has(e.id) && (ql ? `${e.name} ${e.tag} ${foci(e).join(' ')} ${e.description}`.toLowerCase().includes(ql) : suits(st, plan, e) && layout(st, e, squadOf(st, plan)).level !== 'no'))
       .map(e => ({ e, sc: score(st, plan, e) })).sort((a, b) => b.sc.pts - a.sc.pts || a.e.name.localeCompare(b.e.name)).slice(0, 12);
   };
   const paint = sh => {
@@ -194,7 +203,7 @@ export function openAddSheet() {
   };
   openSheet({
     title: 'Übung hinzufügen',
-    body: `<p class="small muted">Passend zu ${esc(planAge(s, p) || 'deiner Mannschaft')}, Trainerart und ${p.people} Spielern. Neue Blöcke kommen ans Ende.</p>
+    body: `<p class="small muted">Passend zu ${esc(planAge(s, p) || 'deiner Mannschaft')}, Trainerart und ${esc(squadLabel(p))}. Neue Blöcke kommen ans Ende.</p>
       <div class="search" style="margin:8px 0 12px">${icon('search')}<input class="input" type="search" id="add-q" placeholder="Suchen …" aria-label="Übungen suchen"></div>
       <div class="stack" id="add-list"></div>`,
     foot: `<button class="btn" type="button" id="add-lib">${icon('grid')} Ganze Bibliothek</button><button class="btn" type="button" id="add-own">${icon('plus')} Eigene Übung</button>`,

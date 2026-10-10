@@ -1,7 +1,7 @@
 // Eigene Übungen anlegen und bearbeiten. Pflicht sind nur Name, Spieler pro Gruppe und Material;
 // im Mittelpunkt steht die Platzskizze: antippen setzt, ziehen bewegt, weitere Schritte ergeben die Animation.
 import * as store from '../core/store.js';
-import { AGES, TAGS, MAX_FOCI, exercise } from '../core/planning.js';
+import { AGES, TAGS, MAX_FOCI, exercise, flowOf, FLOWS, FLOW_LABEL, FLOW_HELP } from '../core/planning.js';
 import { validAnimation, normAnimation, validCustom, LIMITS, SKETCH_BOX } from '../core/schema.js';
 import { SEED } from '../data/drills.js';
 import { esc, uid, integer, safeURL, deepClone, clamp } from '../core/util.js';
@@ -64,7 +64,8 @@ export function openEditor(id = null, prefill = null) {
 
       <div class="ed-side">
       <section class="ed-section" aria-labelledby="ed-pp-h">
-        <h3 id="ed-pp-h" class="ed-h">Spieler pro Gruppe * <small class="tiny">ohne Trainer</small></h3>
+        <h3 id="ed-pp-h" class="ed-h"><span id="ed-pp-title">Spieler pro Gruppe</span> * <small class="tiny">ohne Trainer</small></h3>
+        <label class="field"><span>Ablauf</span><select class="input" name="flow">${FLOWS.map(k => `<option value="${k}" ${flowOf(e) === k ? 'selected' : ''}>${FLOW_LABEL[k]}</option>`).join('')}</select><small class="tiny" id="ed-flow-help"></small></label>
         <div class="row ed-people">${stepper('min', e.min, 'von')}${stepper('max', e.max, 'bis')}</div>
         <p class="tiny" id="ed-pp-hint"></p>
       </section>
@@ -218,6 +219,8 @@ export function openEditor(id = null, prefill = null) {
   // ---- Spieler pro Gruppe
   const num = n => Number(f[n].value);
   on(b, 'click', '[data-step]', (_, x) => { const n = x.dataset.step, v = clamp((num(n) || 0) + Number(x.dataset.d), 1, 100); f[n].value = v; peopleTouched = true; fixPeople(n); haptic('tap'); });
+  const flowUi = () => { $('#ed-flow-help', b).textContent = FLOW_HELP[f.flow.value]; $('#ed-pp-title', b).textContent = { group: 'Spieler pro Gruppe', queue: 'Spieler aktiv je Station', open: 'Spieler: mindestens bis Platz für' }[f.flow.value]; };
+  f.flow.addEventListener('change', flowUi); flowUi();
   ['min', 'max'].forEach(n => f[n].addEventListener('input', () => { peopleTouched = true; }));
   ['min', 'max'].forEach(n => f[n].addEventListener('change', () => fixPeople(n)));
   function fixPeople(changedField) {
@@ -299,7 +302,7 @@ export function openEditor(id = null, prefill = null) {
     const written = (animation?.frames || []).map(x => x.caption).filter(c => !/^(Aufbau|Schritt \d+)$/.test(c)).map(c => /[.!?]$/.test(c) ? c : c + '.');
     const description = (f.description.value.trim() || written.join(' ') || 'Aufbau und Ablauf siehe Platzskizze.').slice(0, 1000);
     const next = {
-      ...e, name, tag: f.tag.value, type: f.type.value, ages: AGES.slice(AGES.indexOf(f.age.value)), min, max, minutes,
+      ...e, name, tag: f.tag.value, type: f.type.value, flow: f.flow.value, ages: AGES.slice(AGES.indexOf(f.age.value)), min, max, minutes,
       description, coaching: f.coaching.value.trim() || DEFAULT_COACHING, equipment: eq, url, custom: true,
     };
     const goal = f.goal.value.trim(); if (goal) next.goal = goal; else delete next.goal;
