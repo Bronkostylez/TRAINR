@@ -171,7 +171,7 @@ export const moreView = {
         <p>Spielerzahlen zählen immer ohne Trainer. Keine Kopfballübungen. Falltechnik erst ab D-Jugend, nur auf weichem, ebenem Boden und mit geschulter Anleitung; bei Angst, Schmerz oder unsicherem Fallen nicht steigern. Bambini trainieren spielerisch und werden nicht früh auf die Torwartposition festgelegt.</p>
         <p>Die Platzskizzen sind schematisch: keine maßstabsgetreuen Positionen, keine Technik-Demonstration.</p></div></details>
       <details class="disclosure" style="margin-top:12px"><summary>Aufs Handy</summary><div class="body small">
-        <p>Öffentliche TRAINR-App: <a href="https://bronkostylez.github.io/KEEPERBOARD/" target="_blank" rel="noopener noreferrer">bronkostylez.github.io/KEEPERBOARD</a>. Android/Chrome: Menü → „App installieren“. iPhone/Safari: Teilen → „Zum Home-Bildschirm“. Einmal online laden, danach offline nutzen.</p>
+        <p>Öffentliche TRAINR-App: <a href="https://bronkostylez.github.io/TRAINR/" target="_blank" rel="noopener noreferrer">bronkostylez.github.io/TRAINR</a>. Android/Chrome: Menü → „App installieren“. iPhone/Safari: Teilen → „Zum Home-Bildschirm“. Einmal online laden, danach offline nutzen.</p>
         <p>Die App ruft keine externen Inhalte ab; nur bewusst geöffnete Quellenlinks führen nach außen. Lokal: <code>node serve.cjs</code> und <code>http://localhost:8765</code>.</p></div></details>
       <p class="tiny" style="text-align:center;margin-top:24px">TRAINR ${APP_VERSION} · Fußballtraining lokal geplant</p></section>`;
     this.bind();
