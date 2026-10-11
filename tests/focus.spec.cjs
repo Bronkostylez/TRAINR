@@ -25,7 +25,7 @@ test('Schwerpunkte: Detail, Chips führen in die gefilterte Bibliothek, Filter-S
   expect(texts.every(t => t.includes('Wahrnehmung'))).toBe(true);
   // Filter entfernen, dann über das Filter-Sheet Torschuss wählen
   await page.click('[data-focus-off="Wahrnehmung"]');
-  await page.click('[data-focus-more]');
+  await page.click('#lib-filter');
   await page.click('dialog[open] [data-fk="Torschuss"]');
   await page.click('dialog[open] [data-fapply]');
   await expect(page.locator('#lib-foci')).toContainText('Torschuss');
@@ -176,6 +176,9 @@ test('Ältere Stände: Kategorie als Einheiten-Schwerpunkt und eigene Übung ohn
   await page.click('#pl-focus');
   await expect(page.locator('dialog[open]')).toContainText('Kategorie aus einer älteren Version');
   await page.keyboard.press('Escape');
+  // Escape animiert das Sheet noch 200 ms aus. Erst danach navigieren,
+  // sonst kann der ausstehende History-Schritt die neue Ansicht neu zeichnen.
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
   // Eigene Übung ohne Auswahl erbt die Kategorie als Schwerpunkt
   await go(page, '#uebungen');
   await page.fill('#lib-q', 'Alte Übung');
