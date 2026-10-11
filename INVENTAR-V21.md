@@ -1,3 +1,5 @@
+> Historisches Dokument vom V21-Neubau. Seit 21.14.1 gibt es keine V20-Migration, keinen Import alter Backups und keinen Export im alten Format. Die damaligen Migrations-Testnachweise gelten nicht mehr; aktuelle Prüfungen stehen in tests/storage.spec.cjs und tests/exports.spec.cjs.
+
 # TRAINR – Inventar-Abgleich V20 → V21
 
 Stand: 9. Oktober 2026 · Grundlage: `INVENTAR-V20.md` (IDs F-xx, S-xx, D-xx) und die Playwright-Suite in `tests/`.

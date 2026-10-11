@@ -1,4 +1,4 @@
-// Validierung der gespeicherten Daten. V2 = TRAINR V2–V20 (`trainr-v2`), V3 = TRAINR V21 (`trainr-v21`).
+// Validierung der aktuellen TRAINR-Daten (Schema V3 unter `trainr-v21`).
 // Validierung verändert Eingaben nicht, außer offensichtliche Zeiger (selected) zu reparieren.
 import { AGES, TAGS, SEED } from '../data/drills.js';
 import { FOCUS_KEYS, MAX_FOCI } from '../data/focus.js';
@@ -33,14 +33,6 @@ export function normAnimation(a) {
   if (!validAnimation(a)) return null;
   return a.version === 2 ? a : { version: 2, items: V1_ITEMS.map(x => ({ ...x })), frames: a.frames.map(f => ({ seconds: f.seconds, caption: f.caption, points: f.points.map(p => [...p]) })) };
 }
-/** V2 → V1 für V20-Backups. null, wenn die Skizze in V1 nicht darstellbar ist. */
-export function toV1Animation(a) {
-  if (!validAnimation(a) || a.version === 1) return a?.version === 1 ? a : null;
-  if (a.items.map(x => x.k).join() !== 'a,a,k,ball') return null;
-  const v1 = { version: 1, frames: a.frames.map(f => ({ seconds: f.seconds, caption: f.caption, points: f.points.map(p => [...p]) })) };
-  return validAnimation(v1) ? v1 : null;
-}
-
 function validSlots(slots) {
   if (!Array.isArray(slots) || !slots.length || slots.length > 7) return false;
   const days = new Set();
@@ -77,32 +69,6 @@ export function validPauses(x) {
 }
 
 function validVariant(a) { return !!a && integer(a.min, 1, 100) && integer(a.max, a.min, 100) && integer(a.minutes, 1, 120); }
-
-/** Prüft einen V2-Zustand (localStorage `trainr-v2` oder V20-Backup). Wirft bei Fehlern. */
-export function validateV2(x) {
-  if (!x || x.version !== 2 || !Array.isArray(x.custom) || x.custom.length > 500 || !Array.isArray(x.plans) || !x.plans.length || x.plans.length > 100)
-    fail('Ungültiges Backup aus TRAINR V2–V20.');
-  if (x.profile && !validProfile(x.profile)) fail('Ungültiges Trainerprofil.');
-  const ids = new Set(SEED_IDS);
-  for (const e of x.custom) { if (!validCustom(e, ids)) fail('Ungültige eigene Übung.'); ids.add(e.id); }
-  const pids = new Set(), bids = new Set();
-  for (const p of x.plans) {
-    if (!text(p.id, 100) || pids.has(p.id) || !text(p.name, 80) || !integer(p.people, 1, 100) || !PLAN_FOCUS.has(p.focus) ||
-      !(p.slot === null || p.slot === undefined || integer(p.slot, 0, 6)) || !Array.isArray(p.blocks) || p.blocks.length > 100) fail('Ungültiger Plan.');
-    if (p.age !== undefined && !AGES.includes(p.age)) fail('Ungültige Plan-Altersklasse.');
-    if (p.coachNotes !== undefined && (typeof p.coachNotes !== 'string' || p.coachNotes.length > 800)) fail('Ungültige Coaching-Notizen.');
-    pids.add(p.id);
-    for (const b of p.blocks) {
-      if (!text(b.id, 100) || bids.has(b.id) || !ids.has(b.exerciseId) || !integer(b.minutes, 1, 120) || (b.people !== undefined && !integer(b.people, 1, 100))) fail('Ungültiger Block.');
-      bids.add(b.id);
-    }
-  }
-  if (x.variants !== undefined) {
-    if (!x.variants || typeof x.variants !== 'object' || Array.isArray(x.variants) || Object.keys(x.variants).length > 600) fail('Ungültige Varianten.');
-    for (const [id, a] of Object.entries(x.variants)) if (!text(id, 100) || !validVariant(a)) fail('Ungültige Variante.');
-  }
-  return x;
-}
 
 const THEMES = ['system', 'light', 'dark'], MOTION = ['full', 'reduced', 'off'], LAYOUTS = ['detailed', 'compact', 'cards', 'coach'];
 export const DEFAULT_SETTINGS = Object.freeze({
@@ -232,6 +198,6 @@ export function validateV3(x) {
 export function emptyV3() {
   return {
     version: 3, teams: [], activeTeamId: null, custom: [], plans: [], selectedPlanId: null,
-    exerciseMeta: {}, boards: [], events: [], settings: { ...DEFAULT_SETTINGS }, help: { tour: false }, migratedFrom: null,
+    exerciseMeta: {}, boards: [], events: [], settings: { ...DEFAULT_SETTINGS }, help: { tour: false },
   };
 }

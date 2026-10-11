@@ -1,6 +1,6 @@
 // Mehr: Mannschaften, Darstellung & Bedienung, Training, Daten (Backup/Import), Hilfe, Info & Updates.
 import * as store from '../core/store.js';
-import { importBackup, toV2Backup } from '../core/migrate.js';
+import { importBackup } from '../core/storage.js';
 import { LIMITS, DEFAULT_SETTINGS } from '../core/schema.js';
 import { esc, LABELS, DAYS_SHORT, APP_VERSION, fileDate, uid, TYPE_SHORT, plural } from '../core/util.js';
 import { activeTeam, plansOfTeam } from '../core/planning.js';
@@ -17,12 +17,12 @@ import { LANGS, locale } from '../i18n/index.js';
 
 const CLUB = [null, '#d4f26b', '#ffd23f', '#ff8a3d', '#ef4444', '#3b82f6', '#22c55e', '#e5e7eb'];
 
-export function downloadBackup(format = 'v21') {
+export function downloadBackup() {
   const s = store.get();
-  const data = format === 'v20' ? toV2Backup(s) : { ...s, exportedAt: new Date().toISOString(), app: 'TRAINR', appVersion: APP_VERSION };
-  downloadBlob(`trainr-backup-${format === 'v20' ? 'v20-format-' : ''}${fileDate()}.json`, JSON.stringify(data, null, 2), 'application/json');
+  const data = { ...s, exportedAt: new Date().toISOString(), app: 'TRAINR', appVersion: APP_VERSION };
+  downloadBlob(`trainr-backup-${fileDate()}.json`, JSON.stringify(data, null, 2), 'application/json');
   store.update('Backup', d => { d.help.lastBackup = Date.now(); }, { undo: false, reason: 'meta' });
-  toast(format === 'v20' ? 'Backup im V20-Format erstellt (nur aktive Mannschaft).' : 'Backup heruntergeladen. Datei sicher aufbewahren.');
+  toast('Backup heruntergeladen. Datei sicher aufbewahren.');
 }
 
 /** Datei wählen und als Backup oder geteilte Einheit importieren. */
@@ -37,7 +37,7 @@ export function pickBackup() {
       if (obj?.kind === 'trainr-plan') { const m = await import('../exports/share.js'); m.importSharedPlan(obj); return; }
       const next = importBackup(obj);
       const teams = next.teams.length, plans = next.plans.filter(p => !p.template).length;
-      const ok = await confirmSheet({ title: 'Backup wiederherstellen?', text: `${plural(teams, 'Mannschaft', 'Mannschaften')}, ${plural(plans, 'Einheit', 'Einheiten')} und ${plural(next.custom.length, 'eigene Übung', 'eigene Übungen')}${obj.version === 2 ? ' (aus TRAINR V20)' : ''}. Deine aktuellen Daten werden ersetzt – direkt danach ist Rückgängig möglich.`, ok: 'Wiederherstellen', danger: true });
+      const ok = await confirmSheet({ title: 'Backup wiederherstellen?', text: `${plural(teams, 'Mannschaft', 'Mannschaften')}, ${plural(plans, 'Einheit', 'Einheiten')} und ${plural(next.custom.length, 'eigene Übung', 'eigene Übungen')}. Deine aktuellen Daten werden ersetzt – direkt danach ist Rückgängig möglich.`, ok: 'Wiederherstellen', danger: true });
       if (!ok) return;
       if (!next.settings) next.settings = { ...DEFAULT_SETTINGS };
       store.replace(next, 'Backup wiederhergestellt');
@@ -120,7 +120,6 @@ export const moreView = {
     this.root.innerHTML = `
       <div class="page-head"><div><p class="eyebrow">Lokal · ohne Konto</p><h1 id="h-mehr">Mehr</h1></div></div>
       ${!info.storageOK ? `<div class="notice danger">${icon('warn')}<span>Lokaler Speicher nicht verfügbar oder gespeicherte Daten ungültig. Vorhandene Browserdaten wurden nicht überschrieben${info.raw ? ' und zusätzlich gesichert' : ''}. Bitte ein Backup herunterladen.</span></div>` : ''}
-      ${info.source === 'v2' ? `<div class="notice ok">${icon('check')}<span>Deine Daten aus TRAINR V20 wurden übernommen. Die alten Daten bleiben unverändert im Browser.</span></div>` : ''}
 
       <section class="settings-group"><h2>Mannschaften</h2><div class="settings-card" style="padding:0">
         ${s.teams.map(t => `<div class="team-card"><span class="dot" style="--team-color:${t.color || '#133e33'}">${esc(t.name.slice(0, 2).toUpperCase())}</span><span><strong translate="no">${esc(t.name)}</strong>${t.id === s.activeTeamId ? ' <span class="tag ok">aktiv</span>' : ''}<br><small class="tiny">${esc(t.age)} · ${esc(LABELS[t.type])} · ${t.slots.map(x => `${DAYS_SHORT[x.day]} ${x.start}–${x.end}`).join(', ')}</small></span>
@@ -153,10 +152,8 @@ export const moreView = {
         <p class="small muted" style="margin:12px 0">Einheiten, Kalendertermine, Mannschaften, eigene Übungen, Merkliste, Bewertungen, Notizen, Taktikboards und Einstellungen liegen nur im Speicher dieses Browsers. Kein Tracking, kein Server, keine Spielerdaten. Browserdaten löschen oder privater Modus kann alles entfernen.</p>
         <div class="grid-2" style="margin-bottom:12px"><button class="btn primary" type="button" id="m-backup">${icon('download')} Backup herunterladen</button><button class="btn" type="button" id="m-restore">${icon('upload')} Backup / Datei importieren</button></div>
         <details class="disclosure" style="margin-bottom:12px"><summary>Weitere Optionen</summary><div class="body">
-          <button class="btn sm" type="button" id="m-backup-v20">${icon('download')} Backup im V20-Format (Rückweg)</button>
-          <p class="tiny">Für den Fall, dass du zu TRAINR V20 zurückkehrst. Enthält nur die aktive Mannschaft und keine V21-Extras.</p>
           <button class="btn sm danger" type="button" id="m-reset" style="margin-top:8px">${icon('trash')} Alle V21-Daten zurücksetzen</button>
-          <p class="tiny">Alte V20-Daten im Browser bleiben unberührt. Lade vorher ein Backup herunter.</p></div></details>
+          <p class="tiny">Lade vorher ein Backup herunter.</p></div></details>
         <p class="tiny">${s.help.lastBackup ? `Letztes Backup: ${new Date(s.help.lastBackup).toLocaleDateString(locale())}` : 'Noch kein Backup erstellt.'}</p>
       </div></section>
 
@@ -198,13 +195,12 @@ export const moreView = {
     $('#m-newteam', r).onclick = () => editTeam(null);
     $('#m-export', r).onclick = () => import('../exports/sheet.js').then(m => m.openExport());
     $('#m-backup', r).onclick = () => downloadBackup();
-    $('#m-backup-v20', r).onclick = () => downloadBackup('v20');
     $('#m-restore', r).onclick = pickBackup;
     $('#m-tour', r).onclick = tour;
     $('#m-help', r).onclick = () => showHelp('mehr');
     $('#m-update', r).onclick = () => import('../ui/update.js').then(m => m.checkNow(true));
     $('#m-reset', r).onclick = async () => {
-      if (!(await confirmSheet({ title: 'Alle V21-Daten zurücksetzen?', text: 'Mannschaften, Einheiten, eigene Übungen und Einstellungen in V21 werden gelöscht. Rückgängig ist direkt danach möglich. V20-Daten bleiben unberührt.', ok: 'Zurücksetzen', danger: true }))) return;
+      if (!(await confirmSheet({ title: 'Alle V21-Daten zurücksetzen?', text: 'Mannschaften, Einheiten, eigene Übungen und Einstellungen in V21 werden gelöscht. Rückgängig ist direkt danach möglich.', ok: 'Zurücksetzen', danger: true }))) return;
       const { emptyV3 } = await import('../core/schema.js');
       store.replace(emptyV3(), 'Daten zurückgesetzt');
       undoToast('Alle V21-Daten zurückgesetzt.');

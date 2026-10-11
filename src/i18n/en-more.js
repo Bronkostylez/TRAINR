@@ -1,8 +1,8 @@
 // Englisch: Mehr-Ansicht und Übungseditor.
 export const MORE = {
-  'Backup': 'Backup', 'Backup im V20-Format erstellt (nur aktive Mannschaft).': 'Backup created in V20 format (active team only).', 'Backup heruntergeladen. Datei sicher aufbewahren.': 'Backup downloaded. Keep the file safe.',
-  'Datei zu groß (max. 5 MB).': 'File too large (max. 5 MB).', 'Backup wiederherstellen?': 'Restore backup?', '(aus TRAINR V20)': '(from TRAINR V20)',
-  '{}, {} und {}{}. Deine aktuellen Daten werden ersetzt – direkt danach ist Rückgängig möglich.': '{1}, {2} and {3}{4}. Your current data will be replaced – undo is possible right afterwards.',
+  'Backup': 'Backup', 'Backup heruntergeladen. Datei sicher aufbewahren.': 'Backup downloaded. Keep the file safe.',
+  'Datei zu groß (max. 5 MB).': 'File too large (max. 5 MB).', 'Backup wiederherstellen?': 'Restore backup?',
+  '{}, {} und {}. Deine aktuellen Daten werden ersetzt – direkt danach ist Rückgängig möglich.': '{1}, {2} and {3}. Your current data will be replaced – undo is possible right afterwards.',
   'Wiederherstellen': 'Restore', 'Backup wiederhergestellt': 'Backup restored', 'Backup wiederhergestellt.': 'Backup restored.', 'Import abgelehnt: {}': 'Import rejected: {}',
   'Verwalten': 'Manage', 'Neue Mannschaft': 'New team', 'Mannschaft gewechselt': 'Team switched', 'Mannschaft: {}': 'Team: {}', 'Maximal {#} Mannschaften.': 'At most {} teams.',
   'Mannschaft bearbeiten': 'Edit team', 'Mannschaft geändert': 'Team changed', 'Mannschaft gespeichert.': 'Team saved.', '„{}“ angelegt und ausgewählt.': '“{}” created and selected.',
@@ -10,7 +10,6 @@ export const MORE = {
   'Die Mannschaft, {} und ihre Kalendertermine werden gelöscht. Vorlagen und eigene Übungen bleiben. Rückgängig ist direkt danach möglich.': 'The team, {} and its calendar events will be deleted. Templates and custom exercises are kept. Undo is possible right afterwards.',
   'Mannschaft gelöscht': 'Team deleted', 'und zusätzlich gesichert': 'and additionally backed up',
   'Lokaler Speicher nicht verfügbar oder gespeicherte Daten ungültig. Vorhandene Browserdaten wurden nicht überschrieben{}. Bitte ein Backup herunterladen.': 'Local storage is not available or saved data is invalid. Existing browser data was not overwritten{}. Please download a backup.',
-  'Deine Daten aus TRAINR V20 wurden übernommen. Die alten Daten bleiben unverändert im Browser.': 'Your data from TRAINR V20 was imported. The old data stays unchanged in the browser.',
   'Wählen': 'Select', '{} löschen': 'Delete {}', '{} bearbeiten': 'Edit {}', 'aktiv': 'active',
   'Sprache': 'Language', 'Auto': 'Auto', 'Auto folgt der Gerätesprache. Deine Daten und Übungen bleiben unverändert.': 'Auto follows the device language. Your data and exercises stay unchanged.',
   'System': 'System', 'Hell': 'Light', 'Dunkel': 'Dark', 'Voll': 'Full', 'Reduziert': 'Reduced', 'Aus': 'Off', 'Klein': 'Small', 'Normal': 'Normal', 'Groß': 'Large', 'Sehr groß': 'Extra large',
@@ -25,9 +24,8 @@ export const MORE = {
   'Schriftgröße': 'Font size', 'Vereinsfarbe (Akzent)': 'Club colour (accent)', 'Torwart-Elemente bleiben immer lila.': 'Goalkeeper elements always stay purple.',
   'Bedienung & Training': 'Controls & training', 'Vorwarnung vor Blockende': 'Warning before block end', 'Daten': 'Data',
   'Einheiten, Kalendertermine, Mannschaften, eigene Übungen, Merkliste, Bewertungen, Notizen, Taktikboards und Einstellungen liegen nur im Speicher dieses Browsers. Kein Tracking, kein Server, keine Spielerdaten. Browserdaten löschen oder privater Modus kann alles entfernen.': 'Sessions, calendar events, teams, custom exercises, shortlist, ratings, notes, tactics boards and settings are stored only in this browser. No tracking, no server, no player data. Clearing browser data or private mode can remove everything.',
-  'Backup herunterladen': 'Download backup', 'Backup / Datei importieren': 'Import backup / file', 'Weitere Optionen': 'More options', 'Backup im V20-Format (Rückweg)': 'Backup in V20 format (way back)',
-  'Für den Fall, dass du zu TRAINR V20 zurückkehrst. Enthält nur die aktive Mannschaft und keine V21-Extras.': 'In case you return to TRAINR V20. Contains only the active team and no V21 extras.',
-  'Alle V21-Daten zurücksetzen': 'Reset all V21 data', 'Alte V20-Daten im Browser bleiben unberührt. Lade vorher ein Backup herunter.': 'Old V20 data in the browser is left untouched. Download a backup first.',
+  'Backup herunterladen': 'Download backup', 'Backup / Datei importieren': 'Import backup / file', 'Weitere Optionen': 'More options',
+  'Alle V21-Daten zurücksetzen': 'Reset all V21 data', 'Lade vorher ein Backup herunter.': 'Download a backup first.',
   'Hilfe & Info': 'Help & info', 'Erklärungen zu jeder Ansicht über ? oben rechts': 'Explanations for every view via ? at the top right', 'Nach Updates suchen': 'Check for updates', 'Version {}': 'Version {}',
   'App installieren': 'Install app', 'Startbildschirm, offline nutzbar': 'Home screen, usable offline', 'Übungen & Sicherheit': 'Exercises & safety',
   'Die Übungen sind eigene Kurzfassungen und Varianten auf Grundlage öffentlicher Trainerquellen des DFB. Jede Übung nennt ihre Quelle. Altersgrenzen, Minuten, Feldgrößen und Materialmengen sind redaktionelle Vorschläge, keine offiziellen Normen.': 'The exercises are own short versions and variants based on public coaching sources of the DFB (German FA). Each exercise names its source. Age limits, minutes, pitch sizes and equipment quantities are editorial suggestions, not official standards.',
@@ -38,7 +36,7 @@ export const MORE = {
   'Die App ruft keine externen Inhalte ab; nur bewusst geöffnete Quellenlinks führen nach außen. Lokal:': 'The app does not fetch external content; only source links you deliberately open lead outside. Locally:',
   'TRAINR {} · Fußballtraining lokal geplant': 'TRAINR {} · football training planned locally',
   'Animationen aus.': 'Animations off.', 'Reduzierte Animationen.': 'Reduced animations.', 'Animationen an.': 'Animations on.',
-  'Alle V21-Daten zurücksetzen?': 'Reset all V21 data?', 'Mannschaften, Einheiten, eigene Übungen und Einstellungen in V21 werden gelöscht. Rückgängig ist direkt danach möglich. V20-Daten bleiben unberührt.': 'Teams, sessions, custom exercises and settings in V21 will be deleted. Undo is possible right afterwards. V20 data is left untouched.',
+  'Alle V21-Daten zurücksetzen?': 'Reset all V21 data?', 'Mannschaften, Einheiten, eigene Übungen und Einstellungen in V21 werden gelöscht. Rückgängig ist direkt danach möglich.': 'Teams, sessions, custom exercises and settings in V21 will be deleted. Undo is possible right afterwards.',
   'Zurücksetzen': 'Reset', 'Daten zurückgesetzt': 'Data reset', 'Alle V21-Daten zurückgesetzt.': 'All V21 data reset.',
 
   // Editor

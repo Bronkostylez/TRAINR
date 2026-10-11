@@ -1,5 +1,10 @@
 const { test, expect } = require('@playwright/test');
 const { onboard: baseOnboard, go, watchErrors, noOverflow } = require('./helpers.cjs');
+// Die Fälle legen heute um 17:00 ein Training an. Vorher prüfen, unabhängig von der echten Uhrzeit.
+test.beforeEach(async ({ page }) => {
+  const morning = new Date(); morning.setHours(9, 0, 0, 0);
+  await page.clock.setFixedTime(morning);
+});
 async function onboard(page, opts = {}) {
   await baseOnboard(page, { ...opts, skipTour: false });
   await expect(page.locator('dialog[open] [data-skip]')).toBeVisible();

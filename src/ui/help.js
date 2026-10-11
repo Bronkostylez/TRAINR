@@ -33,7 +33,7 @@ const HELP = {
   ]],
   mehr: ['Mehr', [
     ['Mannschaften', 'Lege mehrere Mannschaften an. Jede hat eigene Altersklasse, Trainingszeiten und Einheiten. Gewechselt wird oben über den Mannschafts-Chip.'],
-    ['Daten sichern', 'Alles liegt nur in diesem Browser. Lade regelmäßig ein Backup herunter. Ein Backup aus TRAINR V20 kann direkt importiert werden.'],
+    ['Daten sichern', 'Alles liegt nur in diesem Browser. Lade regelmäßig ein Backup herunter. Ein Backup aus TRAINR V21 kann direkt importiert werden.'],
     ['Darstellung', 'Hell/Dunkel, Vereinsfarbe, Schriftgröße und Animationsstufe. Die Systemeinstellung „weniger Bewegung“ hat immer Vorrang. Torwart-Elemente bleiben lila.'],
   ]],
   kalender: ['Kalender', [

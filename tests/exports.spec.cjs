@@ -74,7 +74,7 @@ test('Alle Exporte: PDF (alle Layouts), PNG, Text, CSV, Druck, TRAINR-Datei', as
   expect(errors).toEqual([]);
 });
 
-test('Backup herunterladen, wiederherstellen; V20-Backup importieren; ungültige Dateien abgelehnt', async ({ page }) => {
+test('Backup herunterladen, wiederherstellen; alte und ungültige Dateien ohne Datenverlust abgelehnt', async ({ page }) => {
   const errors = watchErrors(page);
   await onboard(page, { name: 'Original' });
   await createSession(page);
@@ -84,11 +84,7 @@ test('Backup herunterladen, wiederherstellen; V20-Backup importieren; ungültige
   const backup = JSON.parse(b.buf.toString('utf8'));
   expect(backup.version).toBe(3);
   expect(backup.teams[0].name).toBe('Original');
-  // V20-Format-Rückweg
-  await page.click('summary:has-text("Weitere Optionen")');
-  const v20 = JSON.parse((await grab(page, '#m-backup-v20')).buf.toString('utf8'));
-  expect(v20.version).toBe(2);
-  expect(v20.profile.age).toBe('E-Jugend');
+  await expect(page.locator('#m-backup-v20')).toHaveCount(0);
   // Daten ändern, dann Backup wiederherstellen
   await page.evaluate(() => window.__trainr.store.update('x', d => { d.teams[0].name = 'Geändert'; }));
   const restore = async (obj, name = 'b.json') => {
@@ -98,22 +94,14 @@ test('Backup herunterladen, wiederherstellen; V20-Backup importieren; ungültige
   await restore(backup);
   await page.click('dialog[open] [data-ok]');
   await expect.poll(async () => (await state(page)).teams[0].name).toBe('Original');
-  // V20-Backup (Format version 2 inkl. Varianten)
-  await go(page, '#mehr');
-  const v20file = { version: 2, profile: { type: 'keeper', age: 'D-Jugend', slots: [{ day: 2, start: '18:00', end: '19:30' }] }, custom: [], plans: [{ id: 'old-1', name: 'Alt', people: 4, slot: 2, focus: 'Fangen', coachNotes: 'Notiz', blocks: [{ id: 'ob-1', exerciseId: 'catch', minutes: 6, people: 2 }] }], selected: 'old-1', variants: { catch: { min: 2, max: 3, minutes: 7 } } };
-  await restore(v20file);
-  await expect(page.locator('dialog[open]')).toContainText('aus TRAINR V20');
-  await page.click('dialog[open] [data-ok]');
-  await expect.poll(async () => (await state(page)).teams[0]?.type).toBe('keeper');
-  const s = await state(page);
-  expect(s.plans[0]).toMatchObject({ id: 'old-1', name: 'Alt', notes: 'Notiz', blocks: [{ id: 'ob-1', exerciseId: 'catch', minutes: 6, people: 2 }] });
-  expect(s.exerciseMeta.catch.variant).toEqual({ min: 2, max: 3, minutes: 7 });
   // Ablehnungen
   await go(page, '#mehr');
   for (const bad of ['{kaputt', JSON.stringify({ version: 1, plans: [] }), JSON.stringify({ version: 2, plans: [] }), JSON.stringify({ ...backup, plans: [{ id: 'x' }] })]) {
     await restore(bad);
     await expect(page.locator('.toast')).toContainText('Import abgelehnt');
   }
-  expect((await state(page)).plans[0].id).toBe('old-1');
+  const restored = { ...backup };
+  for (const k of ['exportedAt', 'app', 'appVersion']) delete restored[k];
+  expect(await state(page)).toEqual(restored);
   expect(errors.filter(e => !/JSON/.test(e))).toEqual([]);
 });

@@ -1,3 +1,5 @@
+> Historisches Dokument vom V21-Neubau. Seit 21.14.1 gibt es keine V20-Migration, keinen Import alter Backups und keinen Export im alten Format. Die damaligen Migrations-Testnachweise gelten nicht mehr; aktuelle Prüfungen stehen in tests/storage.spec.cjs und tests/exports.spec.cjs.
+
 # TRAINR V21 – Audit und Umsetzungsplan
 
 Stand: 9. Oktober 2026 · Phase 1 (Analyse). Am bestehenden Produkt wurde nichts verändert. Neu angelegt: `INVENTAR-V20.md`, `AUDIT-V21.md`, `IDEEN-V21.md`.
@@ -79,7 +81,7 @@ tests/ (Playwright)  playwright.config.cjs
 - **Rendering:** kleine View-Funktionen, die nur ihren Bereich neu zeichnen; Listen mit Schlüsselabgleich (Karten werden wiederverwendet), Event-Delegation. Kein Framework.
 - **Ein Store:** alle Änderungen über `store.update(label, fn)` → automatisch Undo-Eintrag, Speichern (gebündelt), Re-Render der betroffenen Views.
 - **Eine Motion-Schicht:** Stufen `aus / reduziert / voll`. `prefers-reduced-motion` erzwingt höchstens „reduziert“ ohne Bewegungseffekte (nur Opazität), „aus“ erzwingt keine Animation. Alle Animationen laufen über einen Helfer `animate()`, der die Stufe prüft; CSS nutzt `[data-motion]`-Attribut am `<html>`.
-- **Alte Dateien** (`ui-v*.js/css`, `app-ui.*`, `ui-next.*`, `coach-tools.js`, `editor.js`, `drill-scenes.js`, `scene-motion.js`, `app.js`) werden nach erfolgreicher Migration aus dem App-Pfad entfernt. Der V20-Stand bleibt über Git-Tag `v20-final` (und eine Zip-Sicherung) erhalten.
+- **Alte Dateien** (`ui-v*.js/css`, `app-ui.*`, `ui-next.*`, `coach-tools.js`, `editor.js`, `drill-scenes.js`, `scene-motion.js`, `app.js`) werden nach erfolgreicher Migration aus dem App-Pfad entfernt. Der V20-Stand bleibt über Git-Tag `historischer V20-Stand` (und eine Zip-Sicherung) erhalten.
 
 ### 2.1 Informationsarchitektur (Bottom-Tabs)
 
@@ -123,7 +125,7 @@ Desktop ≥ 1024 px: Navigationsleiste links, Bibliothek + Planer nebeneinander 
 
 ## 4. Umsetzungsschritte
 
-1. **Sicherung:** Zip-Kopie des V20-Ordners (außerhalb des App-Pfads, z. B. `..\TRAINR-V20-Sicherung-2026-10-09.zip`). `git init`, Commit des V20-Stands, Tag `v20-final`, Branch `v21-rebuild`. Kein Remote, kein Push. *(abhängig von Rückfrage 1)*
+1. **Sicherung:** Zip-Kopie des V20-Ordners (außerhalb des App-Pfads, z. B. `..\TRAINR-V20-Sicherung-2026-10-09.zip`). `git init`, Commit des V20-Stands, Tag `historischer V20-Stand`, Branch `v21-rebuild`. Kein Remote, kein Push. *(abhängig von Rückfrage 1)*
 2. **Fundament:** Ordnerstruktur, Tokens/Basis-CSS, `dom.js`, Store, Schema, Migration (+ Tests zuerst), Service Worker, Manifest, Version 21.0.0 überall.
 3. **Kern:** Shell + Tabs + Router, Onboarding, Bibliothek + Detail, Planer (Blöcke, D&D, Undo/Redo, Teilnehmer, Gruppen, Material, Check, Notizen, Kopieren), Trainingsmodus, Exporte/Druck/Backup/Import, eigene Übungen + Editor.
 4. **Erweiterungen:** Mannschaften, Kalender (Woche/Saison, Serien, Vorlagen), Assistent mit Strategien/Alternativen, Bewertungen/Notizen/Zuletzt/Zufall/Ähnliche, Packliste, Taktikboard, Exportlayouts, Teilen, Einstellungen (Theme, Vereinsfarbe, Schrift, Haptik, Ton, Motion-Stufen), Hilfe + Kurz-Einführung.
@@ -137,7 +139,7 @@ Desktop ≥ 1024 px: Navigationsleiste links, Bibliothek + Planer nebeneinander 
 
 - `@playwright/test` mit `playwright.config.cjs`, Webserver = `serve.cjs`, Browser = lokal vorhandenes Playwright-Chromium (oder Chrome per `CHROME_PATH`). Ausgaben nach `test-results/` und `screenshots/` im Projekt (bereits in `.gitignore` bzw. wird ergänzt).
 - **Unit-nahe Tests** (im Browser-Kontext): Schema, Migration, `fit()`, Material, Zeitbudget, Assistent (Matrix Alter × Trainerart × Spieler × Minuten; nie Falltechnik, Bambini nie Torwart-Spezialisierung).
-- **E2E (Pflicht):** Onboarding inkl. Fehlerfälle; Bibliothek/Suche/Filter/Merkliste; Planer inkl. D&D, Reihenfolge, Teilnehmer je Einheit/Block, Undo/Redo; Trainingsmodus + Timer (mit Uhr-Mock), Blockwechsel, Vorschau; alle Exporte (Text, CSV, Druck-HTML, PDF, PNG, ICS, Teilen-Fallback) mit Download-Prüfung; Backup/Import (V20- und V21-Format, Ablehnung); eigene Übungen + Animation; Animationsschalter + `prefers-reduced-motion` (keine laufenden Animationen); Offline-Reload; Service-Worker-Update V20 → V21 (alter Stand aus Git-Tag `v20-final` ausgeliefert); Migration mit echten V20-Daten byte-genau erhalten; `keeperboard-v1` unverändert.
+- **E2E (Pflicht):** Onboarding inkl. Fehlerfälle; Bibliothek/Suche/Filter/Merkliste; Planer inkl. D&D, Reihenfolge, Teilnehmer je Einheit/Block, Undo/Redo; Trainingsmodus + Timer (mit Uhr-Mock), Blockwechsel, Vorschau; alle Exporte (Text, CSV, Druck-HTML, PDF, PNG, ICS, Teilen-Fallback) mit Download-Prüfung; Backup/Import (V20- und V21-Format, Ablehnung); eigene Übungen + Animation; Animationsschalter + `prefers-reduced-motion` (keine laufenden Animationen); Offline-Reload; Service-Worker-Update V20 → V21 (alter Stand aus Git-Tag `historischer V20-Stand` ausgeliefert); Migration mit echten V20-Daten byte-genau erhalten; `keeperboard-v1` unverändert.
 - **Layout:** Screenshots je Hauptansicht bei 360/390/768/1280 px in hell/dunkel; automatische Prüfung auf horizontalen Overflow, Konsolen-/Seitenfehler, Mindestgröße der Touch-Ziele. Screenshots werden von mir tatsächlich angesehen.
 - **Leistung:** CPU-Drosselung (CDP 4×) + Netzwerk „Slow 4G“: Startzeit, Zeit bis interaktiv, Bibliothek-Scroll; Ergebnisse dokumentiert.
 - **Nicht real testbar (wird dokumentiert):** physisches Handy, iOS/Safari-Installation, Ton bei gesperrtem Bildschirm, echte Vibration, Praxistest auf dem Platz.
@@ -156,7 +158,7 @@ Desktop ≥ 1024 px: Navigationsleiste links, Bibliothek + Planer nebeneinander 
 | Quellen nicht online prüfbar | Nur prüfen, wenn Netzwerkzugriff erlaubt (Rückfrage 2); sonst als „nicht geprüft“ markiert |
 
 **Entscheidungen aus den Rückfragen (9. Oktober 2026):**
-1. Git: lokal `git init`, Commit des V20-Stands, Tag `v20-final`, Branch `v21-rebuild`, kein Remote; zusätzlich Zip-Sicherung neben dem Ordner.
+1. Git: lokal `git init`, Commit des V20-Stands, Tag `historischer V20-Stand`, Branch `v21-rebuild`, kein Remote; zusätzlich Zip-Sicherung neben dem Ordner.
 2. Netzwerk nur lesend erlaubt: `npm install` für `@playwright/test` und Abruf der DFB-/fussball.de-Quellseiten zur Quellenprüfung.
 3. Falltechnik bleibt **ab D-Jugend** (wie bisher). Wird weiterhin nie automatisch vorgeschlagen.
 4. Umfang V21: **Mehrere Mannschaften**, **Taktikboard**, **Exportlayouts & Teilen**. Kalender/Saisonplanung/Serien → `IDEEN-V21.md`. Vorlagen (Einheit als Vorlage speichern und daraus erstellen) werden als kleine Planer-Funktion trotzdem umgesetzt, weil sie ohne Kalender auskommen.
@@ -175,7 +177,7 @@ Desktop ≥ 1024 px: Navigationsleiste links, Bibliothek + Planer nebeneinander 
 
 ## 1. Ergebnis in Kürze
 
-TRAINR 21.0.0 ist lokal auf dem Branch `v21-rebuild` fertig gebaut und getestet. Nichts wurde hochgeladen, gepusht oder veröffentlicht. `main` und der Tag `v20-final` zeigen unverändert auf V20. Zusätzlich liegt eine Zip-Sicherung unter `C:\Users\Tyler\Documents\TRAINR-V20-Sicherung-2026-10-09.zip`.
+TRAINR 21.0.0 ist lokal auf dem Branch `v21-rebuild` fertig gebaut und getestet. Nichts wurde hochgeladen, gepusht oder veröffentlicht. `main` und der Tag `historischer V20-Stand` zeigen unverändert auf V20. Zusätzlich liegt eine Zip-Sicherung unter `C:\Users\Tyler\Documents\TRAINR-V20-Sicherung-2026-10-09.zip`.
 
 - **37 von 37 Playwright-Tests bestanden.** Die Suite lief zweimal hintereinander ohne Fehler (Chrome 154, Windows 11).
 - Alle V20-Funktionen sind enthalten oder bewusst ersetzt. Der vollständige Abgleich steht in `INVENTAR-V21.md`. Keine Fähigkeit ist ersatzlos entfallen.
@@ -196,7 +198,7 @@ Starten: `node serve.cjs`, dann http://localhost:8765 öffnen. Testen: `npm test
 | Ein Dokumentmodell für PDF, PNG und Druck (`src/exports/doc.js`) | Gleicher Inhalt in allen Formaten; PDF mit echtem Text statt gerasterter Bilder |
 | Platzskizzen und Choreografie aus V20 als Module übernommen | Bewährte 40 Aufbau-Arten; nur bereinigt |
 
-Dateistruktur: `index.html`, `styles/` (tokens, app, print), `src/core` (Logik), `src/data` (Katalog, Ergänzungen, Quellen), `src/scene` (Skizzen, Animation), `src/ui` (Shell-Bausteine), `src/views` (Ansichten), `src/exports`, `sw.js`, `manifest.webmanifest`, `tests/`. Die alten Dateien `app.js`, `app-ui.*`, `ui-v4…ui-v20.*`, `ui-next.*`, `coach-tools.js`, `editor.js`, `drill-scenes.js`, `scene-motion.js`, `drills.js` und `test*.cjs` wurden entfernt. Sie liegen weiter im Tag `v20-final` und in der Zip-Sicherung.
+Dateistruktur: `index.html`, `styles/` (tokens, app, print), `src/core` (Logik), `src/data` (Katalog, Ergänzungen, Quellen), `src/scene` (Skizzen, Animation), `src/ui` (Shell-Bausteine), `src/views` (Ansichten), `src/exports`, `sw.js`, `manifest.webmanifest`, `tests/`. Die alten Dateien `app.js`, `app-ui.*`, `ui-v4…ui-v20.*`, `ui-next.*`, `coach-tools.js`, `editor.js`, `drill-scenes.js`, `scene-motion.js`, `drills.js` und `test*.cjs` wurden entfernt. Sie liegen weiter im Tag `historischer V20-Stand` und in der Zip-Sicherung.
 
 Version 21.0.0 steht einheitlich in `version.json`, `package.json`, `package-lock.json`, `sw.js`, `index.html`, `src/core/util.js` und `src/main.js`.
 
