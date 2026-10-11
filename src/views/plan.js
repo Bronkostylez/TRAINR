@@ -1,4 +1,5 @@
 // Planen: Einheit bearbeiten (Ablauf, Check, Packliste, Notizen), Einheiten verwalten, Assistent, Vorlagen.
+import { openWeek } from './week.js';
 import * as store from '../core/store.js';
 import {
   currentPlan, activeTeam, exercise, effective, blockLayout, layoutText, layoutAdvice, totalMinutes, timeline, slotOf, slotMinutes, slotLabel, planAge, planType,
@@ -87,6 +88,7 @@ export const planView = {
           <div class="budget-label"><span>${total} Min geplant</span><span class="${over ? 'block-warn' : ''}">${avail ? (over ? `${total - avail} Min zu lang` : `${avail - total} Min frei von ${avail}`) : 'Kein Zeitrahmen'}</span></div>
         </div>
       </div>
+      <button class="btn block week-entry" id="pl-week" type="button">${icon('calendar')} Wochenplaner <span class="grow"></span>${icon('chevron')}</button>
       <div class="plan-tabs"><div class="seg" role="tablist" aria-label="Bereiche der Einheit">${TABS.map(([k, t]) => `<button type="button" role="tab" data-ptab="${k}" aria-selected="${this.sub === k}" aria-pressed="${this.sub === k}">${t}${k === 'check' ? checkBadge(s, p) : ''}</button>`).join('')}</div></div>
       <div id="pl-body"></div>`;
     this.paintTab(reason);
@@ -169,6 +171,7 @@ export const planView = {
     $('#pl-undo', r).onclick = () => { const l = store.undo(); if (l) toast(`„${l}“ rückgängig.`); };
     $('#pl-redo', r).onclick = () => { const l = store.redo(); if (l) toast(`„${l}“ wiederhergestellt.`); };
     $('#pl-switch', r).onclick = () => this.plansSheet();
+    $('#pl-week', r).onclick = openWeek;
     $('#pl-cal', r).onclick = () => go('kalender');
     $('#pl-share', r).onclick = () => import('../exports/sheet.js').then(m => m.openExport());
     $('#pl-more', r).onclick = () => this.moreSheet();
