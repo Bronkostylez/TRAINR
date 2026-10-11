@@ -41,7 +41,7 @@ export const HELP = {
   'Mannschaften': 'Teams',
   'Lege mehrere Mannschaften an. Jede hat eigene Altersklasse, Trainingszeiten und Einheiten. Gewechselt wird oben über den Mannschafts-Chip.': 'Create several teams. Each has its own age group, training times and sessions. Switch via the team chip at the top.',
   'Daten sichern': 'Back up your data',
-  'Alles liegt nur in diesem Browser. Lade regelmäßig ein Backup herunter. Ein Backup aus TRAINR V20 kann direkt importiert werden.': 'Everything is stored only in this browser. Download a backup regularly. A backup from TRAINR V20 can be imported directly.',
+  'Alles liegt nur in diesem Browser. Lade regelmäßig ein Backup herunter. Ein Backup aus TRAINR V21 kann direkt importiert werden.': 'Everything is stored only in this browser. Download a backup regularly. A backup from TRAINR V21 can be imported directly.',
   'Darstellung': 'Appearance',
   'Hell/Dunkel, Vereinsfarbe, Schriftgröße und Animationsstufe. Die Systemeinstellung „weniger Bewegung“ hat immer Vorrang. Torwart-Elemente bleiben lila.': 'Light/dark, club colour, font size and animation level. The system setting “reduce motion” always takes precedence. Goalkeeper elements stay purple.',
   'Termine planen': 'Plan events',
