@@ -46,7 +46,7 @@ test('Planassistent-Sheet: Chips, Vorschlag, Plan-B-Tausch, Übernehmen', async 
   expect(await alts.count()).toBeGreaterThan(0);
   // Plan B antippen tauscht die Übung im Vorschlag
   const firstName = await sheet.locator('.proposal-item strong').first().textContent();
-  await alts.first().click();
+  await sheet.locator('.proposal-details summary').first().click(); await alts.first().click();
   await expect(sheet.locator('.proposal-item strong').first()).not.toHaveText(firstName);
   // Als neue Einheit übernehmen: Blöcke behalten Begründung und Plan B
   await sheet.locator('[data-apply="new"]').click();
