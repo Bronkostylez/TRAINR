@@ -175,7 +175,8 @@ export function validateV3(x) {
   const tids = new Set();
   for (const t of x.teams) {
     if (!text(t.id, 100) || tids.has(t.id) || !text(t.name, 60) || !validProfile(t) || !(t.color === undefined || t.color === null || /^#[0-9a-f]{6}$/i.test(t.color)) ||
-      !(t.seriesUntil === undefined || /^\d{4}-\d\d-\d\d$/.test(t.seriesUntil)) || !(t.autoSeries === undefined || typeof t.autoSeries === 'boolean')) fail('Ungültige Mannschaft.');
+      !(t.seriesUntil === undefined || /^\d{4}-\d\d-\d\d$/.test(t.seriesUntil)) || !(t.autoSeries === undefined || typeof t.autoSeries === 'boolean') ||
+      !(t.season === undefined || (t.season && Array.isArray(t.season.goals) && t.season.goals.length <= 3 && t.season.goals.every(g => typeof g === 'string' && g.length < 40) && /^\d{4}-\d\d-\d\d$/.test(t.season.start)))) fail('Ungültige Mannschaft.');
     tids.add(t.id);
   }
   if (x.activeTeamId !== null && !tids.has(x.activeTeamId)) fail('Ungültige aktive Mannschaft.');
