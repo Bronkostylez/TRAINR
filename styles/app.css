@@ -931,3 +931,10 @@ body.live-focus .live-rate .tiny:last-child { display: none; }
 .week-focus-sheet .fpick-group .chips, .assistant-sheet .fpick-group .chips, .week-foci, .week-today .chips { flex-wrap: wrap; overflow: visible; scroll-snap-type: none; }
 .week-focus-sheet .fchip-pick, .assistant-sheet .fchip-pick { white-space: normal; }
 :root[data-motion=reduced] .week-focus-sheet .fchip-pick, :root[data-motion=reduced] .assistant-sheet .fchip-pick { transform: none; transition-property: background, color; }
+/* 21.13 Ruhiger: weniger Informationsdichte, nichts entfernt */
+.week-entry { display: flex; align-items: center; gap: 10px; }
+.week-entry svg { flex: none; }
+.week-entry .grow { flex: 1; }
+.tl-item.pause-item { padding-block: 2px; opacity: .8; }
+.tl-item.pause-item .tl-time { opacity: .7; }
+#today .hero-stats small { font-size: .7rem; }
