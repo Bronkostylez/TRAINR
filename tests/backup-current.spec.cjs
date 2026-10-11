@@ -9,7 +9,7 @@ for (const lang of ['de', 'en']) test.describe(lang, () => {
     await createSession(page);
     await page.evaluate(() => { location.hash = '#mehr'; });
     const group = page.locator('.settings-group').filter({ has: page.locator('#m-backup') });
-    await group.locator('summary').click();
+    await group.locator('summary').last().click();
     await expect(group).not.toContainText('V20');
     await expect(page.locator('#m-backup')).toContainText(lang === 'en' ? 'Download backup' : 'Backup herunterladen');
     await expect(group).toContainText(lang === 'en' ? 'Download a backup first.' : 'Lade vorher ein Backup herunter.');
