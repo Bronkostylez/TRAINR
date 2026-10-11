@@ -956,3 +956,9 @@ body.live-focus .live-rate .tiny:last-child { display: none; }
 details.focus-strip { padding: 0; }
 details.focus-strip > summary { min-height: 48px; font-size: .9rem; }
 @media (max-width: 759px) { .block-sub { font-size: .78rem; line-height: 1.3; } .block-actions { gap: 2px; } }
+
+/* 21.16: a short proposal first; reasons, sources and alternatives on demand. */
+.proposal-details { margin-top: 4px; }
+.proposal-details > summary { min-height: 46px; padding: 8px 10px; font-size: .8rem; color: var(--ink-2); }
+.proposal-details .why { display: block; margin: 8px 0; }
+.assistant-options { margin: 8px 0 16px; }
