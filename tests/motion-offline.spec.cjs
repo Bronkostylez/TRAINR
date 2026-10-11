@@ -9,7 +9,7 @@ test('Animationsschalter: Voll → Animationen laufen; Aus → keine laufenden A
   await expect(page.locator('#lib-grid .drill').first()).toBeVisible();
   await expect.poll(() => running(page), { timeout: 5000 }).toBeGreaterThan(0); // Kartenanimationen
   expect(await page.evaluate(() => document.documentElement.dataset.motion)).toBe('full');
-  await go(page, '#mehr');
+  await go(page, '#mehr'); await page.locator('[data-more-group=appearance] summary').click();
   await page.click('[data-set=motion][data-v=off]');
   expect(await page.evaluate(() => document.documentElement.dataset.motion)).toBe('off');
   await go(page, '#uebungen');
@@ -21,7 +21,7 @@ test('Animationsschalter: Voll → Animationen laufen; Aus → keine laufenden A
   await expect(page.locator('dialog[open] #d-play')).toContainText('Nächster Schritt');
   // Reduziert: kurze Überblendungen erlaubt, aber keine Dauer-Animationen
   await page.keyboard.press('Escape');
-  await go(page, '#mehr');
+  await go(page, '#mehr'); await page.locator('[data-more-group=appearance] summary').click();
   await page.click('[data-set=motion][data-v=reduced]');
   await go(page, '#uebungen');
   await page.waitForTimeout(800);
@@ -57,8 +57,8 @@ test('Offline: Service Worker cached die App; Neustart und Planen ohne Netz', as
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
   const keys = await page.evaluate(() => caches.keys());
-  expect(keys).toEqual(['trainr-v21.16.0']);
-  const cached = await page.evaluate(async () => (await (await caches.open('trainr-v21.16.0')).keys()).length);
+  expect(keys).toEqual(['trainr-v21.17.0']);
+  const cached = await page.evaluate(async () => (await (await caches.open('trainr-v21.17.0')).keys()).length);
   expect(cached).toBeGreaterThan(40);
   await context.setOffline(true);
   await page.reload();
