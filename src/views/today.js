@@ -12,9 +12,12 @@ import { ensurePlan } from '../ui/actions.js';
 import { toast } from '../ui/feedback.js';
 import { openBlockEditor, swapBlock, openAddSheet } from './blocks.js';
 import { LIMITS } from '../core/schema.js';
-import { upcoming, needsReview, weekday, duration, fmtDate, startOf, endOf, title as evTitle, stats, neglected, addDays, todayIso } from '../core/calendar.js';
+import { upcoming, needsReview, weekday, duration, fmtDate, startOf, endOf, title as evTitle, stats, neglected, addDays, todayIso, mondayOf } from '../core/calendar.js';
 import { eventCard, openEvent, reviewEvent, seriesSheet } from './calendar.js';
 import { openSquadSheet } from './squad.js';
+import { suggestWeek } from '../core/season.js';
+import { suggestionHtml } from '../ui/season.js';
+import { acceptSuggestion } from './week.js';
 
 /** Nächster Trainingstermin der Mannschaft ab jetzt. */
 export function nextSession(team, now = new Date()) {
@@ -70,7 +73,7 @@ export const todayView = {
       ${review.length ? `<div class="notice" style="margin-bottom:12px">${icon('check')}<span class="grow">${esc(evTitle(review[0]))} vom ${esc(fmtDate(review[0].date))} nachbereiten?${review.length > 1 ? ` (${review.length} offen)` : ''}</span><button class="btn sm" type="button" id="t-review" data-id="${esc(review[0].id)}">Nachbereiten</button></div>` : ''}
       ${!review.length && nextPlan && nextPlan.id !== p.id ? `<div class="notice" style="margin-bottom:12px">${icon('calendar')}<span class="grow">Für ${esc(fmtDate(nextEv.date, { relative: true }))} ist „${esc(nextPlan.name)}“ geplant.</span><button class="btn sm" type="button" id="t-useplan" data-id="${esc(nextPlan.id)}">Öffnen</button></div>` : ''}
 
-      <button class="btn block week-entry" id="t-week" type="button">${icon('calendar')} Wochenplaner <span class="grow"></span>${icon('chevron')}</button>${nextEv?.kind === 'training' && nextEv.foci?.length && !nextPlan ? `<article class="card week-today"><p class="eyebrow">Fokus fürs nächste Training</p><div class="chips">${nextEv.foci.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div><button class="btn primary block" id="t-prepare" data-id="${esc(nextEv.id)}">${icon('sparkles')} Einheit vorbereiten</button><p class="tiny muted">Besetzung am Trainingstag prüfen</p></article>` : ''}
+      <button class="btn block week-entry" id="t-week" type="button">${icon('calendar')} Wochenplaner <span class="grow"></span>${icon('chevron')}</button>${(() => { const sg = nextEv?.kind === 'training' && !nextEv.foci?.length && !nextPlan ? suggestWeek(s, team, mondayOf(nextEv.date))[nextEv.id] : null; return sg ? `<article class="card week-today">${suggestionHtml(sg)}<div class="row"><button class="btn primary grow" type="button" id="t-accept" data-id="${esc(nextEv.id)}">${icon('check')} Übernehmen</button><button class="btn" type="button" id="t-week2">Ändern</button></div></article>` : ''; })()}${nextEv?.kind === 'training' && nextEv.foci?.length && !nextPlan ? `<article class="card week-today"><p class="eyebrow">Fokus fürs nächste Training</p><div class="chips">${nextEv.foci.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div><button class="btn primary block" id="t-prepare" data-id="${esc(nextEv.id)}">${icon('sparkles')} Einheit vorbereiten</button><p class="tiny muted">Besetzung am Trainingstag prüfen</p></article>` : ''}
       <article class="hero" aria-labelledby="hero-name">
         <p class="eyebrow">Deine Einheit</p>
         <h2 id="hero-name">${esc(p.name)}</h2>
@@ -145,6 +148,8 @@ export const todayView = {
     $('#t-create', r).addEventListener('toggle', ev => { if (ev.isTrusted) { userToggled = true; formOpen = ev.target.open; } });
     on(r, 'click', '[data-gap]', (_, b) => openAssistant({ preset: { foci: [b.dataset.gap] } }));
     $('#t-week', r).onclick = openWeek;
+    $('#t-week2', r)?.addEventListener('click', openWeek);
+    $('#t-accept', r)?.addEventListener('click', ev => { acceptSuggestion(ev.currentTarget.dataset.id); });
     $('#t-prepare', r)?.addEventListener('click', ev => prepareEvent(ev.currentTarget.dataset.id));
     $('#c-go', r).onclick = () => openAssistant({ onApplied: () => { userToggled = false; } });
     on(r, 'click', '[data-edit]', (_, b) => openBlockEditor(b.dataset.edit));
