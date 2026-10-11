@@ -125,7 +125,7 @@ export const onboardingView = {
         store.update('Mannschaft angelegt', d => {
           d.teams.push(team); d.activeTeamId = team.id;
           autoFill(d); // Trainingstage sofort als Serie im Kalender
-          // Pläne aus V20 ohne Mannschaft gehören zur ersten Mannschaft.
+          // Einheiten ohne Mannschaft gehören zur ersten Mannschaft.
           for (const p of d.plans) if (p.teamId === null) { p.teamId = team.id; if (!team.slots.some(s => s.day === p.slot)) p.slot = team.slots[0].day; }
           if (!d.plans.some(p => !p.template && p.teamId === team.id)) {
             const id = uid();
