@@ -853,3 +853,24 @@ button.bar-row.fbar:hover { background: var(--surface-2); }
 /* Planassistent V22: Punkt für „lange nicht trainiert“, Radiogroup-Chips (Altersklasse, Dauer) */
 .dot-gap { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); vertical-align: 1px; margin-left: 3px; }
 .chip[role="radio"][aria-checked="true"] { background: var(--fill); color: var(--on-fill); border-color: var(--fill); }
+
+/* Ruhiger Bibliothekskopf: Suche zuerst, weitere Werkzeuge nur auf Wunsch. */
+.lib-head { align-items: center; }
+.lib-head .row { gap: 6px; }
+.lib-search-row { display: flex; gap: 8px; align-items: center; }
+.lib-search-row .search { min-width: 0; }
+.lib-search-row #lib-filter { flex: none; gap: 6px; padding-inline: 12px; }
+.lib-selection:not([hidden]) { margin-top: 8px; }
+.lib-tools { padding-bottom: 12px; }
+.lib-filter-chips { flex-wrap: wrap; overflow: visible; padding-bottom: 0; }
+.lib-actions { display: grid; gap: 24px; }
+.lib-actions .lib-view { flex-wrap: wrap; }
+.lib-actions .lib-view button { display: flex; gap: 8px; }
+@media (max-width: 430px) {
+  .lib-head { flex-wrap: nowrap; gap: 8px; }
+  .lib-head h1 { font-size: 2.2rem; }
+  .lib-head .btn { padding-inline: 10px; }
+  .lib-head .eyebrow { font-size: .68rem; }
+}
+
+.lib-filter-summary { margin: 0 0 4px; color: var(--ink-3); }

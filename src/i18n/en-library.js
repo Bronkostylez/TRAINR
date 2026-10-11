@@ -1,5 +1,6 @@
 // Englisch: Übungsbibliothek.
 export const LIBRARY = {
+  'Eigene Übung erstellen': 'Create custom exercise', 'Weitere Übungsaktionen': 'More exercise actions', 'Aktive Filter': 'Active filters', 'Übungsaktionen': 'Exercise actions', 'Filter': 'Filter',
   'von der Merkliste entfernen': 'remove from shortlist', 'merken': 'bookmark', '{#} Sterne': '{} stars',
   'Eigene': 'Custom', 'Neu': 'New', '/ Gruppe': '/ group', 'ab {}': 'from {}', 'Ansehen': 'View', 'Plan': 'Plan', '{} in den Plan': 'Add {} to the plan',
   'gemerkt': 'bookmarked', 'passt nicht': 'does not fit', 'Gruppe': 'group', 'Drin': 'Added',

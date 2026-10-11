@@ -20,7 +20,9 @@ test('Bibliothek: Suche, Filter, Merkliste, Detail, Bewertung, Notiz, Variante, 
   await page.click('dialog[open] [data-fapply]');
   await expect(cards).toHaveCount(148);
   // Kategorie Falltechnik: 2 Übungen, keine für Bambini
+  await page.click('#lib-filter');
   await page.click('[data-tagf="Falltechnik"]');
+  await page.click('dialog[open] [data-fapply]');
   await expect(cards).toHaveCount(2);
   await page.click('#lib-filter');
   await page.selectOption('dialog[open] [data-sel=age]', 'Bambini');
@@ -36,9 +38,13 @@ test('Bibliothek: Suche, Filter, Merkliste, Detail, Bewertung, Notiz, Variante, 
   // Merkliste
   const firstId = await cards.first().getAttribute('data-id');
   await cards.first().locator('[data-fav]').click();
+  await page.click('#lib-filter');
   await page.click('[data-scope=fav]');
+  await page.click('dialog[open] [data-fapply]');
   await expect(cards).toHaveCount(1);
+  await page.click('#lib-filter');
   await page.click('[data-scope=all]');
+  await page.click('dialog[open] [data-fapply]');
   // Detail
   await cards.first().locator('h3').click();
   const dlg = page.locator('dialog[open]');
@@ -64,6 +70,7 @@ test('Bibliothek: Suche, Filter, Merkliste, Detail, Bewertung, Notiz, Variante, 
   expect(rated[1]).toMatchObject({ note: 'Hat super geklappt', variant: { min: 2, max: 8, minutes: 9 } });
   expect(s.exerciseMeta[firstId].favorite).toBe(true);
   // Zufall öffnet Detail; Hinzufügen landet im Plan
+  await page.click('#lib-more');
   await page.click('#lib-random');
   await expect(page.locator('dialog[open] #d-add')).toBeVisible();
   await page.click('dialog[open] #d-add');
@@ -143,12 +150,20 @@ test('Bibliothek: Neu-Bereich, kompakte Liste, nach Kategorie gruppiert, Lernweg
   await page.click('dialog[open] [data-k=type][data-v=all]');
   await page.click('dialog[open] [data-k=sort][data-v=tag]');
   await page.click('dialog[open] [data-fapply]');
+  await page.click('#lib-filter');
   await expect(page.locator('#lib-tags [data-tagf="Aufwärmen"] .count')).not.toHaveText('0');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
   await expect(page.locator('#lib-grid .lib-group').first()).toContainText('Aufwärmen');
+  await page.click('#lib-more');
   await page.click('[data-libview=compact]');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
   await expect(page.locator('#lib-grid .drill-row').first()).toBeVisible();
   await expect(page.locator('#lib-grid .drill:not(.drill-row)')).toHaveCount(0);
+  await page.click('#lib-filter');
   await page.click('[data-scope=new]');
+  await page.click('dialog[open] [data-fapply]');
   // Katalog lädt gestaffelt nach: warten, bis jede sichtbare Karte „Neu“ ist und alle Karten da sind
   await expect.poll(async () => { const n = await page.locator('#lib-grid .drill').count(); return n > 8 && n === await page.locator('#lib-grid .drill .tag.new').count(); }).toBe(true);
   // Plan-Knopf in der kompakten Zeile
@@ -157,8 +172,14 @@ test('Bibliothek: Neu-Bereich, kompakte Liste, nach Kategorie gruppiert, Lernweg
   // Ansicht bleibt nach Neuladen erhalten
   await page.reload();
   await go(page, '#uebungen');
+  await page.click('#lib-more');
   await expect(page.locator('[data-libview=compact]')).toHaveAttribute('aria-checked', 'true');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
+  await page.click('#lib-more');
   await page.click('[data-libview=cards]');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
   await page.fill('#lib-q', 'Drei gegen zwei mit Konter');
   await page.locator('.drill h3').first().click();
   await expect(page.locator('dialog[open] .tag.new')).toBeVisible();
