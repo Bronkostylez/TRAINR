@@ -948,3 +948,11 @@ body.live-focus .live-rate .tiny:last-child { display: none; }
 .season-suggest p { margin: 0 0 8px; }
 .chip-suggest { border-style: dashed; background: transparent; cursor: default; white-space: normal; }
 .season-card .chips { flex-wrap: wrap; overflow: visible; }
+
+/* 21.15: settings on demand, the schedule stays first. */
+.plan-options { margin: 10px 0; }
+.plan-options > summary { min-height: 48px; font-size: .9rem; }
+.plan-options .plan-facts { margin-bottom: 0; }
+details.focus-strip { padding: 0; }
+details.focus-strip > summary { min-height: 48px; font-size: .9rem; }
+@media (max-width: 759px) { .block-sub { font-size: .78rem; line-height: 1.3; } .block-actions { gap: 2px; } }
