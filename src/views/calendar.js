@@ -19,7 +19,9 @@ import { openDetail } from './detail.js';
 import { areaBar, focusBars, focusChips, focusSummary } from '../ui/focus.js';
 import { isGame, gameBody, gameAction, gameSub, editGame } from './matchday.js';
 
-const MODES = [['monat', 'Monat'], ['liste', 'Liste'], ['rueckblick', 'Rückblick']];
+import { paintWeek, editWeekFocus, prepareEvent } from './week.js';
+
+const MODES = [['woche', 'Woche'], ['monat', 'Monat'], ['liste', 'Liste'], ['rueckblick', 'Rückblick']];
 const RANGES = [['woche', 'Woche'], ['monat', 'Monat'], ['saison', 'Saison'], ['alle', 'Alles']];
 const ui = { mode: 'monat', month: monthKey(todayIso()), day: todayIso(), range: 'woche', offset: 0, showPast: false };
 
@@ -53,7 +55,7 @@ export function eventCard(s, ev, { showDate = false } = {}) {
     : isGame(ev) ? [gameSub(ev), ev.place].filter(Boolean).join(' · ')
     : ev.status === 'erledigt' ? [ev.done?.name || p?.name, ev.attendance !== undefined ? attendText(ev) : '', ev.rating ? '★'.repeat(ev.rating) : ''].filter(Boolean).join(' · ') || 'Gehalten'
       : p ? `${p.name} · ${totalMinutes(p, s)} Min` : open ? 'Noch keine Einheit geplant' : ev.place || '';
-  const fm = ev.kind === 'training' && ev.status !== 'ausgefallen' ? eventFocus(s, ev) : null, fl = fm?.list.slice(0, 3).map(o => o.key) || [];
+  const fm = ev.kind === 'training' && ev.status !== 'ausgefallen' ? eventFocus(s, ev) : null, fl = fm?.list.slice(0, 3).map(o => o.key) || ev.foci?.slice(0, 3) || [];
   return `<button class="ev-card k-${ev.kind} s-${ev.status}" type="button" data-ev="${esc(ev.id)}">
     <span class="ev-time">${showDate ? `<small>${esc(fmtDate(ev.date, { relative: true }))}</small>` : ''}<strong>${esc(ev.start)}</strong><small>${esc(ev.end)}</small></span>
     <span class="grow"><strong>${esc(title(ev))}${ev.place && (p || ev.status !== 'geplant') ? ` <span class="tiny">· ${esc(ev.place)}</span>` : ''}</strong><small class="${open && !p ? 'block-warn' : ''}">${open && !p ? '⚠ ' : ''}${esc(sub)}</small>${fl.length ? `<small class="ev-foci">${icon('target')} ${esc(fl.join(' · '))}</small>` : ''}</span>
@@ -90,7 +92,8 @@ export const calendarView = {
         <button class="btn primary sm" type="button" id="cal-add">${icon('plus')} Termin</button></div>
       <div id="cal-body"></div>`;
     const body = $('#cal-body', this.root);
-    if (ui.mode === 'monat') this.month(s, body);
+    if (ui.mode === 'woche') paintWeek(s, body);
+    else if (ui.mode === 'monat') this.month(s, body);
     else if (ui.mode === 'liste') this.list(s, body);
     else this.review(s, body);
     const r = this.root;
@@ -213,6 +216,8 @@ export function openEvent(id) {
       ${ev.status === 'ausgefallen' ? `<p class="notice warn">${icon('warn')}<span>Ausgefallen${ev.reason ? `: ${esc(ev.reason)}` : ''}</span></p>` : ''}
       ${ev.status === 'erledigt' && !game ? `<div class="notice ok">${icon('check')}<span class="grow">Gehalten${ev.done ? `: ${esc(ev.done.name)} (${ev.done.minutes} Min)` : ''}${ev.attendance !== undefined ? ` · ${attendText(ev)}` : ''}${ev.rating ? ` · ${stars(ev.rating)}` : ''}</span></div>` : ''}
       ${ev.done ? (() => { const fm = eventFocus(s, ev); return fm?.list.length ? `<div class="focus-strip"><strong class="small">Trainiert</strong>${focusSummary(fm, { max: 6 })}</div>` : ''; })() : ''}
+      ${isTraining && ev.foci?.length ? `<div class="chips week-foci">${ev.foci.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div>` : ''}
+      ${isTraining && ev.status === 'geplant' ? `<div class="row" style="margin:12px 0"><button class="btn" data-a="weekfocus">Fokus wählen</button>${!p ? '<button class="btn primary" data-a="prepare">Einheit vorbereiten</button>' : ''}</div>` : ''}
       ${ev.note ? `<p class="small" style="white-space:pre-line">${esc(ev.note)}</p>` : ''}
       ${game ? `<div class="stack" style="margin-top:12px">${gameBody(s, ev)}</div>` : ''}
       ${!game && (isTraining || p) ? `<h3 style="margin-top:16px">Einheit</h3>${p ? `<div class="plan-card" style="cursor:default"><span class="row between"><strong>${esc(p.name)}</strong><span class="tiny">${totalMinutes(p, s)} von ${duration(ev)} Min · ${plural(p.blocks.length, 'Block', 'Blöcke')}</span></span>
@@ -234,6 +239,7 @@ export function openEvent(id) {
     const ev = findEvent(id); if (!ev) return;
     const s = store.get(), p = planOf(s, ev);
     if (gameAction(a, ev, sh)) return;
+    if (a === 'weekfocus' || a === 'prepare') { sh.close(); setTimeout(() => a === 'weekfocus' ? editWeekFocus(id) : prepareEvent(id), 220); return; }
     if (a === 'edit') { sh.close(); setTimeout(() => (isGame(ev) ? editGame(id) : editEvent(id)), 220); }
     if (a === 'editevent') { sh.close(); setTimeout(() => editEvent(id), 220); }
     if (a === 'review') { sh.close(); setTimeout(() => reviewEvent(id), 220); }
@@ -328,6 +334,7 @@ export function editEvent(id, date = todayIso(), kind = 'training', { planId = n
         if (time(end) <= time(start)) { err.textContent = 'Das Ende muss nach dem Beginn liegen.'; f.end.focus(); return; }
         const next = { ...ev, date, start, end, title: f.title.value.trim().slice(0, 80), place: f.place.value.trim().slice(0, 80), planId: f.plan.value || null, remind: f.remind.value === '' ? null : Number(f.remind.value), note: f.note.value.slice(0, 2000) };
         if (!isGame(next)) delete next.game;
+        if (next.kind !== 'training') delete next.foci;
         const prev = { day: ui.day, month: ui.month };
         ui.day = date; ui.month = monthKey(date);
         try {
@@ -589,4 +596,4 @@ export function scheduleSheet(planId) {
 export function todaysTraining(s, planId = s.selectedPlanId, now = new Date()) {
   const list = eventsOn(s, iso(now)).filter(ev => ev.kind === 'training' && ev.status === 'geplant');
   return list.find(ev => ev.planId === planId) || list.find(ev => !ev.planId) || null;
-}
+    }
