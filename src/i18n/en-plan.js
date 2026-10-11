@@ -1,5 +1,6 @@
 // Englisch: Planen- und Trainingsansicht.
 export const PLAN = {
+  'Schwerpunkte im Vorschlag': 'Focus in this suggestion', 'Warum diese Übung? · Plan B': 'Why this exercise? · Plan B', 'Rahmen anpassen': 'Adjust session setup',
   'Einheit einstellen': 'Session settings',
   'Check': 'Check', 'Notizen': 'Notes', 'Gruppenzahl: 1 bis Spielerzahl, höchstens 20.': 'Number of groups: 1 up to the number of players, at most 20.',
   'Bibliothek zum Hineinziehen': 'Library to drag from', 'Kein Termin': 'No event', '(nur diese Einheit)': '(this session only)',
