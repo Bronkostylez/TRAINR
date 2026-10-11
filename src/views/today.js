@@ -1,4 +1,5 @@
 // Heute: nächste Einheit, Ein-Tipp-Erstellung, Start und Schnellaktionen.
+import { openWeek, prepareEvent } from './week.js';
 import * as store from '../core/store.js';
 import { currentPlan, activeTeam, exercise, squadLabel, blockLayout, layoutText, totalMinutes, timeline, slotOf, slotMinutes, planAge, check, foci, planFocus } from '../core/planning.js';
 import { focusChips, areaBar } from '../ui/focus.js';
@@ -69,6 +70,7 @@ export const todayView = {
       ${review.length ? `<div class="notice" style="margin-bottom:12px">${icon('check')}<span class="grow">${esc(evTitle(review[0]))} vom ${esc(fmtDate(review[0].date))} nachbereiten?${review.length > 1 ? ` (${review.length} offen)` : ''}</span><button class="btn sm" type="button" id="t-review" data-id="${esc(review[0].id)}">Nachbereiten</button></div>` : ''}
       ${nextPlan && nextPlan.id !== p.id ? `<div class="notice" style="margin-bottom:12px">${icon('calendar')}<span class="grow">Für ${esc(fmtDate(nextEv.date, { relative: true }))} ist „${esc(nextPlan.name)}“ geplant.</span><button class="btn sm" type="button" id="t-useplan" data-id="${esc(nextPlan.id)}">Öffnen</button></div>` : ''}
 
+      <button class="btn block week-entry" id="t-week" type="button">${icon('calendar')} Wochenplaner <span class="grow"></span>${icon('chevron')}</button>${nextEv?.kind === 'training' && nextEv.foci?.length && !nextPlan ? `<article class="card week-today"><p class="eyebrow">Fokus fürs nächste Training</p><div class="chips">${nextEv.foci.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div><button class="btn primary block" id="t-prepare" data-id="${esc(nextEv.id)}">${icon('sparkles')} Einheit vorbereiten</button><p class="tiny muted">Besetzung am Trainingstag prüfen</p></article>` : ''}
       <article class="hero" aria-labelledby="hero-name">
         <p class="eyebrow">Deine Einheit</p>
         <h2 id="hero-name">${esc(p.name)}</h2>
@@ -142,6 +144,8 @@ export const todayView = {
     $('#t-backup', r)?.addEventListener('click', () => import('./more.js').then(m => m.downloadBackup()));
     $('#t-create', r).addEventListener('toggle', ev => { formOpen = ev.target.open; });
     on(r, 'click', '[data-gap]', (_, b) => openAssistant({ preset: { foci: [b.dataset.gap] } }));
+    $('#t-week', r).onclick = openWeek;
+    $('#t-prepare', r)?.addEventListener('click', ev => prepareEvent(ev.currentTarget.dataset.id));
     $('#c-go', r).onclick = () => openAssistant({ onApplied: () => { formOpen = false; } });
     on(r, 'click', '[data-edit]', (_, b) => openBlockEditor(b.dataset.edit));
     on(r, 'click', '[data-swap]', (_, b) => swapBlock(b.dataset.swap));
