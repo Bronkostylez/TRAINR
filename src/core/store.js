@@ -1,6 +1,6 @@
 // Einziger Zustand der App. Alle Änderungen laufen über `update()`:
 // Undo-Schnappschuss → Änderung → Validierung → Speichern → Benachrichtigung.
-import { load, KEY_V3 } from './migrate.js';
+import { load, KEY_V3 } from './storage.js';
 import { validateV3 } from './schema.js';
 import { deepClone } from './util.js';
 
@@ -22,7 +22,6 @@ export function init(storage = globalThis.localStorage) {
     }
   }
   if (loadInfo.problem === 'storage') storageOK = false;
-  if (loadInfo.source === 'v2') persist(); // erste V21-Kopie anlegen; trainr-v2 bleibt unverändert
   return loadInfo;
 }
 
