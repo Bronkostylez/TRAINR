@@ -20,7 +20,7 @@ import { openDetail } from './detail.js';
 const MINUTE_PRESETS = [45, 60, 75, 90, 120];
 
 /** Schwerpunkt-Chips nach Bereich, gefiltert auf die Trainerart; „lange nicht trainiert“ bekommt einen Punkt. */
-function pickerHtml(f, gaps, type) {
+export function pickerHtml(f, gaps, type) {
   const relevant = new Set(RELEVANT[type] || RELEVANT.field);
   return Object.entries(AREAS).map(([a, info]) => {
     const items = FOCI.filter(x => x.area === a && relevant.has(x.key) && x.key !== 'Falltechnik');
@@ -48,15 +48,18 @@ function proposalHtml(s, pr) {
  * Öffnet den Planassistenten. `preset.foci` wählt Schwerpunkte vor (z. B. „lange nicht trainiert“).
  * `onApplied(planId, mode)` nach dem Übernehmen ('new' | 'replace').
  */
-export function openAssistant({ preset = {}, onApplied } = {}) {
+export function openAssistant({ preset = {}, onApplied, eventId = null } = {}) {
   const s0 = store.get(), team = activeTeam(s0), p = currentPlan(s0), slot = slotOf(s0, p);
   if (!team || !p) return;
+  const event = eventId ? s0.events.find(e => e.id === eventId && e.teamId === team.id && e.kind === 'training' && e.status === 'geplant') : null;
+  if (eventId && !event) return;
+  if (event && s0.plans.some(p => p.id === event.planId)) return toast('Für diesen Termin ist bereits eine Einheit verknüpft.');
   const gaps = neglected(s0);
-  const start = preset.foci?.length ? preset.foci : p.foci?.length ? p.foci : p.focus && p.focus !== 'Alle' ? [p.focus] : gaps.slice(0, 1);
+  const start = event ? (event.foci || []) : preset.foci?.length ? preset.foci : p.foci?.length ? p.foci : p.focus && p.focus !== 'Alle' ? [p.focus] : gaps.slice(0, 1);
   const f = {
     foci: [...new Set(start)].slice(0, MAX_FOCI),
     strategy: 'classic',
-    minutes: clamp(slotMinutes(slot) || 60, 20, 150),
+    minutes: clamp(preset.minutes || slotMinutes(slot) || 60, 20, 150),
     people: Math.min(60, p.people),
     keepers: Math.min(20, p.keepers || 0),
     coaches: p.coaches ?? 1,
@@ -81,8 +84,8 @@ export function openAssistant({ preset = {}, onApplied } = {}) {
   };
   const planName = () => `${f.foci.length ? f.foci.join(' + ') : 'Abwechslungsreich'} · ${STRATEGIES[f.strategy].name}`.slice(0, 80);
   openSheet({
-    title: 'Planassistent', wide: true,
-    body: `<p class="small muted">Regelbasiert und nachvollziehbar – keine KI, keine Datenübertragung. ${esc(TYPE_SHORT[team.type])} · nie Falltechnik automatisch.</p>
+    title: 'Planassistent', wide: true, className: 'assistant-sheet',
+    body: `${event ? `<div class="assistant-context"><strong>Trainingstag vorbereiten</strong><p class="tiny">${esc(event.date)} · ${esc(event.start)} - ${esc(event.end)}</p><p class="small">Fokus aus deinem Wochenplan. Wer ist heute da? Besetzung und Material vor Ort prüfen.</p>${preset.minutes < 20 || preset.minutes > 150 ? '<p class="notice">Der Assistent plant 20 bis 150 Minuten. Dauer für diesen Termin prüfen.</p>' : ''}</div>` : ''}<p class="small muted">Regelbasiert und nachvollziehbar – keine KI, keine Datenübertragung. ${esc(TYPE_SHORT[team.type])} · nie Falltechnik automatisch.</p>
       <div class="field"><span>Schwerpunkte <small class="tiny">bis zu ${MAX_FOCI} – verteilt auf die Phasen</small>${gaps.length ? ' <small class="tiny">· <span class="dot-gap" aria-hidden="true"></span> lange nicht trainiert</small>' : ''}</span>${pickerHtml(f, gaps, team.type)}</div>
       <div class="field"><span>Altersklasse</span><div class="chips" role="radiogroup" aria-label="Altersklasse">${AGES.map(a => `<button type="button" class="chip" role="radio" data-age="${esc(a)}" aria-checked="${f.age === a}">${esc(a)}</button>`).join('')}</div></div>
       <div class="field"><span>Dauer <small class="tiny">inkl. Pausen</small></span><div class="chips" role="radiogroup" aria-label="Dauer">${MINUTE_PRESETS.map(m => `<button type="button" class="chip" role="radio" data-min="${m}" aria-checked="${f.minutes === m}">${m} Min</button>`).join('')}</div>
@@ -98,9 +101,10 @@ export function openAssistant({ preset = {}, onApplied } = {}) {
         ${team.type === 'keeper' ? '' : `<label class="field"><span>Trainer</span><input class="input" id="as-coaches" type="number" min="0" max="10" value="${f.coaches}"></label>`}
       </div></div></details>
       <div id="as-out" aria-live="polite"></div>`,
-    foot: `<button class="btn" type="button" id="as-reroll">${icon('dice')} Neu würfeln</button><button class="btn" type="button" data-apply="replace">Ablauf ersetzen</button><button class="btn primary" type="button" data-apply="new">${icon('sparkles')} Als neue Einheit</button>`,
+    foot: `<button class="btn" type="button" id="as-reroll">${icon('dice')} Neu würfeln</button>${event ? '' : '<button class="btn" type="button" data-apply="replace">Ablauf ersetzen</button>'}<button class="btn primary" type="button" data-apply="new">${icon('sparkles')} ${event ? 'Einheit für Termin' : 'Als neue Einheit'}</button>`,
     onMount: sh => {
       const b = sh.body;
+      if (event) { const squad = b.querySelector('.grid-2'); b.querySelector('.assistant-context').after(squad); }
       on(b, 'click', '[data-af]', (_, x) => {
         const k = x.dataset.af;
         if (f.foci.includes(k)) f.foci = f.foci.filter(y => y !== k);
@@ -129,13 +133,16 @@ export function openAssistant({ preset = {}, onApplied } = {}) {
       on(b, 'click', '[data-view-ex]', (_, x) => openDetail(x.dataset.viewEx));
       on(sh.foot, 'click', '[data-apply]', (_, x) => {
         if (!pr) return;
+        const liveEvent = eventId && store.get().events.find(e => e.id === eventId);
+        if (eventId && (!liveEvent || liveEvent.status !== 'geplant' || liveEvent.teamId !== store.get().activeTeamId || liveEvent.teamId !== team.id || liveEvent.date !== event.date || liveEvent.start !== event.start || liveEvent.end !== event.end || store.get().plans.some(p => p.id === liveEvent.planId))) return toast('Termin nicht mehr verfügbar.');
         const blocks = pr.blocks.map(bb => ({ id: uid(), exerciseId: bb.exerciseId, minutes: bb.minutes, why: bb.why.slice(0, 300), alternatives: bb.alternatives.slice(0, 3) }));
         if (x.dataset.apply === 'new') {
           if (store.get().plans.length >= LIMITS.plans) return toast(`Maximal ${LIMITS.plans} Einheiten.`);
           const n = { ...blankPlan(store.get(), planName()), people: f.people, ...(f.keepers && team.type !== 'keeper' ? { keepers: f.keepers } : {}), ...(f.coaches !== 1 ? { coaches: f.coaches } : {}), focus: pr.focus, blocks, notes: pr.notes.join(' '), pauses: pr.pauses || { count: 0, minutes: f.pauses.minutes } };
+          if (event) { n.date = event.date; n.slot = (new Date(event.date + 'T12:00').getDay() + 6) % 7; }
           if (f.foci.length > 1) n.foci = f.foci;
           if (f.age !== team.age) n.age = f.age;
-          store.update('Vorschlag als neue Einheit', d => { d.plans.push(n); d.selectedPlanId = n.id; blocks.forEach(bb => markUsed(d, bb.exerciseId)); });
+          store.update('Vorschlag als neue Einheit', d => { d.plans.push(n); d.selectedPlanId = n.id; if (eventId) d.events.find(e => e.id === eventId).planId = n.id; blocks.forEach(bb => markUsed(d, bb.exerciseId)); });
           undoToast(`„${n.name}“ erstellt. Bestehende Einheiten bleiben erhalten.`);
           if (pr.notes.length) toast(pr.notes[0]);
         } else {

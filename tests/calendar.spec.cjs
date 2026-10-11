@@ -43,9 +43,9 @@ test('Kalender: Serie, Einheit zuordnen, Erinnerung, Nachbereitung, Ausfall, Rü
   // Erinnerung 60 Min vorher: Di 16:00
   await page.clock.fastForward('29:30:00'); // → Di 15:30
   await page.clock.runFor(31_000);
-  await expect(page.locator('.toast')).not.toContainText('⏰');
+  await expect(page.locator('.toast').filter({ hasText: '⏰' })).toHaveCount(0);
   await page.clock.fastForward('00:35:00'); // → Di 16:05
-  await page.clock.runFor(31_000);
+  await page.clock.runFor(1_000); // Toast lebt 9 s, nicht erst nach seinem Ablauf prüfen
   await expect(page.locator('.toast')).toContainText('⏰ Training · Heute, 17:00 Uhr');
   await expect(page.locator('.toast')).toContainText(p.name);
 
