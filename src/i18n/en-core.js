@@ -18,7 +18,6 @@ export const CORE = {
   'Weiter': 'Next', 'Nachbereiten': 'Review',
   'Wieder online. Deine Daten bleiben lokal.': 'Back online. Your data stays local.', 'Offline. TRAINR funktioniert weiter.': 'Offline. TRAINR keeps working.',
   'Trainingsserie': 'Training series',
-  'Deine Daten aus TRAINR V20 wurden übernommen. Die alten Daten bleiben unverändert.': 'Your data from TRAINR V20 was imported. The old data stays unchanged.',
   'Gespeicherte Daten waren ungültig und wurden gesichert, nicht überschrieben. Details unter „Mehr“.': 'Saved data was invalid and has been backed up, not overwritten. Details under “More”.',
 
   // Grundbegriffe
@@ -128,7 +127,7 @@ export const CORE = {
   'Keine gültige TRAINR-Datei.': 'Not a valid TRAINR file.',
   'Stufe-1-Backups werden nicht übernommen, weil sich die Bedeutung der Spielerzahlen geändert hat.': 'Level 1 backups are not imported because the meaning of the player numbers has changed.',
   'Unbekanntes Backup-Format.': 'Unknown backup format.',
-  'Ungültiges Backup aus TRAINR V2–V20.': 'Invalid backup from TRAINR V2–V20.', 'Ungültiges Trainerprofil.': 'Invalid coach profile.', 'Ungültige eigene Übung.': 'Invalid custom exercise.',
+  'Ungültiges Trainerprofil.': 'Invalid coach profile.', 'Ungültige eigene Übung.': 'Invalid custom exercise.',
   'Ungültiger Plan.': 'Invalid plan.', 'Ungültige Plan-Altersklasse.': 'Invalid plan age group.', 'Ungültige Coaching-Notizen.': 'Invalid coaching notes.', 'Ungültiger Block.': 'Invalid block.',
   'Ungültige Varianten.': 'Invalid variants.', 'Ungültige Variante.': 'Invalid variant.', 'Unbekanntes Datenformat.': 'Unknown data format.', 'Ungültige Mannschaften.': 'Invalid teams.',
   'Ungültige Mannschaft.': 'Invalid team.', 'Ungültige aktive Mannschaft.': 'Invalid active team.', 'Ungültige eigene Übungen.': 'Invalid custom exercises.', 'Ungültige Einheiten.': 'Invalid sessions.',
