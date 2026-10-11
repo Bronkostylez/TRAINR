@@ -152,6 +152,7 @@ function validEvent(ev, tids) {
   if (!EVENT_KINDS.includes(ev.kind) || !EVENT_STATUS.includes(ev.status)) return false;
   if (!(ev.planId === null || text(ev.planId, 100)) || !(ev.remind === null || integer(ev.remind, 0, 10080))) return false;
   if (!optText(ev.title, 80) || !optText(ev.place, 80) || !optText(ev.note, LIMITS.notes) || !optText(ev.reason, 120)) return false;
+  if (ev.foci !== undefined && (ev.kind !== 'training' || !validFoci(ev.foci))) return false;
   if (ev.seriesId !== undefined && !text(ev.seriesId, 100)) return false;
   if (ev.game !== undefined && (!validGame(ev.game) || (ev.kind !== 'spiel' && ev.kind !== 'turnier'))) return false;
   if (ev.attendance !== undefined && !integer(ev.attendance, 0, 100)) return false;
