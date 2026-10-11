@@ -48,7 +48,7 @@ Bambini should have broad playful ball experiences, not fixed goalkeeper special
 
 Data stays in localStorage on this browser and origin; clearing data, storage eviction or private browsing can erase it. Back up regularly. No sync or encryption promise. No personal names in free-text fields. Source websites open only when selected.
 
-Stages 2 through 5 use the `trainr-v2` storage key. Stage 1 browser data is left untouched under `keeperboard-v1`; it is not migrated automatically and Stage 1 backups are rejected rather than silently converted with changed player-count meanings.
+TRAINR V21 uses the `trainr-v21` storage key (schema version 3). Only V21 backups are accepted. Older browser data is ignored and left untouched; there is no legacy migration or legacy-format export.
 
 The service worker caches app assets only. Increase its version after an asset update. A timer may not sound while the screen is locked, browser suspended or app closed. It is not a background alarm; changing the system clock affects its deadline.
 
