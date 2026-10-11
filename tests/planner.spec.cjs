@@ -73,6 +73,8 @@ test('Planer: Einheit erstellen, Minuten, Reihenfolge, Teilnehmer, Undo/Redo, En
 });
 
 test('Planer: Zeiger-Sortierung am Griff und Tastatur', async ({ page }) => {
+  // Drag coordinates must stay inside the viewport, independent of header height.
+  await page.setViewportSize({ width: 390, height: 1600 });
   await onboard(page);
   await createSession(page);
   await go(page, '#planen');

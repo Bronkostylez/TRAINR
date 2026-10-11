@@ -66,7 +66,7 @@ export const planView = {
     if (!p || !team) return;
     const slot = slotOf(s, p), total = totalMinutes(p, s), avail = slotMinutes(slot), over = avail && total > avail, ps = new Map(pauses(s, p).map(x => [x.afterId, x]));
     const dates = upcoming(s).filter(ev => ev.planId === p.id), linked = dates[0], more = dates.length;
-    const main = $('#plan-main', this.root);
+    const main = $('#plan-main', this.root), optionsOpen = !!$('#pl-options', this.root)?.open;
     main.innerHTML = `
       <div class="plan-header">
         <div class="row between"><button class="btn sm" type="button" id="pl-switch" aria-haspopup="dialog">${icon('list')} ${plural(plansOfTeam(s).length, 'Einheit', 'Einheiten')}</button>
@@ -78,11 +78,14 @@ export const planView = {
           <button class="fact" type="button" id="pl-slot">${icon('clock')} ${slot ? esc(slotLabel(slot)) : 'Kein Termin'}</button>
           <span class="fact" style="padding:0 4px;cursor:default">${icon('users')}<span class="stepper" style="border:0"><button type="button" id="pl-pminus" aria-label="Ein Spieler weniger">−</button><input id="pl-people" type="number" min="1" max="100" value="${p.people}" aria-label="Spieler insgesamt ohne Trainer"><button type="button" id="pl-pplus" aria-label="Ein Spieler mehr">+</button></span></span>
           <button class="fact" type="button" id="pl-squad" aria-haspopup="dialog" title="Wer ist da: Spieler, Torwart, Trainer">${p.keepers ? `${p.keepers} Torwart · ` : ''}${(p.coaches ?? 1) === 1 ? '1 Trainer' : `${p.coaches} Trainer`}</button>
-          <button class="fact" type="button" id="pl-focus">${icon('target')} ${esc(p.focus === 'Alle' ? 'Kein Schwerpunkt' : p.focus)}</button>
           <button class="fact" type="button" id="pl-date" data-ev="${esc(linked?.id || '')}">${icon('calendar')} ${linked ? esc(fmtDate(linked.date, { relative: true })) + (more > 1 ? ` +${more - 1}` : '') : 'Im Kalender eintragen'}</button>
+        </div>
+        <details class="disclosure plan-options" id="pl-options" ${optionsOpen ? 'open' : ''}><summary>Einheit einstellen</summary><div class="body plan-facts">
+          <button class="fact" type="button" id="pl-focus">${icon('target')} ${esc(p.focus === 'Alle' ? 'Kein Schwerpunkt' : p.focus)}</button>
           <button class="fact" type="button" id="pl-pause">${icon('pause')} ${esc(pauseLabel(s, p))}</button>
           <button class="fact" type="button" id="pl-age">${esc(planAge(s, p))}${p.age ? ' (nur diese Einheit)' : ''}</button>
-        </div>
+
+        </div></details>
         <div class="budget" aria-label="Zeitbudget">
           <div class="budget-bar" aria-hidden="true">${p.blocks.map(b => `<i style="width:${(b.minutes / Math.max(total, avail || 1)) * 100}%" class="${over ? 'over' : ''}"></i>${ps.has(b.id) ? `<i class="pause" style="width:${(ps.get(b.id).minutes / Math.max(total, avail || 1)) * 100}%"></i>` : ''}`).join('')}</div>
           <div class="budget-label"><span>${total} Min geplant</span><span class="${over ? 'block-warn' : ''}">${avail ? (over ? `${total - avail} Min zu lang` : `${avail - total} Min frei von ${avail}`) : 'Kein Zeitrahmen'}</span></div>
@@ -102,7 +105,7 @@ export const planView = {
       const fm = planFocus(s, p);
       body.innerHTML = `
         ${p.blocks.length ? `<ol class="blocks" id="pl-blocks" aria-label="Ablauf der Einheit">${tl.map(({ block: b, label, pause }, i) => blockHtml(s, p, b, i, label) + (pause ? pauseHtml(p, pause) : '')).join('')}</ol>` : ''}
-        ${fm.list.length ? `<div class="focus-strip" style="margin:10px 0 0" aria-label="Schwerpunkte dieser Einheit"><div class="row between"><strong class="small">Das trainiert ihr</strong><button class="btn ghost sm" type="button" data-ptab="check">Details</button></div>${focusSummary(fm, { mark: p.focus, max: 5 })}</div>` : ''}
+        ${fm.list.length ? `<details class="disclosure focus-strip" style="margin:10px 0 0" aria-label="Schwerpunkte dieser Einheit"><summary>Das trainiert ihr</summary><div class="body"><div class="row between"><strong class="small">Schwerpunkte</strong><button class="btn ghost sm" type="button" data-ptab="check">Details</button></div>${focusSummary(fm, { mark: p.focus, max: 5 })}</div></details>` : ''}
         <div class="drop-zone" id="pl-drop" style="margin-top:10px">${p.blocks.length ? 'Übungen hierher ziehen' : '<strong>Noch leer.</strong> Übungen hinzufügen, hierher ziehen oder den Assistenten fragen.'}</div>
         <div class="grid-2" style="margin-top:12px">
           <button class="btn primary lg" type="button" id="pl-add">${icon('plus')} Übung hinzufügen</button>

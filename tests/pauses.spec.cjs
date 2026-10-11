@@ -34,6 +34,7 @@ test('Pausen-Sheet: Anzahl, Dauer, Vorschau, Kürzen auf Trainingszeit, Keine', 
   await go(page, '#planen');
   await expect(page.locator('#pl-pause')).toContainText('Pausen planen');
   const n = (await plan(page)).blocks.length;
+  await page.locator('#pl-options').evaluate(e => e.open = true);
   await page.click('#pl-pause');
   await page.click('dialog[open] [data-pm=fix]');
   await page.fill('#pz-cn', '2'); await page.locator('#pz-cn').dispatchEvent('change');
@@ -53,6 +54,7 @@ test('Pausen-Sheet: Anzahl, Dauer, Vorschau, Kürzen auf Trainingszeit, Keine', 
   await setPauses(page, { count: 8, minutes: 1 });
   expect((await pausesOf(page)).length).toBe(n - 1);
   // Keine
+  await page.locator('#pl-options').evaluate(e => e.open = true);
   await page.click('#pl-pause');
   await page.click('dialog[open] [data-pm=off]');
   await expect(page.locator('#pz-preview')).toContainText('Keine Pausen');
