@@ -98,25 +98,19 @@ export const libraryView = {
     this.root = root;
     const s = store.get();
     root.innerHTML = `
-      <div class="page-head"><div><p class="eyebrow" id="lib-count"></p><h1 id="h-uebungen">Übungen</h1></div>
-        <div class="row"><button class="btn" type="button" id="lib-random" aria-label="Zufällige passende Übung">${icon('dice')}<span>Zufall</span></button><button class="btn primary" type="button" id="lib-new">${icon('plus')} Eigene</button></div></div>
+      <div class="page-head lib-head"><div><p class="eyebrow" id="lib-count"></p><h1 id="h-uebungen">Übungen</h1></div>
+        <div class="row"><button class="btn primary" type="button" id="lib-new" aria-label="Eigene Übung erstellen">${icon('plus')} Eigene</button><button class="icon-btn" type="button" id="lib-more" aria-label="Weitere Übungsaktionen" aria-haspopup="dialog">${icon('more')}</button></div></div>
       <div class="lib-tools">
-        <div class="row" style="flex-wrap:nowrap"><div class="search grow">${icon('search')}<input class="input" type="search" id="lib-q" placeholder="Übung, Ziel oder Material suchen" aria-label="Übungen suchen" value="${esc(F.q)}"></div>
-          <span class="seg lib-view" role="radiogroup" aria-label="Ansicht"><button type="button" role="radio" data-libview="cards" aria-checked="${view === 'cards'}" aria-label="Karten">${icon('grid')}</button><button type="button" role="radio" data-libview="compact" aria-checked="${view === 'compact'}" aria-label="Kompakte Liste">${icon('list')}</button></span>
-          <button class="btn" type="button" id="lib-filter" aria-label="Filter und Sortierung">${icon('layers')}<span class="badge" id="lib-fcount" hidden></span></button></div>
-        <div class="chips" role="toolbar" aria-label="Bereich" style="margin-top:8px" id="lib-scope"></div>
-        <div class="chips" role="toolbar" aria-label="Kategorie" id="lib-tags"></div>
-        <div class="chips" role="toolbar" aria-label="Schwerpunkt-Filter" id="lib-foci" data-no-focus-link></div>
-        <p class="tiny" id="lib-active" style="margin:0"></p>
+        <div class="lib-search-row"><div class="search grow">${icon('search')}<input class="input" type="search" id="lib-q" placeholder="Übungen suchen" aria-label="Übungen suchen" value="${esc(F.q)}"></div>
+          <button class="btn" type="button" id="lib-filter" aria-label="Filter und Sortierung" aria-haspopup="dialog">${icon('layers')}<span>Filter</span><span class="badge" id="lib-fcount" hidden></span></button></div>
+        <div class="chips lib-selection" id="lib-foci" data-no-focus-link aria-label="Aktive Filter"></div>
+        <p class="tiny lib-filter-summary" id="lib-active" hidden></p>
       </div>
       <div class="lib-grid" id="lib-grid" aria-live="polite"></div>`;
-    $('#lib-q', root).addEventListener('input', ev => { F.q = ev.target.value.trim(); this.paintList(); });
+    $('#lib-q', root).addEventListener('input', ev => { F.q = ev.target.value.trim(); this.paintChips(); this.paintList(); });
     $('#lib-filter', root).onclick = () => this.filterSheet();
     $('#lib-new', root).onclick = () => import('./editor.js').then(m => m.openEditor());
-    $('#lib-random', root).onclick = () => this.random();
-    on(root, 'click', '[data-libview]', (_, b) => { if (b.dataset.libview === view) return; setView(b.dataset.libview); haptic('tap'); root.querySelectorAll('[data-libview]').forEach(x => x.setAttribute('aria-checked', String(x === b))); this.paintList(); });
-    on(root, 'click', '[data-scope]', (_, b) => { F.scope = b.dataset.scope; haptic('tap'); this.paintChips(); this.paintList(); });
-    on(root, 'click', '[data-tagf]', (_, b) => { const t = b.dataset.tagf; F.tags = t === '' ? [] : F.tags.includes(t) ? F.tags.filter(x => x !== t) : [...F.tags, t]; haptic('tap'); this.paintChips(); this.paintList(); });
+    $('#lib-more', root).onclick = () => this.actionsSheet();
     on(root, 'click', '[data-focus-off]', (_, b) => { F.foci = F.foci.filter(k => k !== b.dataset.focusOff); haptic('tap'); this.paintChips(); this.paintList(); });
     on(root, 'click', '[data-focus-more]', () => this.filterSheet());
     on(root, 'click', '[data-reset]', () => { F = DEFAULT(); $('#lib-q', root).value = ''; this.paintChips(); this.paintList(); toast('Filter zurückgesetzt.'); });
@@ -141,26 +135,29 @@ export const libraryView = {
   refresh(reason) { if (reason === 'meta' || reason === 'minutes' || reason === 'order') return; this.paintChips(); this.paintList(); },
   leave() { animator?.destroy(); animator = null; },
   paintChips() {
-    const r = this.root, s = store.get(), favs = Object.values(s.exerciseMeta).filter(m => m.favorite).length;
-    const scopes = [['all', 'Alle'], ['new', 'Neu', allExercises(s).filter(isNew).length], ['fav', `♥ Merkliste`, favs], ['recent', 'Zuletzt'], ['rated', '★ Bewertet'], ['own', 'Eigene', s.custom.length]];
-    $('#lib-scope', r).innerHTML = scopes.map(([k, t, c]) => `<button class="chip" type="button" data-scope="${k}" aria-pressed="${F.scope === k}">${t}${c ? ` <span class="count">${c}</span>` : ''}</button>`).join('');
-    // Anzahl je Kategorie bei allen übrigen Filtern – leere Kategorien treten zurück.
-    const keep = F.tags; F = { ...F, tags: [] }; const base = filtered(s); F = { ...F, tags: keep };
-    const n0 = t => base.filter(e => e.tag === t).length;
-    $('#lib-tags', r).innerHTML = `<button class="chip" type="button" data-tagf="" aria-pressed="${!F.tags.length}">Alle Kategorien</button>` + TAGS.map(t => { const c = n0(t); return `<button class="chip${c ? '' : ' empty-chip'}" type="button" data-tagf="${t}" aria-pressed="${F.tags.includes(t)}">${t} <span class="count">${c}</span></button>`; }).join('');
-    $('#lib-foci', r).innerHTML = F.foci.length
-      ? `<span class="tiny" style="align-self:center">Schwerpunkt:</span>${F.foci.map(k => `<button class="chip" type="button" data-focus-off="${esc(k)}" aria-pressed="true" aria-label="Filter ${esc(k)} entfernen">${esc(k)} ✕</button>`).join('')}`
-      : `<button class="chip" type="button" data-focus-more>+ Schwerpunkt wählen</button>`;
-    const p = currentPlan(s), n = [F.type !== 'team', F.age !== 'team', F.material !== 'all', !!F.level, !!F.maxMin, F.sort !== 'fit', F.archived].filter(Boolean).length;
+    const r = this.root;
+    const n = [F.type !== 'team', F.age !== 'team', F.material !== 'all', !!F.level, !!F.maxMin, F.sort !== 'fit', F.archived, F.scope !== 'all'].filter(Boolean).length + F.tags.length + F.foci.length;
     const badge = $('#lib-fcount', r); badge.hidden = !n; badge.textContent = n;
-    const age = ageFilter(s, p), type = typeFilter(s, p);
-    const parts = [age ? `Alter: ${age}` : 'alle Altersklassen', type ? `Trainerart: ${TYPE_SHORT[type]}` : 'alle Trainerarten'];
+    const labels = { new: 'Neu', fav: '♥ Merkliste', recent: 'Zuletzt', rated: '★ Bewertet', own: 'Eigene' };
+    const selected = [F.scope !== 'all' ? `<button class="chip" type="button" data-focus-more>${labels[F.scope]}</button>` : '', ...F.tags.map(t => `<button class="chip" type="button" data-focus-more>${esc(t)}</button>`), ...F.foci.map(k => `<button class="chip" type="button" data-focus-off="${esc(k)}" aria-pressed="true" aria-label="Filter ${esc(k)} entfernen">${esc(k)} ✕</button>`)].join('');
+    const foci = $('#lib-foci', r); foci.hidden = !n && !F.q;
+    foci.innerHTML = selected + (n || F.q ? '<button class="chip" type="button" data-reset>Zurücksetzen</button>' : '');
+    const parts = [];
+    if (F.age !== 'team') parts.push(F.age === 'all' ? 'alle Altersklassen' : `Alter: ${F.age}`);
+    if (F.type !== 'team') parts.push(F.type === 'all' ? 'alle Trainerarten' : `Trainerart: ${TYPE_SHORT[F.type]}`);
     if (F.material !== 'all') parts.push(MATERIALS.find(m => m[0] === F.material)[2]);
     if (F.level) parts.push(LEVEL_LABEL[F.level]);
     if (F.maxMin) parts.push(`≤ ${F.maxMin} Min`);
-    const dirty = n || F.q || F.tags.length || F.foci.length || F.scope !== 'all';
-    $('#lib-active', r).hidden = !dirty;
-    $('#lib-active', r).innerHTML = !dirty ? '' : `${esc(parts.join(' · '))} · Sortierung: ${esc({ fit: 'passend zuerst', tag: 'nach Kategorie', az: 'A–Z', short: 'kürzeste', rating: 'Bewertung', used: 'oft genutzt' }[F.sort])}${n || F.q || F.tags.length || F.foci.length || F.scope !== 'all' ? ' · <button class="btn ghost sm" type="button" data-reset style="min-height:32px;padding:2px 8px">Zurücksetzen</button>' : ''}`;
+    if (F.sort !== 'fit') parts.push(`Sortierung: ${{ tag: 'nach Kategorie', az: 'A–Z', short: 'kürzeste', rating: 'Bewertung', used: 'oft genutzt' }[F.sort]}`);
+    if (F.archived) parts.push('Archivierte Übungen zeigen');
+    const summary = $('#lib-active', r); summary.hidden = !parts.length; summary.textContent = parts.join(' · ');
+  },
+  actionsSheet() {
+    let finished; const closed = new Promise(resolve => { finished = resolve; });
+    openSheet({ title: 'Übungsaktionen', onClose: () => finished(), body: `<div class="lib-actions"><button class="btn" type="button" id="lib-random">${icon('dice')} Zufall</button><div class="field"><span>Ansicht</span><span class="seg lib-view" role="radiogroup" aria-label="Ansicht"><button type="button" role="radio" data-libview="cards" aria-checked="${view === 'cards'}">${icon('grid')} Karten</button><button type="button" role="radio" data-libview="compact" aria-checked="${view === 'compact'}">${icon('list')} Kompakte Liste</button></span></div></div>`, onMount: sh => {
+      sh.body.querySelector('#lib-random').onclick = async () => { const back = new Promise(resolve => addEventListener('popstate', resolve, { once: true })); sh.close(); await Promise.all([back, closed]); this.random(); };
+      on(sh.body, 'click', '[data-libview]', (_, b) => { setView(b.dataset.libview); haptic('tap'); sh.body.querySelectorAll('[data-libview]').forEach(x => x.setAttribute('aria-checked', String(x === b))); this.paintList(); });
+    } });
   },
   paintList(first = false) {
     const s = store.get(), p = currentPlan(s), list = filtered(s), grid = $('#lib-grid', this.root);
@@ -199,9 +196,13 @@ export const libraryView = {
     openDetail(e.id, pool.map(x => x.id));
   },
   filterSheet() {
-    const draft = { ...F };
+    const draft = { ...F, tags: [...F.tags], foci: [...F.foci] };
     const seg = (key, opts) => `<div class="seg" role="radiogroup">${opts.map(([v, t]) => `<button type="button" role="radio" data-k="${key}" data-v="${v}" aria-checked="${String(draft[key]) === String(v)}">${t}</button>`).join('')}</div>`;
-    const body = () => `
+    const counts = () => { const original = F; F = { ...draft, tags: [] }; const list = filtered(store.get()); F = original; return Object.fromEntries(TAGS.map(t => [t, list.filter(e => e.tag === t).length])); };
+    const scopeCount = k => k === 'new' ? allExercises(store.get()).filter(isNew).length : k === 'fav' ? Object.values(store.get().exerciseMeta).filter(m => m.favorite).length : k === 'own' ? store.get().custom.length : 0;
+    const body = () => { const categoryCounts = counts(); return `
+      <div class="field"><span>Bereich</span><div class="chips lib-filter-chips" id="lib-scope">${[['all', 'Alle'], ['new', 'Neu'], ['fav', '♥ Merkliste'], ['recent', 'Zuletzt'], ['rated', '★ Bewertet'], ['own', 'Eigene']].map(([k, t]) => `<button class="chip" type="button" data-scope="${k}" aria-pressed="${draft.scope === k}">${t}${scopeCount(k) ? ` <span class="count">${scopeCount(k)}</span>` : ''}</button>`).join('')}</div></div>
+      <div class="field"><span>Kategorie</span><div class="chips lib-filter-chips" id="lib-tags"><button class="chip" type="button" data-tagf="" aria-pressed="${!draft.tags.length}">Alle Kategorien</button>${TAGS.map(t => `<button class="chip" type="button" data-tagf="${esc(t)}" aria-pressed="${draft.tags.includes(t)}">${esc(t)} <span class="count">${categoryCounts[t]}</span></button>`).join('')}</div></div>
       <div class="field"><span>Schwerpunkte <small class="tiny">Übung trainiert mindestens einen davon</small></span>${focusPicker(draft.foci, { name: 'fk' })}</div>
       <div class="field"><span>Sortierung</span>${seg('sort', [['fit', 'Passend zuerst'], ['tag', 'Nach Kategorie'], ['az', 'A–Z'], ['short', 'Kürzeste'], ['rating', 'Bewertung'], ['used', 'Oft genutzt']])}</div>
       <div class="field"><span>Trainerart</span>${seg('type', [['team', 'Meine Mannschaft'], ['all', 'Alle'], ['field', 'Feld'], ['keeper', 'Torwart'], ['both', 'Gemischt']])}</div>
@@ -209,16 +210,18 @@ export const libraryView = {
       <div class="field"><span>Material</span>${seg('material', [['all', 'Jedes'], ...MATERIALS.map(m => [m[0], `${m[1]} ${m[2]}`])])}</div>
       <div class="field"><span>Schwierigkeit</span>${seg('level', [[0, 'Alle'], [1, 'Einstieg'], [2, 'Mittel'], [3, 'Anspruchsvoll']])}</div>
       <div class="field"><span>Dauer</span>${seg('maxMin', [[0, 'Egal'], [6, '≤ 6 Min'], [8, '≤ 8 Min'], [10, '≤ 10 Min']])}</div>
-      <label class="switch-row"><span>Archivierte Übungen zeigen<small>Ältere, ersetzte Varianten. Bleiben in alten Plänen erhalten.</small></span><input class="switch" type="checkbox" data-chk="archived" ${draft.archived ? 'checked' : ''}></label>`;
+      <label class="switch-row"><span>Archivierte Übungen zeigen<small>Ältere, ersetzte Varianten. Bleiben in alten Plänen erhalten.</small></span><input class="switch" type="checkbox" data-chk="archived" ${draft.archived ? 'checked' : ''}></label>`; };
     openSheet({
       title: 'Filter & Sortierung', body: body(),
       foot: `<button class="btn" type="button" data-freset>Zurücksetzen</button><button class="btn primary" type="button" data-fapply>Anwenden</button>`,
       onMount: sh => {
+        on(sh.body, 'click', '[data-scope]', (_, b) => { draft.scope = b.dataset.scope; haptic('tap'); sh.body.querySelectorAll('[data-scope]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
+        on(sh.body, 'click', '[data-tagf]', (_, b) => { const t = b.dataset.tagf; draft.tags = !t ? [] : draft.tags.includes(t) ? draft.tags.filter(x => x !== t) : [...draft.tags, t]; haptic('tap'); sh.body.querySelectorAll('[data-tagf]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.tagf ? draft.tags.includes(x.dataset.tagf) : !draft.tags.length))); });
         on(sh.body, 'click', '[data-fk]', (_, b) => { const k = b.dataset.fk; draft.foci = draft.foci.includes(k) ? draft.foci.filter(x => x !== k) : [...draft.foci, k]; b.setAttribute('aria-pressed', String(draft.foci.includes(k))); });
         on(sh.body, 'click', '[data-k]', (_, b) => { const k = b.dataset.k, v = b.dataset.v; draft[k] = ['level', 'maxMin'].includes(k) ? Number(v) : v; sh.body.querySelectorAll(`[data-k="${k}"]`).forEach(x => x.setAttribute('aria-checked', String(x === b))); });
         sh.body.querySelector('[data-sel=age]').onchange = ev => { draft.age = ev.target.value; };
         sh.body.querySelector('[data-chk=archived]').onchange = ev => { draft.archived = ev.target.checked; };
-        sh.foot.querySelector('[data-freset]').onclick = () => { Object.assign(draft, DEFAULT(), { q: F.q, scope: F.scope, tags: F.tags, foci: [] }); sh.setBody(body()); sh.body.querySelector('[data-sel=age]').onchange = ev => { draft.age = ev.target.value; }; sh.body.querySelector('[data-chk=archived]').onchange = ev => { draft.archived = ev.target.checked; }; };
+        sh.foot.querySelector('[data-freset]').onclick = () => { Object.assign(draft, DEFAULT(), { q: F.q }); sh.setBody(body()); sh.body.querySelector('[data-sel=age]').onchange = ev => { draft.age = ev.target.value; }; sh.body.querySelector('[data-chk=archived]').onchange = ev => { draft.archived = ev.target.checked; }; };
         sh.foot.querySelector('[data-fapply]').onclick = () => { F = draft; sh.close(); this.paintChips(); this.paintList(); };
       },
     });
