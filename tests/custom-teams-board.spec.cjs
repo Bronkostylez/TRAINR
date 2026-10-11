@@ -70,7 +70,9 @@ test('Eigene Übung: Pflichtfelder, Skizze mit Animation, Material-Auswahl, bear
   expect((await plan(page)).blocks[0].exerciseId).toBe(c.id);
   // Löschen entfernt auch Blöcke
   await page.keyboard.press('Escape');
+  await page.click('#lib-filter');
   await page.click('[data-scope=own]');
+  await page.click('dialog[open] [data-fapply]');
   await page.locator('#lib-grid .drill h3').first().click();
   await page.click('dialog[open] #d-del');
   await page.click('dialog[open] [data-ok]');
