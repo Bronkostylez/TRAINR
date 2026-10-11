@@ -47,6 +47,22 @@ export const PLAN = {
   'Eingeplante Pausen verteilt TRAINR im Ablauf; Wechsel und Erklären stecken in den Übungsminuten.': 'TRAINR places planned breaks in the schedule; changeovers and explanations are part of the exercise minutes.',
   'Trink- und Wechselpausen sind in den Minuten enthalten.': 'Drinks and changeover breaks are included in the minutes.',
   'Ein Vorschlag, keine Belastungsvorgabe. Gruppen, Können, Helfer und Material vor Ort prüfen.': 'A suggestion, not a load prescription. Check groups, ability, helpers and equipment on site.',
+  // Planassistent V22 (Mehrfach-Schwerpunkte, Quelle, Plan B)
+  'bis zu {#} – verteilt auf die Phasen': 'up to {1} – spread across the phases',
+  'lange nicht trainiert': 'not trained for a while',
+  'Lange nicht trainiert': 'Not trained for a while',
+  'inkl. Pausen': 'incl. breaks', 'Weniger': 'Fewer', 'Mehr': 'More', 'Torwarte': 'Goalkeepers',
+  'Feintuning: Pausen, Trainer': 'Fine-tuning: breaks, coaches', 'Feintuning: Pausen': 'Fine-tuning: breaks',
+  'Ablauf ersetzen': 'Replace schedule', 'Quelle zur Übung öffnen': 'Open the source for this exercise', 'Plan B: Alternative wählen': 'Plan B: choose alternative',
+  'Höchstens {#} Schwerpunkte – sonst wird die Einheit beliebig.': 'At most {1} focus areas – otherwise the session loses its thread.',
+  '„{}“ erstellt. Bestehende Einheiten bleiben erhalten.': '“{}” created. Existing sessions are kept.',
+  'Schwerpunkt „{}“': 'focus “{}”',
+  'trainiert auch „{}“': 'also trains “{}”', 'trainiert auch „{}“ und „{}“': 'also trains “{1}” and “{2}”', 'trainiert auch „{}“, „{}“ und „{}“': 'also trains “{1}”, “{2}” and “{3}”',
+  'in {#} Runden à {#} Min teilen': 'split into {1} rounds of {2} min', 'in {#} Runden à {#} Min teilen (kurze Blöcke für {})': 'split into {1} rounds of {2} min (short blocks for {3})',
+  '{}: Erklärungen unter einer Minute halten, eher spielen als lange üben.': '{1}: keep explanations under a minute – more play than long drills.',
+  'Warum diese Übung: {}': 'Why this exercise: {}',
+  'Neue Einheit mit dem Assistenten': 'New session with the assistant',
+  'Schwerpunkte antippen, Rahmen prüfen, Vorschlag bekommen – mit Begründung, Quelle und Plan B je Übung.': 'Tap focus areas, check the setup, get a suggestion – with reasoning, source and plan B for each exercise.',
 
   // Training
   'Trainingsmodus': 'Training mode', 'Bereit, wenn du es bist.': 'Ready when you are.', 'Dein Plan ist noch leer': 'Your plan is still empty',

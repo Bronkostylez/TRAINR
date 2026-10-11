@@ -58,7 +58,8 @@ test('Schwerpunkte in Einheit: Übersicht, Auswahl, Check, Assistent, Heute, Tra
   // Assistent mit neuem Schwerpunkt: der Schwerpunkt-Block trainiert ihn
   await page.click('[data-ptab=ablauf]');
   await page.click('#pl-assist');
-  await page.selectOption('#as-focus', 'Ballannahme');
+  await page.click('dialog[open] [data-af="Wahrnehmung"]'); // Vorauswahl abwählen, damit genau ein Schwerpunkt aktiv ist
+  await page.click('dialog[open] [data-af="Ballannahme"]');
   await expect(page.locator('.proposal-item', { hasText: 'dein Schwerpunkt' }).first()).toBeVisible();
   await expect(page.locator('.proposal-item .fchip.mark', { hasText: 'Ballannahme' }).first()).toBeVisible();
   await page.click('dialog[open] [data-apply=replace]');
@@ -152,9 +153,11 @@ test('Rückblick: Woche und Monat mit Schwerpunkt-Minuten, Blättern, Vergleich,
   await expect(page.locator('.focus-recap')).toContainText('Seit 4 Wochen nicht dabei');
   const d = page.locator('#t-create');
   if (!(await d.evaluate(x => x.open))) await d.locator('summary').click();
+  const gap = await page.locator('[data-gap]').first().getAttribute('data-gap');
   await page.locator('[data-gap]').first().click();
-  const gap = await page.locator('[data-gap][aria-pressed=true]').textContent();
-  await expect(page.locator('#c-focus')).toHaveValue(gap);
+  const sheet = page.locator('dialog[open].sheet');
+  await expect(sheet.locator('.proposal-item').first()).toBeVisible();
+  await expect(sheet.locator(`[data-af="${gap}"]`)).toHaveAttribute('aria-pressed', 'true');
   expect(errors).toEqual([]);
 });
 

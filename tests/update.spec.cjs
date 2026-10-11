@@ -46,7 +46,7 @@ test('Echtes Update V20 → V21: Daten migriert, alte Schlüssel unverändert, a
     // V20-Oberfläche zeigt ihre Update-Leiste; Nutzer bestätigt
     await expect(page.locator('#updateBar')).toBeVisible();
     await page.click('#applyUpdate');
-    await page.waitForFunction(() => window.__trainr?.version === '21.8.0', null, { timeout: 30000 });
+    await page.waitForFunction(() => window.__trainr?.version === '21.9.0', null, { timeout: 30000 });
     await expect(page.locator('section[data-view=heute]')).toBeVisible();
     const s = await page.evaluate(() => window.__trainr.store.get());
     expect(s.teams).toHaveLength(1);
@@ -56,12 +56,12 @@ test('Echtes Update V20 → V21: Daten migriert, alte Schlüssel unverändert, a
     expect(s.exerciseMeta.gatepass.variant.minutes).toBe(9);
     const after = await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)));
     for (const k of ['trainr-v2', 'trainr-ui-v4', 'trainr-adapt-v1', 'keeperboard-v1']) expect(after[k]).toBe(before[k]);
-    await expect.poll(() => page.evaluate(() => caches.keys())).toEqual(['trainr-v21.8.0']);
+    await expect.poll(() => page.evaluate(() => caches.keys())).toEqual(['trainr-v21.9.0']);
     // Offline neu laden
     await ctx.setOffline(true);
     await page.reload();
     await expect(page.locator('section[data-view=heute]')).toBeVisible();
-    expect(await page.evaluate(() => window.__trainr.version)).toBe('21.8.0');
+    expect(await page.evaluate(() => window.__trainr.version)).toBe('21.9.0');
   } finally { await ctx.close(); srv.close(); }
 });
 
@@ -74,6 +74,10 @@ test('Update-Mechanismus V21 → V21.x: Hinweis, Schutz bei laufendem Timer, Dat
     for (let i = 0; i < 4; i++) await page.click('#wiz-next');
     await page.click('dialog[open] [data-skip]');
     await page.click('#c-go');
+    const sheet = page.locator('dialog[open].sheet');
+    await sheet.locator('.proposal-item').first().waitFor();
+    await sheet.locator('[data-apply="new"]').click();
+    await page.locator('.tl-item').first().waitFor();
     await page.waitForFunction(() => navigator.serviceWorker.controller);
     await page.waitForTimeout(400); // Speichern ist um 120 ms gebündelt
     const before = await page.evaluate(() => localStorage.getItem('trainr-v21'));

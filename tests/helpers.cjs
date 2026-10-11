@@ -33,12 +33,15 @@ async function closeTour(page) {
 const state = page => page.evaluate(() => window.__trainr.store.get());
 const plan = page => page.evaluate(() => { const s = window.__trainr.store.get(); return s.plans.find(p => p.id === s.selectedPlanId); });
 
-/** Erstellt eine Einheit über „Heute“. */
+/** Erstellt eine Einheit über „Heute“ (öffnet den Planassistenten und übernimmt den Vorschlag). */
 async function createSession(page) {
   await page.evaluate(() => { location.hash = '#heute'; });
   const d = page.locator('#t-create');
   if (!(await d.evaluate(x => x.open))) await d.locator('summary').click();
   await page.click('#c-go');
+  const sheet = page.locator('dialog[open].sheet');
+  await expect(sheet.locator('.proposal-item').first()).toBeVisible();
+  await sheet.locator('[data-apply="new"]').click();
   await expect(page.locator('.tl-item').first()).toBeVisible();
 }
 async function noOverflow(page) {

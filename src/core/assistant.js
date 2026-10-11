@@ -1,5 +1,5 @@
 // Regelbasierter Planassistent – keine KI, keine Datenübertragung. Jede Wahl wird begründet.
-import { allExercises, layout, layoutText, effective, meta, foci, hasFocus, pauseCount, AGES } from './planning.js';
+import { allExercises, layout, layoutText, effective, meta, foci, hasFocus, pauseCount, AGES, FOCUS_KEYS, MAX_FOCI } from './planning.js';
 import { rng, integer } from './util.js';
 
 export const STRATEGIES = {
@@ -29,12 +29,22 @@ export const STRATEGIES = {
   },
 };
 const DEFAULT_FOCUS = { field: 'Dribbling', keeper: 'Fangen', both: 'Passspiel' };
+// Kinder halten kürzere Blöcke durch: Empfehlung für die Rundenlänge je Altersklasse (Vorschlag, keine Norm).
+const BLOCK_CAP = { Bambini: 8, 'F-Jugend': 10, 'E-Jugend': 12, 'D-Jugend': 16 };
+
+/** Gewählte Schwerpunkte aus dem Rahmen: `foci` (neu, mehrere) oder `focus` (alt, einer). Max. MAX_FOCI, nie Falltechnik. */
+export function selectedFoci(f) {
+  const list = (Array.isArray(f.foci) ? f.foci : []).filter(k => FOCUS_KEYS.includes(k) && k !== 'Falltechnik');
+  if (!list.length && f.focus && f.focus !== 'Alle' && f.focus !== 'Falltechnik') list.push(f.focus);
+  return [...new Set(list)].slice(0, MAX_FOCI);
+}
 
 /**
  * Erstellt einen Vorschlag.
  * @param {object} s Zustand
- * @param {{age:string, people:number, minutes:number, focus:string, type:string, strategy?:string, seed?:number, avoidRecent?:boolean, pauses?:{count:'auto'|number, minutes:number}}} f Rahmen
+ * @param {{age:string, people:number, minutes:number, focus?:string, foci?:string[], type:string, strategy?:string, seed?:number, avoidRecent?:boolean, pauses?:{count:'auto'|number, minutes:number}}} f Rahmen
  * `minutes` ist die Gesamtzeit: eingeplante Pausen werden vorher abgezogen, die Übungen füllen den Rest.
+ * Mehrere Schwerpunkte (`foci`) werden auf die Schwerpunkt-Phasen verteilt; Übungen, die mehrere davon treffen, steigen auf.
  */
 export function propose(s, f) {
   const { age, people, minutes, type } = f, keepers = f.keepers ?? 0, coaches = f.coaches ?? 1;
@@ -44,21 +54,24 @@ export function propose(s, f) {
   let useType = type;
   // Bambini und F-Jugend nicht früh auf die Torwartposition festlegen.
   if (type === 'keeper' && AGES.indexOf(age) <= 1) { useType = 'field'; notes.push(`${age}: Statt Torwarttraining allgemeine Ballspiele für alle Kinder. Keine feste Torwartrolle.`); }
-  const picked = f.focus !== 'Alle' && f.focus !== 'Falltechnik';
-  const focus = picked ? f.focus : DEFAULT_FOCUS[useType];
+  if (AGES.indexOf(age) <= 1) notes.push(`${age}: Erklärungen unter einer Minute halten, eher spielen als lange üben.`);
+  const picked = selectedFoci(f);
+  const focusList = picked.length ? picked : [DEFAULT_FOCUS[useType]];
   const pool = allExercises(s).filter(e => e.ages.includes(age) && (useType === 'both' || e.type === useType) && e.tag !== 'Falltechnik' && layout(s, e, sq).level !== 'no');
   if (!pool.length) throw new Error('Für diese Spielerzahl und Altersklasse gibt es keine passende Übung. Spielerzahl ändern oder manuell planen.');
   const random = rng(f.seed ?? 1), now = Date.now();
   const phases = (useType === 'keeper' ? strat.keeper : strat.field);
   const used = new Set(), blocks = [];
+  let focusPhase = 0; // Schwerpunkt-Phasen rotieren durch die gewählten Schwerpunkte
   for (const [phase, wants, weight] of phases) {
-    const tags = wants.map(t => (t === 'FOCUS' ? focus : t));
-    // Phasen-Kategorien treffen die Übungsart; der Schwerpunkt trifft jede Übung, die ihn trainiert (auch als Nebenschwerpunkt).
-    const match = e => wants.findIndex(t => (t === 'FOCUS' ? hasFocus(e, focus) : e.tag === t));
+    const phaseFocus = focusList[focusList.length > 1 ? focusPhase % focusList.length : 0];
+    if (wants.includes('FOCUS')) focusPhase++;
+    // Phasen-Kategorien treffen die Übungsart; der Schwerpunkt der Phase trifft jede Übung, die ihn trainiert (auch als Nebenschwerpunkt).
+    const match = e => wants.findIndex(t => (t === 'FOCUS' ? hasFocus(e, phaseFocus) : e.tag === t));
     const rank = e => {
       let r = 0; const why = [];
       const ti = match(e);
-      if (ti === 0) { r += 50; why.push(wants[0] === 'FOCUS' ? 'dein Schwerpunkt' : e.tag); } else if (ti > 0) { r += 35 - ti * 5; why.push(wants[ti] === 'FOCUS' ? 'dein Schwerpunkt' : e.tag); }
+      if (ti === 0) { r += 50; why.push(wants[0] === 'FOCUS' ? (focusList.length > 1 ? `Schwerpunkt „${phaseFocus}“` : 'dein Schwerpunkt') : e.tag); } else if (ti > 0) { r += 35 - ti * 5; why.push(wants[ti] === 'FOCUS' ? `Schwerpunkt „${phaseFocus}“` : e.tag); }
       const L = layout(s, e, sq); // Gruppen nur, wo die Übung sie braucht; Schlangen nicht zu lang, Wartende und Wechsler kosten Punkte
       r += L.mode === 'open' ? 9 : L.mode === 'queue' ? (L.waiting <= L.active ? 8 : 0) : L.groups === 1 ? 6 : L.groups <= 3 ? 10 : 4;
       if (L.level === 'tight') r -= 6;
@@ -66,8 +79,10 @@ export function propose(s, f) {
       if (m.rating) { r += (m.rating - 3) * 5; if (m.rating >= 4) why.push(`${m.rating}★ von dir`); }
       if (m.favorite) { r += 4; why.push('auf deiner Merkliste'); }
       if (f.avoidRecent !== false && m.lastUsed && now - m.lastUsed < 10 * 864e5) { r -= 12; why.push('kürzlich genutzt'); }
-      if (wants.includes('FOCUS') && foci(e)[0] === focus) r += 6; // Hauptschwerpunkt vor Nebenschwerpunkt
-      else if (picked && !wants.includes('FOCUS') && hasFocus(e, focus)) { r += 5; why.push(`passt zu „${focus}“`); } // roter Faden durch die Einheit
+      if (wants.includes('FOCUS') && foci(e)[0] === phaseFocus) r += 6; // Hauptschwerpunkt vor Nebenschwerpunkt
+      // Roter Faden: Übungen, die mehrere gewählte Schwerpunkte gleichzeitig trainieren, steigen auf.
+      const overlap = focusList.filter(k => hasFocus(e, k) && k !== phaseFocus);
+      if (overlap.length) { r += 5 * overlap.length; why.push(overlap.length === 1 ? `passt zu „${overlap[0]}“` : `trainiert auch ${overlap.map(k => `„${k}“`).join(' und ')}`); }
       r += random() * 14; // Abwechslung, reproduzierbar über den Seed
       return { e, r, why };
     };
@@ -82,7 +97,7 @@ export function propose(s, f) {
     const alts = (ranked.length > 1 ? ranked.slice(1, 4) : pool.filter(e => !used.has(e.id) && e.tag === choice.e.tag).map(rank).slice(0, 3)).map(o => o.e.id);
     const L = layout(s, choice.e, sq);
     blocks.push({ exerciseId: choice.e.id, phase, weight, groups: L.groups, flow: L.mode, alternatives: alts,
-      why: [fallback ? `${tags[0]} nicht verfügbar – Alternative ${choice.e.tag}` : `${phase}: ${choice.why[0] || choice.e.tag}`, layoutText(L), ...choice.why.slice(1)].join(' · ') });
+      why: [fallback ? `${wants.map(t => (t === 'FOCUS' ? phaseFocus : t))[0]} nicht verfügbar – Alternative ${choice.e.tag}` : `${phase}: ${choice.why[0] || choice.e.tag}`, layoutText(L), ...choice.why.slice(1)].join(' · ') });
   }
   // Pausen zuerst abziehen (bei „Automatisch“ zählt die verbleibende Übungszeit), höchstens so viele, dass je Block 5 Min bleiben.
   const pz = f.pauses && f.pauses.count !== 0 ? { count: f.pauses.count, minutes: f.pauses.minutes } : null;
@@ -101,6 +116,11 @@ export function propose(s, f) {
   let left = play; const totalW = blocks.reduce((a, b) => a + b.weight, 0);
   blocks.forEach((b, i) => { b.minutes = i === blocks.length - 1 ? left : Math.max(3, Math.round(play * b.weight / totalW)); left -= b.minutes; });
   if (blocks.at(-1).minutes < 3) throw new Error('Zu wenig Zeit für diese Struktur. Mehr Minuten oder „Kurz & knackig“ wählen.');
-  blocks.forEach(b => { const e = effective(s, allExercises(s).find(x => x.id === b.exerciseId)); if (b.minutes > e.minutes * 2.2) b.why += ` · in ${Math.ceil(b.minutes / e.minutes)} Runden à ${e.minutes} Min teilen`; });
-  return { age, people, keepers, coaches, minutes, focus: f.focus, type, useType, strategy, seed: f.seed ?? 1, notes, blocks, pauses: pz, pauseCount: pn };
+  const cap = BLOCK_CAP[age] || 0;
+  blocks.forEach(b => {
+    const e = effective(s, allExercises(s).find(x => x.id === b.exerciseId));
+    const round = cap ? Math.min(e.minutes, cap) : e.minutes;
+    if (b.minutes > round * 2.2 || (cap && b.minutes > cap)) b.why += ` · in ${Math.ceil(b.minutes / round)} Runden à ${round} Min teilen${cap && cap < e.minutes ? ` (kurze Blöcke für ${age})` : ''}`;
+  });
+  return { age, people, keepers, coaches, minutes, focus: picked.length ? picked[0] : 'Alle', foci: picked, type, useType, strategy, seed: f.seed ?? 1, notes, blocks, pauses: pz, pauseCount: pn };
 }

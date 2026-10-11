@@ -54,7 +54,8 @@ export function openBlockEditor(blockId) {
         <p class="small muted" id="be-hint" aria-live="polite"></p>
         <label class="field"><span>Notiz zu diesem Block (optional)</span><input class="input" name="note" maxlength="300" value="${esc(b.note || '')}" placeholder="z. B. Feld B, Leibchen rot"></label>
         <p class="error" id="be-err" role="alert"></p>
-        <div class="row"><button class="btn sm" type="button" id="be-same">Wie in der Einheit (${p.people})</button><button class="btn sm" type="button" id="be-detail">${icon('info')} Übung ansehen</button></div>
+        ${b.why ? `<p class="small muted" style="margin:4px 0 0">Warum diese Übung: ${esc(b.why)}</p>` : ''}
+        <div class="row"><button class="btn sm" type="button" id="be-same">Wie in der Einheit (${p.people})</button><button class="btn sm" type="button" id="be-detail">${icon('info')} Übung ansehen</button>${e.url ? `<a class="btn sm" href="${esc(e.url)}" target="_blank" rel="noopener">${icon('arrow')} Quelle</a>` : ''}</div>
       </form>
       ${alts.length ? `<h3 style="margin:20px 0 8px">Tauschen gegen</h3><div class="stack">${alts.map(x => `<button class="mini-drill" type="button" data-swap="${esc(x.id)}">${drillPitch(x)}<span><strong>${esc(x.name)}</strong><br><small>${esc(foci(x).slice(0, 2).join(' · ') || x.tag)} · ${effective(s, x).minutes} Min</small></span></button>`).join('')}</div>` : ''}
       <div class="row" style="margin-top:20px"><button class="btn sm" type="button" id="be-dup">${icon('copy')} Duplizieren</button><button class="btn sm danger" type="button" id="be-del">${icon('trash')} Entfernen</button></div>`,

@@ -1,13 +1,13 @@
 // Heute: nächste Einheit, Ein-Tipp-Erstellung, Start und Schnellaktionen.
 import * as store from '../core/store.js';
 import { currentPlan, activeTeam, exercise, squadLabel, blockLayout, layoutText, totalMinutes, timeline, slotOf, slotMinutes, planAge, check, foci, planFocus } from '../core/planning.js';
-import { focusChips, focusOptions, areaBar } from '../ui/focus.js';
-import { propose, STRATEGIES } from '../core/assistant.js';
-import { DAYS, LABELS, esc, uid, time, fmtTime, plural, clamp } from '../core/util.js';
+import { focusChips, areaBar } from '../ui/focus.js';
+import { openAssistant } from './assistant.js';
+import { DAYS, LABELS, esc, time, fmtTime, plural } from '../core/util.js';
 import { icon, $, on } from '../ui/dom.js';
 import { stagger } from '../ui/motion.js';
 import { go } from '../ui/router.js';
-import { undoToast, ensurePlan, markUsed } from '../ui/actions.js';
+import { ensurePlan } from '../ui/actions.js';
 import { toast } from '../ui/feedback.js';
 import { openBlockEditor, swapBlock, openAddSheet } from './blocks.js';
 import { LIMITS } from '../core/schema.js';
@@ -36,10 +36,7 @@ function eventWhen(ev, now = new Date()) {
   return diff === 0 ? 'heute' : diff === 1 ? 'morgen' : `in ${diff} Tagen`;
 }
 
-let form = null; // Rahmen des Schnell-Erstellens bleibt beim Re-Render erhalten
-
-/** Pauseneinstellung für neue Einheiten: wie in der aktuellen Einheit, sonst automatisch à 2 Min. */
-const pauseFrom = p => (p?.pauses ? { count: p.pauses.after ? p.pauses.after.length : p.pauses.count, minutes: p.pauses.minutes } : { count: 'auto', minutes: 2 });
+let formOpen = null; // Offen-Zustand des Erstellen-Bereichs (am Anfang offen, solange die Einheit leer ist)
 
 export const todayView = {
   id: 'heute', title: 'Heute', tab: 'heute',
@@ -54,7 +51,7 @@ export const todayView = {
     const s = store.get(), team = activeTeam(s), p = currentPlan(s);
     if (!team || !p) return;
     const next = nextSession(team), slot = slotOf(s, p), total = totalMinutes(p, s), avail = slotMinutes(slot);
-    form ||= { focus: p.focus, minutes: clamp(avail || 60, 20, 150), people: Math.min(60, p.people), strategy: 'classic', open: !p.blocks.length };
+    formOpen ??= !p.blocks.length;
     const tl = timeline(s, p), warns = check(s, p).filter(c => c.level === 'warn');
     const backupAge = s.help.lastBackup ? Math.floor((Date.now() - s.help.lastBackup) / 864e5) : null;
     const hasData = s.plans.some(x => x.blocks.length) || s.custom.length;
@@ -91,19 +88,12 @@ export const todayView = {
         </div>
       </article>
 
-      <details class="disclosure" id="t-create" style="margin-top:16px" ${form.open ? 'open' : ''}>
-        <summary>${icon('sparkles')} <span class="grow">Neue Einheit in einem Schritt</span></summary>
+      <details class="disclosure" id="t-create" style="margin-top:16px" ${formOpen ? 'open' : ''}>
+        <summary>${icon('sparkles')} <span class="grow">Neue Einheit mit dem Assistenten</span></summary>
         <div class="body">
-          <label class="field"><span>Schwerpunkt</span><select class="input" id="c-focus">${focusOptions(form.focus, { exclude: ['Falltechnik'] })}</select></label>
-          ${gaps.length ? `<p class="tiny" style="margin:-4px 0 10px">Lange nicht trainiert: ${gaps.slice(0, 4).map(k => `<button class="chip sm-chip" type="button" data-gap="${esc(k)}" aria-pressed="${form.focus === k}">${esc(k)}</button>`).join(' ')}</p>` : ''}
-          <div class="grid-2">
-            <div class="field"><span>Minuten</span><div class="stepper"><button type="button" data-c="minutes" data-d="-5" aria-label="5 Minuten weniger">−</button><input id="c-minutes" type="number" min="20" max="150" value="${form.minutes}" aria-label="Minuten"><button type="button" data-c="minutes" data-d="5" aria-label="5 Minuten mehr">+</button></div></div>
-            <div class="field"><span>Spieler (Feld)</span><div class="stepper"><button type="button" data-c="people" data-d="-1" aria-label="Ein Spieler weniger">−</button><input id="c-people" type="number" min="1" max="60" value="${form.people}" aria-label="Spieler"><button type="button" data-c="people" data-d="1" aria-label="Ein Spieler mehr">+</button></div></div>
-          </div>
-          <div class="field"><span>Strategie</span><div class="seg" role="radiogroup" aria-label="Strategie">${Object.entries(STRATEGIES).map(([k, v]) => `<button type="button" role="radio" aria-checked="${form.strategy === k}" data-strategy="${k}">${v.name}</button>`).join('')}</div><small class="tiny">${esc(STRATEGIES[form.strategy].short)}</small></div>
-          <p class="error" id="c-err" role="alert"></p>
+          <p class="small muted">Schwerpunkte antippen, Rahmen prüfen, Vorschlag bekommen – mit Begründung, Quelle und Plan B je Übung.</p>
+          ${gaps.length ? `<p class="tiny" style="margin:-4px 0 10px">Lange nicht trainiert: ${gaps.slice(0, 4).map(k => `<button class="chip sm-chip" type="button" data-gap="${esc(k)}">${esc(k)}</button>`).join(' ')}</p>` : ''}
           <button class="btn primary block lg" type="button" id="c-go">${icon('sparkles')} Einheit erstellen</button>
-          <p class="tiny" style="margin-top:8px">Erstellt eine neue Einheit, alte bleiben erhalten. ${(() => { const z = pauseFrom(p); return z.count === 0 ? 'Ohne eingeplante Pausen – Trinken und Wechsel stecken in den Minuten.' : `Pausen wie in der aktuellen Einheit (${z.count === 'auto' ? 'automatisch' : z.count}, je ${z.minutes} Min) sind in den Minuten enthalten.`; })()}</p>
         </div>
       </details>
 
@@ -150,38 +140,10 @@ export const todayView = {
     $('#t-useplan', r)?.addEventListener('click', ev => { const id = ev.currentTarget.dataset.id; store.update('Einheit gewechselt', d => { d.selectedPlanId = id; }, { undo: false }); toast('Einheit für den nächsten Termin geöffnet.'); });
     on(r, 'click', '[data-ev]', (_, b) => openEvent(b.dataset.ev));
     $('#t-backup', r)?.addEventListener('click', () => import('./more.js').then(m => m.downloadBackup()));
-    $('#t-create', r).addEventListener('toggle', ev => { form.open = ev.target.open; });
-    $('#c-focus', r).onchange = ev => { form.focus = ev.target.value; };
-    on(r, 'click', '[data-gap]', (_, b) => { form.focus = b.dataset.gap; form.open = true; this.refresh(); });
-    $('#t-rueck', r)?.addEventListener('click', () => go('kalender', 'rueckblick'));
-    $('#c-minutes', r).onchange = ev => { form.minutes = clamp(Number(ev.target.value) || 60, 20, 150); ev.target.value = form.minutes; };
-    $('#c-people', r).onchange = ev => { form.people = clamp(Number(ev.target.value) || 12, 1, 60); ev.target.value = form.people; };
-    on(r, 'click', '[data-c]', (_, b) => { const k = b.dataset.c, [lo, hi] = k === 'minutes' ? [20, 150] : [1, 60]; form[k] = clamp(form[k] + Number(b.dataset.d), lo, hi); $(`#c-${k}`, r).value = form[k]; });
-    on(r, 'click', '[data-strategy]', (_, b) => { form.strategy = b.dataset.strategy; this.refresh(); });
-    $('#c-go', r).onclick = () => this.create();
+    $('#t-create', r).addEventListener('toggle', ev => { formOpen = ev.target.open; });
+    on(r, 'click', '[data-gap]', (_, b) => openAssistant({ preset: { foci: [b.dataset.gap] } }));
+    $('#c-go', r).onclick = () => openAssistant({ onApplied: () => { formOpen = false; } });
     on(r, 'click', '[data-edit]', (_, b) => openBlockEditor(b.dataset.edit));
     on(r, 'click', '[data-swap]', (_, b) => swapBlock(b.dataset.swap));
-  },
-  create() {
-    const s = store.get(), team = activeTeam(s), p = currentPlan(s);
-    if (s.plans.length >= LIMITS.plans) { toast(`Maximal ${LIMITS.plans} Einheiten. Alte unter „Planen“ löschen.`); return; }
-    try {
-      const pr = propose(s, { age: planAge(s, p) || team.age, people: form.people, keepers: p?.keepers || 0, coaches: p?.coaches ?? 1, minutes: form.minutes, focus: form.focus, type: team.type, strategy: form.strategy, seed: Date.now() % 100000, pauses: pauseFrom(p) });
-      const plan = {
-        id: uid(), teamId: team.id, name: `${form.focus === 'Alle' ? 'Abwechslungsreich' : form.focus} · ${STRATEGIES[pr.strategy].name}`.slice(0, 80), people: form.people, ...(p?.keepers ? { keepers: p.keepers } : {}), ...(p?.coaches !== undefined ? { coaches: p.coaches } : {}),
-        slot: p?.slot ?? team.slots[0].day, focus: form.focus, notes: pr.notes.join(' '), goal: '', date: null,
-        blocks: pr.blocks.map(b => ({ id: uid(), exerciseId: b.exerciseId, minutes: b.minutes })),
-      };
-      if (pr.pauses) plan.pauses = pr.pauses;
-      if (p?.age) plan.age = p.age;
-      store.update('Einheit erstellt', d => { d.plans.push(plan); d.selectedPlanId = plan.id; plan.blocks.forEach(b => markUsed(d, b.exerciseId)); });
-      form.open = false;
-      undoToast(`„${plan.name}“ erstellt. Deine anderen Einheiten bleiben erhalten.`);
-      if (pr.notes.length) toast(pr.notes[0]);
-      $('#t-list', this.root)?.scrollIntoView({ block: 'nearest' });
-      stagger(this.root.querySelectorAll('.tl-item'));
-    } catch (err) {
-      $('#c-err', this.root).textContent = err.message;
-    }
   },
 };

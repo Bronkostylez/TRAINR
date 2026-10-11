@@ -189,12 +189,15 @@ export function validateV3(x) {
       !(p.teamId === null || tids.has(p.teamId)) || !optText(p.notes, LIMITS.notes) || !optText(p.goal, 200) ||
       (p.age !== undefined && !AGES.includes(p.age)) || (p.template !== undefined && typeof p.template !== 'boolean') ||
       (p.date !== undefined && p.date !== null && !/^\d{4}-\d\d-\d\d$/.test(p.date)) || (p.pauses !== undefined && !validPauses(p.pauses)) ||
-      (p.keepers !== undefined && !integer(p.keepers, 0, 20)) || (p.coaches !== undefined && !integer(p.coaches, 0, 10))) fail('Ungültige Einheit.');
+      (p.keepers !== undefined && !integer(p.keepers, 0, 20)) || (p.coaches !== undefined && !integer(p.coaches, 0, 10)) ||
+      (p.foci !== undefined && !validFoci(p.foci))) fail('Ungültige Einheit.');
     pids.add(p.id);
     for (const b of p.blocks) {
       if (!text(b.id, 100) || bids.has(b.id) || !ids.has(b.exerciseId) || !integer(b.minutes, 1, 120) ||
         (b.people !== undefined && !integer(b.people, 1, 100)) || !optText(b.note, 300) ||
-        (b.groupLabel !== undefined && !optText(b.groupLabel, 40)) || (b.stations !== undefined && !integer(b.stations, 1, 6))) fail('Ungültiger Block.');
+        (b.groupLabel !== undefined && !optText(b.groupLabel, 40)) || (b.stations !== undefined && !integer(b.stations, 1, 6)) ||
+        (b.why !== undefined && !optText(b.why, 300)) ||
+        (b.alternatives !== undefined && (!Array.isArray(b.alternatives) || b.alternatives.length > 6 || b.alternatives.some(id => !text(id, 100))))) fail('Ungültiger Block.');
       bids.add(b.id);
     }
   }

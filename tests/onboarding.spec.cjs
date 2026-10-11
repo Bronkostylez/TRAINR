@@ -53,6 +53,9 @@ test('Bambini + Torwart: keine Torwart-Spezialisierung im Vorschlag', async ({ p
   const errors = watchErrors(page);
   await onboard(page, { type: 'keeper', age: 'Bambini' });
   await page.click('#c-go');
+  const sheet = page.locator('dialog[open].sheet');
+  await expect(sheet.locator('.proposal-item').first()).toBeVisible();
+  await sheet.locator('[data-apply="new"]').click();
   await expect(page.locator('.tl-item').first()).toBeVisible();
   const s = await state(page);
   const p = s.plans.find(x => x.id === s.selectedPlanId);

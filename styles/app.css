@@ -131,7 +131,7 @@ main { flex: 1; width: 100%; max-width: 1240px; margin: 0 auto; padding: var(--s
 @media (min-width: 1024px) { .fab { bottom: 24px; } }
 
 /* ---------- Formulare ---------- */
-.field { display: grid; gap: 6px; margin: var(--s-3) 0; }
+.field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin: var(--s-3) 0; }
 .field > span, .label { font-size: .72rem; font-weight: 800; font-stretch: var(--semi); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
 .input, select.input, textarea.input {
   width: 100%; min-height: var(--touch); padding: 10px 14px; border-radius: var(--r-sm); border: 1.5px solid var(--line-2);
@@ -849,3 +849,7 @@ button.bar-row.fbar:hover { background: var(--surface-2); }
   .live-controls .btn { min-height: 64px; }
   .clock-card .fchip { min-height: 32px; font-size: .84rem; }
 }
+
+/* Planassistent V22: Punkt für „lange nicht trainiert“, Radiogroup-Chips (Altersklasse, Dauer) */
+.dot-gap { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); vertical-align: 1px; margin-left: 3px; }
+.chip[role="radio"][aria-checked="true"] { background: var(--fill); color: var(--on-fill); border-color: var(--fill); }
