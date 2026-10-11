@@ -79,7 +79,7 @@ export const PLAN = {
   'Gruppen und Leibchen für die nächste Übung verteilen.': 'Hand out groups and bibs for the next exercise.',
   'Training läuft.': 'Training running.', 'Timer pausiert.': 'Timer paused.', 'Timer zurückgesetzt.': 'Timer reset.', '+1 Minute für diesen Block.': '+1 minute for this block.',
   'Animation fortsetzen': 'Resume animation', 'Animation pausieren': 'Pause animation', 'Animation pausiert': 'Animation paused', 'läuft mit dem Timer': 'runs with the timer', 'wartet auf den Timer': 'waits for the timer',
-  'Pause vorbei': 'Break over', 'Block fertig': 'Block done', 'Bereit': 'Ready', 'Pausiert': 'Paused', 'Start': 'Start', '{} übrig': '{} left',
+  'Pause vorbei': 'Break over', 'Block fertig': 'Block done', 'Bereit': 'Ready', 'Pausiert': 'Paused', 'Start': 'Start', '{} übrig': '{} left', '{} vergangen': '{} elapsed',
   'Zur Pause': 'To break', 'Nächster Block': 'Next block', 'Zur Pause ({#} Min)': 'To break ({} min)', 'Zu Block {}: {}': 'To block {1}: {2}', 'Zurücksetzen': 'Reset', '+1 Min': '+1 min',
   'Block {}': 'Block {}', 'Einheit': 'Session',
 };

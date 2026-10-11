@@ -1,7 +1,7 @@
 // Trainingsmodus: großer Timer mit Ring, Blockwechsel, Vorschau, Animation und Coaching.
 import * as store from '../core/store.js';
 import * as timer from '../core/timer.js';
-import { currentPlan, exercise, effective, blockLayout, layoutText, layoutAdvice, blockPeople, planAge, totalMinutes, foci, planFocus, keyFirst, sessionSteps } from '../core/planning.js';
+import { meta, currentPlan, exercise, effective, blockLayout, layoutText, layoutAdvice, blockPeople, planAge, totalMinutes, foci, planFocus, keyFirst, sessionSteps } from '../core/planning.js';
 import { focusChips } from '../ui/focus.js';
 import { esc, fmtClock, sum } from '../core/util.js';
 import { icon, $, on } from '../ui/dom.js';
@@ -24,8 +24,8 @@ export const trainingView = {
     this.paint();
     unsub?.(); unsub = timer.subscribe(snap => this.tick(snap));
   },
-  refresh() { timer.sync(); this.paint(); },
-  leave() { unsub?.(); unsub = null; player?.destroy(); player = null; playerKey = ''; setFocus(false); },
+  refresh(reason) { timer.sync(); if (reason === 'meta' && this.syncRate?.()) return; this.paint(); },
+  leave() { this.flushNote?.(); unsub?.(); unsub = null; player?.destroy(); player = null; playerKey = ''; setFocus(false); },
 
   paint() {
     const s = store.get(), p = currentPlan(s), snap = timer.snapshot(), r = this.root;
@@ -35,6 +35,7 @@ export const trainingView = {
       on(r, 'click', '[data-go]', (_, b) => go(b.dataset.go));
       return;
     }
+    this.flushNote?.(); this.syncRate = null;
     const steps = sessionSteps(s, p), b = snap.block;
     // Übungsnummer ohne Pausen: „Block 3 / 6“ zählt nur Übungen.
     const num = steps.slice(0, snap.index + 1).filter(x => !x.pause).length;
@@ -57,6 +58,12 @@ export const trainingView = {
             ${controlsHtml(s, snap, steps)}
             ${nextB?.pause ? `<div class="next-up pause-next">${icon('pause')}<span class="grow"><small>Danach · Trinkpause ${nextB.minutes} Min</small><strong>Dann: ${esc(nextE?.name || '')}</strong></span></div>` : nextE ? `<div class="next-up">${icon('chevron')}<span class="grow"><small>Als Nächstes · ${nextB.minutes} Min</small><strong>${esc(nextE.name)}</strong></span></div>` : `<div class="next-up"><span class="grow"><small>Letzter Block</small><strong>Danach: Auslaufen, kurz besprechen, Material einsammeln.</strong>${(() => { const l = keyFirst(planFocus(s, p).list, p.focus).slice(0, 4).map(o => o.key); return l.length ? `<small>Zum Abschluss ansprechen – heute trainiert: ${esc(l.join(', '))}</small>` : ''; })()}</span></div>`}
           </section>
+          <section class="card live-rate" id="lv-rate" aria-label="Bewertung und Notiz zur Übung">
+            <div class="row between"><h2 style="font-size:1.05rem">Wie läuft die Übung?</h2><span class="tiny live-saved" id="lv-saved" role="status" aria-live="polite"></span></div>
+            <div class="stars" role="group" aria-label="Bewertung">${[1, 2, 3, 4, 5].map(k => `<button type="button" data-live-star="${k}" aria-pressed="false" aria-label="${k} von 5 Sternen">★</button>`).join('')}</div>
+            <label class="field"><span>Notiz zur Übung (keine Spielernamen)</span><textarea class="input" id="lv-note" maxlength="1000" rows="2" placeholder="Was klappt? Was ändern?"></textarea></label>
+            <p class="tiny">Wird bei der Übung gespeichert: in den Übungsdetails und in der Bibliothek.</p>
+          </section>
           <p class="tiny" style="margin-top:8px">Bei gesperrtem Bildschirm kann der Ton ausbleiben. ${'wakeLock' in navigator ? 'Der Bildschirm bleibt während des Timers an, wenn möglich.' : ''}</p>
         </div>
         <div class="stack">
@@ -76,6 +83,7 @@ export const trainingView = {
         </div>
       </div>`;
     this.bind(e);
+    this.bindRate(e);
     this.mountScene(e, b);
     this.tick(snap);
   },
@@ -121,6 +129,35 @@ export const trainingView = {
     $('#lv-focus', r).onclick = () => { setFocus(!focus); this.paint(); };
     const det = $('#lv-detail', r); if (det && e) det.onclick = () => openDetail(e.id);
     on(r, 'click', '[data-jump]', (_, b) => { timer.jump(Number(b.dataset.jump)); haptic('tap'); this.paint(); });
+  },
+
+  /** Bewertung + Notiz zur laufenden Übung: gleiche Daten wie in den Übungsdetails (exerciseMeta). */
+  bindRate(e) {
+    const r = this.root, box = $('#lv-rate', r), ta = $('#lv-note', r), saved = $('#lv-saved', r);
+    if (!box) return;
+    let timerId = 0, dirty = false;
+    const sync = () => {
+      const m = meta(store.get(), e.id);
+      box.querySelectorAll('[data-live-star]').forEach(x => x.setAttribute('aria-pressed', String((m.rating || 0) >= Number(x.dataset.liveStar))));
+      if (document.activeElement !== ta) ta.value = m.note || '';
+      return true;
+    };
+    const flash = () => { saved.textContent = 'Gespeichert ✓'; saved.classList.remove('on'); void saved.offsetWidth; saved.classList.add('on'); };
+    const save = () => {
+      clearTimeout(timerId); if (!dirty) return; dirty = false;
+      const v = ta.value.trim().slice(0, 1000);
+      store.update('Notiz', d => { const mm = (d.exerciseMeta[e.id] ||= {}); if (v) mm.note = v; else delete mm.note; if (!Object.keys(mm).length) delete d.exerciseMeta[e.id]; }, { reason: 'meta', undo: false });
+      flash();
+    };
+    this.flushNote = save; this.syncRate = sync;
+    sync();
+    on(box, 'click', '[data-live-star]', (_, btn) => {
+      const k = Number(btn.dataset.liveStar), cur = meta(store.get(), e.id).rating;
+      store.update('Bewertung', d => { const mm = (d.exerciseMeta[e.id] ||= {}); if (cur === k) delete mm.rating; else mm.rating = k; if (!Object.keys(mm).length) delete d.exerciseMeta[e.id]; }, { reason: 'meta', undo: false });
+      haptic('ok'); pulse(btn); flash();
+    });
+    ta.addEventListener('input', () => { dirty = true; saved.textContent = ''; clearTimeout(timerId); timerId = setTimeout(save, 700); });
+    ta.addEventListener('blur', save);
   },
 
   mountScene(e, b) {

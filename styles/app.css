@@ -874,3 +874,16 @@ button.bar-row.fbar:hover { background: var(--surface-2); }
 }
 
 .lib-filter-summary { margin: 0 0 4px; color: var(--ink-3); }
+
+/* Bewertung + Notiz im laufenden Training */
+.live-rate { display: grid; gap: var(--s-2); }
+.live-rate .stars { justify-content: space-between; max-width: 320px; }
+.live-rate .stars button { width: 52px; height: 52px; font-size: 2rem; transition: transform .15s; }
+.live-rate .stars button[aria-pressed="true"] { transform: scale(1.08); }
+.live-rate textarea { min-height: 72px; }
+.live-saved { color: var(--ink-2); opacity: 0; }
+.live-saved.on { animation: saved-pop 1.8s ease-out; }
+@keyframes saved-pop { 0% { opacity: 0; transform: translateY(4px); } 12%, 70% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+:root[data-motion="reduced"] .live-rate .stars button { transition: none; }
+:root[data-motion="reduced"] .live-saved.on { animation: none; opacity: 1; }
+body.live-focus .live-rate .tiny:last-child { display: none; }

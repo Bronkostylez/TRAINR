@@ -14,6 +14,8 @@ export const DETAIL = {
   'Deine Variante': 'Your variant', 'aktiv': 'active', 'Spieler & Minuten anpassen': 'Adjust players & minutes',
   'Nur auf diesem Gerät. Gilt für neue Blöcke, Gruppenberechnung und Vorschläge. Material bleibt beim Original.': 'On this device only. Applies to new blocks, group calculation and suggestions. Equipment stays as in the original.',
   'Von Spielern': 'From players', 'Bis Spielern': 'To players', 'Variante merken': 'Save variant', 'Original': 'Original',
+  'Wie läuft die Übung?': 'How is the exercise going?', 'Bewertung und Notiz zur Übung': 'Rating and note for the exercise', 'Notiz zur Übung (keine Spielernamen)': 'Note on the exercise (no player names)', 'Was klappt? Was ändern?': 'What works? What to change?',
+  'Wird bei der Übung gespeichert: in den Übungsdetails und in der Bibliothek.': 'Saved with the exercise: in the exercise details and in the library.', 'Gespeichert ✓': 'Saved ✓',
   'Deine Bewertung': 'Your rating', 'Bewertung': 'Rating', '{} von 5 Sternen': '{} of 5 stars', 'Deine Notiz (keine Spielernamen)': 'Your note (no player names)', 'Was hat funktioniert? Was ändern?': 'What worked? What to change?',
   'Quellen': 'Sources', 'Keine externe Quelle hinterlegt.': 'No external source stored.', 'Fachliche Quelle': 'Subject source', 'Belegt: {}': 'Supports: {}',
   'Eigene Kurzfassung bzw. Variante, keine offizielle Übung des Verbands. Maße, Minuten, Altersgrenzen und Mengen sind redaktionelle Vorschläge, keine Normen. Belastung an Können, Platz und Gruppe anpassen.': 'Own short version or variant, not an official federation exercise. Dimensions, minutes, age limits and quantities are editorial suggestions, not standards. Adapt the load to ability, space and group.',
