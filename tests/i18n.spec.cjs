@@ -15,7 +15,7 @@ test.describe('Gerätesprache Deutsch', () => {
     expect(await lang(page)).toBe('de');
     await expect(page.locator('.tab[data-tab=heute]')).toContainText('Heute');
     // Einstellungen: Auto ist vorgewählt
-    await page.evaluate(() => { location.hash = '#mehr'; });
+    await page.evaluate(() => { location.hash = '#mehr'; }); await page.locator('[data-more-group=appearance] > summary').click();
     await expect(page.locator('[data-lang=auto]')).toHaveAttribute('aria-checked', 'true');
     // Englisch wählen → Neustart der Ansicht, Einstellung gespeichert, Daten unverändert
     const before = await state(page);
@@ -27,7 +27,7 @@ test.describe('Gerätesprache Deutsch', () => {
     expect(after.teams).toEqual(before.teams);
     expect(after.plans).toEqual(before.plans);
     // zurück auf Deutsch
-    await page.evaluate(() => { location.hash = '#mehr'; });
+    await page.evaluate(() => { location.hash = '#mehr'; }); await page.locator('[data-more-group=appearance] > summary').click();
     await Promise.all([page.waitForNavigation(), page.click('[data-lang=de]')]);
     expect(await lang(page)).toBe('de');
     await expect(page.locator('.tab[data-tab=heute]')).toContainText('Heute');
@@ -64,7 +64,7 @@ test.describe('Gerätesprache Englisch', () => {
     const body = await page.locator('#main').innerText();
     expect(body).not.toMatch(/\b(Januar|Februar|März|Mai|Juni|Juli|Oktober|Dezember)\b/);
     // Einstellungen: Auto folgt dem Gerät, Deutsch wählbar
-    await page.evaluate(() => { location.hash = '#mehr'; });
+    await page.evaluate(() => { location.hash = '#mehr'; }); await page.locator('[data-more-group=appearance] > summary').click();
     await expect(page.locator('[data-lang=auto]')).toHaveAttribute('aria-checked', 'true');
     await expect(page.locator('#main')).toContainText('Language');
     await Promise.all([page.waitForNavigation(), page.click('[data-lang=de]')]);
@@ -76,7 +76,7 @@ test.describe('Gerätesprache Englisch', () => {
   test('Eigene Inhalte werden nie übersetzt', async ({ page }) => {
     await onboard(page, { name: 'Heute' });
     await expect(page.locator('#team-chip')).toContainText('Heute'); // Mannschaftsname bleibt, wie getippt
-    await page.evaluate(() => { location.hash = '#mehr'; });
+    await page.evaluate(() => { location.hash = '#mehr'; }); await page.locator('[data-more-group=appearance] > summary').click();
     await expect(page.locator('.team-card').first()).toContainText('Heute');
   });
 });
