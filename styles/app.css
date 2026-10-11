@@ -962,3 +962,8 @@ details.focus-strip > summary { min-height: 48px; font-size: .9rem; }
 .proposal-details > summary { min-height: 46px; padding: 8px 10px; font-size: .8rem; color: var(--ink-2); }
 .proposal-details .why { display: block; margin: 8px 0; }
 .assistant-options { margin: 8px 0 16px; }
+
+/* 21.17: tools and backup first; settings in named groups. */
+.more-disclosure > summary { min-height: 56px; font-size: 1.1rem; }
+.more-disclosure > .body { padding-top: 8px; }
+.more-disclosure .settings-card { border: 0; padding-inline: 0; }

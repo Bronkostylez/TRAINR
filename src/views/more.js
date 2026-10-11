@@ -115,6 +115,7 @@ export const moreView = {
   refresh() { this.paint(); },
   paint() {
     const s = store.get(), st = s.settings, info = store.info();
+    const expanded = new Set([...this.root.querySelectorAll('details[data-more-group][open]')].map(e => e.dataset.moreGroup));
     const seg = (key, opts) => `<div class="seg" role="radiogroup" aria-label="${key}">${opts.map(([v, t]) => `<button type="button" role="radio" data-set="${key}" data-v="${v}" aria-checked="${String(st[key]) === String(v)}">${t}</button>`).join('')}</div>`;
     const sw = (key, title, sub) => `<label class="switch-row"><span>${title}<small>${sub}</small></span><input class="switch" type="checkbox" data-toggle="${key}" ${st[key] ? 'checked' : ''}></label>`;
     this.root.innerHTML = `
@@ -132,32 +133,33 @@ export const moreView = {
         <button class="list-item" type="button" data-go-plan="packliste">${icon('cone')}<span class="grow"><strong>Packliste</strong><small>Material der aktuellen Einheit abhaken</small></span>${icon('chevron')}</button>
         <button class="list-item" type="button" id="m-export">${icon('print')}<span class="grow"><strong>Export & Druck</strong><small>PDF, Bild, Text, CSV, Teilen</small></span>${icon('chevron')}</button></div></section>
 
-      <section class="settings-group"><h2>Darstellung</h2><div class="settings-card">
+      <details class="disclosure settings-group more-disclosure" data-more-group="appearance" ${expanded.has('appearance') ? 'open' : ''}><summary>Darstellung</summary><div class="body"><div class="settings-card">
         <div class="field"><span>Sprache</span><div class="seg" role="radiogroup" aria-label="Sprache">${[['auto', 'Auto'], ...LANGS.map(l => [l[0], l[1]])].map(([v, t]) => `<button type="button" role="radio" data-lang="${v}"${v === 'auto' ? '' : ' translate="no" lang="' + v + '"'} aria-checked="${(st.lang || 'auto') === v}">${t}</button>`).join('')}</div><small class="tiny">Auto folgt der Gerätesprache. Deine Daten und Übungen bleiben unverändert.</small></div>
         <div class="field"><span>Erscheinungsbild</span>${seg('theme', [['system', 'System'], ['light', 'Hell'], ['dark', 'Dunkel']])}</div>
         <div class="field"><span>Animationen</span>${seg('motion', [['full', 'Voll'], ['reduced', 'Reduziert'], ['off', 'Aus']])}<small class="tiny">„Weniger Bewegung“ im System hat immer Vorrang und begrenzt auf „Reduziert“.</small></div>
         <div class="field"><span>Schriftgröße</span>${seg('fontScale', [[90, 'Klein'], [100, 'Normal'], [115, 'Groß'], [130, 'Sehr groß']])}</div>
         <div class="field"><span>Vereinsfarbe (Akzent)</span><div class="color-row">${CLUB.map(c => `<button type="button" class="swatch" data-club="${c || ''}" aria-pressed="${st.clubColor === c}" aria-label="${c ? `Akzentfarbe ${c}` : 'Standard (Schiri-Gelb)'}" style="background:${c || 'linear-gradient(135deg,#ffd400 50%,#14130e 50%)'}"></button>`).join('')}</div><small class="tiny">Torwart-Elemente bleiben immer lila.</small></div>
-      </div></section>
+      </div></div></details>
 
-      <section class="settings-group"><h2>Bedienung & Training</h2><div class="settings-card">
+      <details class="disclosure settings-group more-disclosure" data-more-group="controls" ${expanded.has('controls') ? 'open' : ''}><summary>Bedienung & Training</summary><div class="body"><div class="settings-card">
         ${sw('haptics', 'Vibration bei Aktionen', 'Nur auf unterstützten Geräten')}
         ${sw('sound', 'Signaltöne', 'Vorwarnung und Blockende')}
         ${sw('autoAdvance', 'Automatisch zum nächsten Block', 'Startet 2,5 s nach Blockende den nächsten Block')}
         ${sw('wakeLock', 'Bildschirm anlassen', 'Während der Timer läuft, falls der Browser es erlaubt')}
         <div class="field"><span>Vorwarnung vor Blockende</span>${seg('warnSeconds', [[0, 'Aus'], [10, '10 s'], [30, '30 s'], [60, '60 s']])}</div>
-      </div></section>
+      </div></div></details>
 
       <section class="settings-group"><h2>Daten</h2><div class="settings-card">
-        <p class="small muted" style="margin:12px 0">Einheiten, Kalendertermine, Mannschaften, eigene Übungen, Merkliste, Bewertungen, Notizen, Taktikboards und Einstellungen liegen nur im Speicher dieses Browsers. Kein Tracking, kein Server, keine Spielerdaten. Browserdaten löschen oder privater Modus kann alles entfernen.</p>
+
         <div class="grid-2" style="margin-bottom:12px"><button class="btn primary" type="button" id="m-backup">${icon('download')} Backup herunterladen</button><button class="btn" type="button" id="m-restore">${icon('upload')} Backup / Datei importieren</button></div>
+        <details class="disclosure" style="margin-bottom:12px"><summary>Wo liegen meine Daten?</summary><div class="body">        <p class="small muted" style="margin:12px 0">Einheiten, Kalendertermine, Mannschaften, eigene Übungen, Merkliste, Bewertungen, Notizen, Taktikboards und Einstellungen liegen nur im Speicher dieses Browsers. Kein Tracking, kein Server, keine Spielerdaten. Browserdaten löschen oder privater Modus kann alles entfernen.</p></div></details>
         <details class="disclosure" style="margin-bottom:12px"><summary>Weitere Optionen</summary><div class="body">
           <button class="btn sm danger" type="button" id="m-reset" style="margin-top:8px">${icon('trash')} Alle V21-Daten zurücksetzen</button>
           <p class="tiny">Lade vorher ein Backup herunter.</p></div></details>
         <p class="tiny">${s.help.lastBackup ? `Letztes Backup: ${new Date(s.help.lastBackup).toLocaleDateString(locale())}` : 'Noch kein Backup erstellt.'}</p>
       </div></section>
 
-      <section class="settings-group"><h2>Hilfe & Info</h2><div class="list">
+      <details class="disclosure settings-group more-disclosure" data-more-group="help" ${expanded.has('help') ? 'open' : ''}><summary>Hilfe & Info</summary><div class="body"><div class="list">
         <button class="list-item" type="button" id="m-tour">${icon('sparkles')}<span class="grow"><strong>Kurze Einführung</strong></span>${icon('chevron')}</button>
         <button class="list-item" type="button" id="m-help">${icon('help')}<span class="grow"><strong>Hilfe</strong><small>Erklärungen zu jeder Ansicht über ? oben rechts</small></span>${icon('chevron')}</button>
         <button class="list-item" type="button" id="m-update">${icon('reset')}<span class="grow"><strong>Nach Updates suchen</strong><small>Version ${APP_VERSION}</small></span>${icon('chevron')}</button>
@@ -170,7 +172,7 @@ export const moreView = {
       <details class="disclosure" style="margin-top:12px"><summary>Aufs Handy</summary><div class="body small">
         <p>Öffentliche TRAINR-App: <a href="https://bronkostylez.github.io/TRAINR/" target="_blank" rel="noopener noreferrer">bronkostylez.github.io/TRAINR</a>. Android/Chrome: Menü → „App installieren“. iPhone/Safari: Teilen → „Zum Home-Bildschirm“. Einmal online laden, danach offline nutzen.</p>
         <p>Die App ruft keine externen Inhalte ab; nur bewusst geöffnete Quellenlinks führen nach außen. Lokal: <code>node serve.cjs</code> und <code>http://localhost:8765</code>.</p></div></details>
-      <p class="tiny" style="text-align:center;margin-top:24px">TRAINR ${APP_VERSION} · Fußballtraining lokal geplant</p></section>`;
+      <p class="tiny" style="text-align:center;margin-top:24px">TRAINR ${APP_VERSION} · Fußballtraining lokal geplant</p></div></details>`;
     this.bind();
   },
   bind() {

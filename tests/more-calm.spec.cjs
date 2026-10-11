@@ -1,0 +1,6 @@
+const {test,expect}=require('@playwright/test');const {onboard,go,watchErrors,noOverflow}=require('./helpers.cjs');
+for(const theme of ['dark','light'])test(`Mehr gruppiert Einstellungen ${theme}`,async({page})=>{
+const errors=watchErrors(page);await page.emulateMedia({colorScheme:theme,reducedMotion:'reduce'});await onboard(page);await go(page,'#mehr');await expect(page.locator('#m-backup')).toBeVisible();await expect(page.locator('[data-set=theme]').first()).not.toBeVisible();await expect(page.locator('[data-toggle=sound]')).not.toBeVisible();await page.locator('[data-more-group=appearance]').scrollIntoViewIfNeeded();await page.screenshot({path:`/downloads/more-calm-${theme}-390.png`});
+await page.locator('[data-more-group=appearance] > summary').click();await page.locator('[data-set=theme][data-v=dark]').click();await expect(page.locator('[data-more-group=appearance]')).toHaveAttribute('open');await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+await page.locator('[data-more-group=controls] > summary').click();await page.locator('[data-toggle=sound]').check();await expect(page.locator('[data-more-group=controls]')).toHaveAttribute('open');await page.locator('[data-more-group=help] > summary').click();await expect(page.locator('#m-update')).toBeVisible();expect(await noOverflow(page)).toBe(true);expect(errors).toEqual([]);
+});

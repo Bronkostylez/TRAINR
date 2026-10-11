@@ -1,5 +1,6 @@
 // Englisch: Mehr-Ansicht und Übungseditor.
 export const MORE = {
+  'Wo liegen meine Daten?': 'Where is my data stored?',
   'Backup': 'Backup', 'Backup heruntergeladen. Datei sicher aufbewahren.': 'Backup downloaded. Keep the file safe.',
   'Datei zu groß (max. 5 MB).': 'File too large (max. 5 MB).', 'Backup wiederherstellen?': 'Restore backup?',
   '{}, {} und {}. Deine aktuellen Daten werden ersetzt – direkt danach ist Rückgängig möglich.': '{1}, {2} and {3}. Your current data will be replaced – undo is possible right afterwards.',

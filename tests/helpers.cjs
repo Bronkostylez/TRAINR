@@ -24,7 +24,7 @@ async function onboard(page, { name = 'E2', type = 'field', age = 'E-Jugend', da
   await page.click('#wiz-next');
   await page.click('#wiz-next');
   await expect(page.locator('section[data-view=heute]')).toBeVisible();
-  if (skipTour) await closeTour(page);
+  if (skipTour) { await expect(page.locator('dialog[open] [data-skip]')).toBeVisible(); await closeTour(page); }
 }
 async function closeTour(page) {
   const skip = page.locator('dialog[open] [data-skip]');
