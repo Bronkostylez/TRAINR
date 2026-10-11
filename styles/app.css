@@ -887,3 +887,47 @@ button.bar-row.fbar:hover { background: var(--surface-2); }
 :root[data-motion="reduced"] .live-rate .stars button { transition: none; }
 :root[data-motion="reduced"] .live-saved.on { animation: none; opacity: 1; }
 body.live-focus .live-rate .tiny:last-child { display: none; }
+
+/* Wochenfokus: ein roter Faden, keine vorab erfundene Besetzung. */
+.week-entry { margin: 12px 0 16px; min-height: 52px; text-align: left; }
+.week-hero { padding: 24px; border-radius: var(--r-md); background: var(--ink); color: var(--surface); border-top: 6px solid var(--signal); }
+.week-hero .eyebrow { color: var(--signal); }
+.week-hero h2 { font-size: clamp(1.8rem, 6vw, 2.5rem); line-height: 1; margin: 12px 0; }
+.week-hero p:not(.eyebrow) { max-width: 48ch; font-size: .95rem; opacity: .85; }
+.week-progress { display: flex; gap: 12px; align-items: center; border-top: 1px solid #ffffff40; padding-top: 16px; margin-top: 16px; }
+.week-progress strong { font-size: 1.6rem; color: var(--signal); white-space: nowrap; }
+.week-progress span { font-size: .85rem; }
+.week-nav { display: flex; justify-content: space-between; align-items: center; margin: 16px 0 8px; gap: 8px; }
+.week-nav > div { display: grid; text-align: center; gap: 4px; }
+.week-date { max-width: 260px; margin-bottom: 18px; }
+.week-days { display: grid; gap: 14px; }
+.week-day { min-width: 0; border: 1px solid var(--line-2); background: var(--surface); border-radius: var(--r-md); padding: 16px; }
+.week-day.is-today { box-shadow: inset 5px 0 0 var(--signal); }
+.week-day-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.week-day-head h3 { margin: 0; font-size: 1.15rem; flex: 1; }
+.week-event { padding: 12px 0; border-top: 1px solid var(--line); }
+.week-event-title { display: grid; gap: 6px; width: 100%; background: none; border: 0; text-align: left; color: inherit; padding: 4px 0 12px; min-height: 52px; cursor: pointer; }
+.week-event-title strong { overflow-wrap: anywhere; }
+.week-event-title span { color: var(--ink-3); font-size: .9rem; }
+.week-foci { margin-bottom: 14px; }
+.week-foci .chip { cursor: default; white-space: normal; }
+.week-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.week-actions .btn { flex: 1 1 150px; min-height: 48px; white-space: normal; }
+.week-rest { margin: 6px 0; }
+.week-event.is-cancelled { opacity: .65; }
+.week-event.is-cancelled .week-event-title strong { text-decoration: line-through; }
+.week-intro, .assistant-context { background: var(--surface-2); padding: 16px; border-radius: var(--r-md); border-left: 5px solid var(--signal); margin-bottom: 20px; }
+.week-intro h3 { font-size: 1.6rem; margin: 8px 0 12px; }
+.week-count { font-size: .9rem; font-weight: 750; }
+.week-focus-sheet .fpick-group { margin-bottom: 20px; }
+.week-focus-sheet .fchip-pick, .assistant-sheet .fchip-pick { min-height: 46px; padding: 10px 14px; font-size: .9rem; transition: background .18s, color .18s, transform .18s; }
+.week-focus-sheet .fchip-pick[aria-pressed=true], .assistant-sheet .fchip-pick[aria-pressed=true] { box-shadow: inset 0 0 0 2px var(--ink); transform: translateY(-2px); }
+.week-today { margin-bottom: 16px; }
+.week-today .chips { margin: 12px 0 16px; }
+@media (min-width: 760px) { .week-days { grid-template-columns: repeat(2, minmax(0, 1fr)); } .week-day:last-child { grid-column: 1 / -1; } }
+@media (min-width: 1100px) { .week-days { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .week-focus-sheet .fchip-pick, .assistant-sheet .fchip-pick { transition: none; transform: none; } }
+:root[data-motion=off] .week-focus-sheet .fchip-pick, :root[data-motion=off] .assistant-sheet .fchip-pick { transition: none; transform: none; }
+.week-focus-sheet .fpick-group .chips, .assistant-sheet .fpick-group .chips, .week-foci, .week-today .chips { flex-wrap: wrap; overflow: visible; scroll-snap-type: none; }
+.week-focus-sheet .fchip-pick, .assistant-sheet .fchip-pick { white-space: normal; }
+:root[data-motion=reduced] .week-focus-sheet .fchip-pick, :root[data-motion=reduced] .assistant-sheet .fchip-pick { transform: none; transition-property: background, color; }
