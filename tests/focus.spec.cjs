@@ -43,9 +43,10 @@ test('Schwerpunkte in Einheit: Übersicht, Auswahl, Check, Assistent, Heute, Tra
   // Heute: „Im Fokus“ im Einheiten-Kasten
   await expect(page.locator('.hero-foci .fchip').first()).toBeVisible();
   await go(page, '#planen');
-  await expect(page.locator('.focus-strip .abar i').first()).toBeVisible();
+  await page.locator('.focus-strip summary').click(); await expect(page.locator('.focus-strip .abar i').first()).toBeVisible();
   await expect(page.locator('.block-sub').first()).not.toBeEmpty();
   // Schwerpunkt der Einheit aus dem gruppierten Sheet wählen
+  await page.locator('#pl-options').evaluate(e => e.open = true);
   await page.click('#pl-focus');
   await expect(page.locator('dialog[open] .fpick-h')).toHaveCount(4);
   await page.click('dialog[open] [data-v="Wahrnehmung"]');
@@ -173,6 +174,7 @@ test('Ältere Stände: Kategorie als Einheiten-Schwerpunkt und eigene Übung ohn
   expect((await plan(page)).focus).toBe('Spielform');
   await go(page, '#planen');
   await expect(page.locator('#pl-focus')).toContainText('Spielform');
+  await page.locator('#pl-options').evaluate(e => e.open = true);
   await page.click('#pl-focus');
   await expect(page.locator('dialog[open]')).toContainText('Kategorie aus einer älteren Version');
   await page.keyboard.press('Escape');
