@@ -753,7 +753,7 @@ button.bar-row.fbar:hover { background: var(--surface-2); }
 .next-up.pause-next svg { color: #8ecae6; }
 
 /* ---------- Bibliothek V21.5: Ansichten, Kategorie-Köpfe, Neu ---------- */
-.tag.new { background: var(--ink); color: var(--signal); }
+.tag.new { background: var(--hero); color: var(--signal); }
 .chip.empty-chip { opacity: .45; }
 .lib-view { flex: none; flex-wrap: nowrap; }
 .lib-view button { min-height: 44px; padding: 6px 10px; display: grid; place-items: center; }
@@ -890,11 +890,11 @@ body.live-focus .live-rate .tiny:last-child { display: none; }
 
 /* Wochenfokus: ein roter Faden, keine vorab erfundene Besetzung. */
 .week-entry { margin: 12px 0 16px; min-height: 52px; text-align: left; }
-.week-hero { padding: 24px; border-radius: var(--r-md); background: var(--ink); color: var(--surface); border-top: 6px solid var(--signal); }
+.week-hero { padding: 24px; border-radius: var(--r-md); background: var(--hero); color: var(--hero-ink); border-top: 6px solid var(--signal); }
 .week-hero .eyebrow { color: var(--signal); }
 .week-hero h2 { font-size: clamp(1.8rem, 6vw, 2.5rem); line-height: 1; margin: 12px 0; }
 .week-hero p:not(.eyebrow) { max-width: 48ch; font-size: .95rem; opacity: .85; }
-.week-progress { display: flex; gap: 12px; align-items: center; border-top: 1px solid #ffffff40; padding-top: 16px; margin-top: 16px; }
+.week-progress { display: flex; gap: 12px; align-items: center; border-top: 1px solid var(--hero-line); padding-top: 16px; margin-top: 16px; }
 .week-progress strong { font-size: 1.6rem; color: var(--signal); white-space: nowrap; }
 .week-progress span { font-size: .85rem; }
 .week-nav { display: flex; justify-content: space-between; align-items: center; margin: 16px 0 8px; gap: 8px; }
