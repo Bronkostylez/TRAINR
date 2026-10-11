@@ -938,3 +938,13 @@ body.live-focus .live-rate .tiny:last-child { display: none; }
 .tl-item.pause-item { padding-block: 2px; opacity: .8; }
 .tl-item.pause-item .tl-time { opacity: .7; }
 #today .hero-stats small { font-size: .7rem; }
+/* 21.13 Saison-Autopilot */
+.season-card { margin: 16px 0 8px; border-left: 5px solid var(--signal); }
+.season-card h3 { margin: 6px 0 4px; font-size: 1.35rem; }
+.season-card .chips { margin-top: 12px; }
+.season-card .btn { min-height: 48px; }
+.season-line { margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between; }
+.season-suggest { margin: 0 0 12px; }
+.season-suggest p { margin: 0 0 8px; }
+.chip-suggest { border-style: dashed; background: transparent; cursor: default; white-space: normal; }
+.season-card .chips { flex-wrap: wrap; overflow: visible; }
