@@ -18,7 +18,7 @@ const DEFAULT = () => ({ q: '', scope: 'all', tags: [], foci: [], type: 'team', 
 let F = DEFAULT();
 let animator = null;
 /** Neu im Katalog seit V21.5 (eigene Spielzug-Animationen). */
-export const isNew = e => !e.custom && e.id.startsWith('v22-');
+export const isNew = e => !e.custom && (e.id.startsWith('v22-') || e.id.startsWith('gk-'));
 // Kartenansicht nur auf diesem Gerät merken (reine Bequemlichkeit).
 const VIEW_KEY = 'trainr-lib-view';
 let view = (() => { try { return localStorage.getItem(VIEW_KEY) === 'compact' ? 'compact' : 'cards'; } catch { return 'cards'; } })();
