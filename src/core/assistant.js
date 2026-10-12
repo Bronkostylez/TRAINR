@@ -57,7 +57,7 @@ export function propose(s, f) {
   if (AGES.indexOf(age) <= 1) notes.push(`${age}: Erklärungen unter einer Minute halten, eher spielen als lange üben.`);
   const picked = selectedFoci(f);
   const focusList = picked.length ? picked : [DEFAULT_FOCUS[useType]];
-  const pool = allExercises(s).filter(e => e.ages.includes(age) && (useType === 'both' || e.type === useType) && e.tag !== 'Falltechnik' && layout(s, e, sq).level !== 'no');
+  const pool = allExercises(s).filter(e => e.ages.includes(age) && (useType === 'both' || e.type === useType) && e.tag !== 'Falltechnik' && (!f.sourceOnly || useType !== 'keeper' || e.sourceVerified === true) && layout(s, e, sq).level !== 'no');
   if (!pool.length) throw new Error('Für diese Spielerzahl und Altersklasse gibt es keine passende Übung. Spielerzahl ändern oder manuell planen.');
   const random = rng(f.seed ?? 1), now = Date.now();
   const phases = (useType === 'keeper' ? strat.keeper : strat.field);
