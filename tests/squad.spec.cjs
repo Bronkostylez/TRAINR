@@ -24,7 +24,7 @@ test('Verteilung: Gruppen nur, wo nötig – Schlange und „alle gemeinsam“ b
   L = await lay(page, '3v3', { players: 13, keepers: 0, coaches: 1 });
   expect(L).toMatchObject({ mode: 'group', groups: 2, active: 12, waiting: 1, level: 'ok' });
   L = await lay(page, 'gatepass', { players: 11, keepers: 0, coaches: 1 });
-  expect(L).toMatchObject({ groups: 5, waiting: 1, coachFill: 1, level: 'ok' });
+  expect(L).toMatchObject({ groups: 6, active: 11, waiting: 0, coachFill: 1, level: 'ok' });
   L = await lay(page, 'gatepass', { players: 11, keepers: 0, coaches: 0 });
   expect(L.coachFill).toBe(0);
   // Zu wenige Spieler
@@ -34,7 +34,7 @@ test('Verteilung: Gruppen nur, wo nötig – Schlange und „alle gemeinsam“ b
   L = await lay(page, 'catch', { players: 10, keepers: 0, coaches: 1 });
   expect(L).toMatchObject({ level: 'no', why: 'nokeeper' });
   L = await lay(page, 'catch', { players: 10, keepers: 2, coaches: 1 });
-  expect(L).toMatchObject({ level: 'tight', why: 'idle', groups: 2 });
+  expect(L).toMatchObject({ level: 'tight', why: 'rotation', groups: 2 });
   // Übung für Feldspieler und Torwart: nicht für jede Gruppe ein Torwart
   L = await lay(page, '1to4', { players: 20, keepers: 1, coaches: 1 });
   expect(L).toMatchObject({ mode: 'group', groups: 2, keepersMissing: 1, level: 'tight' });

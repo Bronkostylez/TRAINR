@@ -1,6 +1,6 @@
 // Detail-Sheet einer Übung: Animation, Ziel, Ablauf, Coaching, Material, Varianten, Bewertung, Notiz, Quellen.
 import * as store from '../core/store.js';
-import { exercise, effective, layout, layoutText, squadOf, flowOf, FLOW_LABEL, currentPlan, similar, progression, meta, level, LEVEL_LABEL, planAge, foci, FOCUS, AREAS, MAX_FOCI } from '../core/planning.js';
+import { exercise, effective, coachRole, layout, layoutText, squadOf, flowOf, FLOW_LABEL, currentPlan, similar, progression, meta, level, LEVEL_LABEL, planAge, foci, FOCUS, AREAS, MAX_FOCI } from '../core/planning.js';
 import { focusChips } from '../ui/focus.js';
 import { TAG_VARIANTS } from '../data/drill-meta.js';
 import { localizeVariants } from '../i18n/catalog.js';
@@ -53,14 +53,15 @@ export function openDetail(id, order = null) {
           <p class="tiny" id="d-disclaimer" style="margin-top:6px">Schematische Darstellung: keine maßstabsgetreuen Positionen oder exakten Laufwege${e.type !== 'field' ? ', keine Fang- oder Falltechnik-Demonstration' : ''}.</p>
         </div>
         <div class="stack">
-          <div class="facts"><span>${icon('clock')} ${x.minutes} Min${m.variant ? ' · deine Variante' : ''}</span><span>${flow === 'open' ? `ab ${x.min} Spieler` : flow === 'queue' ? `Je Station ${x.min === x.max ? x.min : `${x.min}–${x.max}`} Spieler aktiv` : `${x.min === x.max ? x.min : `${x.min}–${x.max}`} Spieler / Gruppe`}</span><span>${esc(FLOW_LABEL[flow])}</span><span>ab ${esc(e.ages[0])}</span><span class="${g ? '' : 'warn'}">${esc(layoutText(L))}</span></div>
+          <div class="facts"><span>${icon('clock')} ${x.minutes} Min${m.variant ? ' · deine Variante' : ''}</span><span>${flow === 'open' ? `ab ${x.min} Spieler` : flow === 'queue' ? `Je Station ${x.min === x.max ? x.min : `${x.min}–${x.max}`} Spieler aktiv` : `${x.min === x.max ? x.min : `${x.min}–${x.max}`} ${coachRole(e)?.slots ? 'Rollen (Kinder + Helfer)' : 'Spieler'} / Gruppe`}</span><span>${esc(FLOW_LABEL[flow])}</span><span>ab ${esc(e.ages[0])}</span><span class="${g ? '' : 'warn'}">${esc(layoutText(L))}</span></div>
           ${e.goal ? `<section><h3>Ziel</h3><p>${esc(e.goal)}</p></section>` : ''}
           ${foci(e).length ? `<section class="detail-foci"><h3>Schwerpunkte <small class="tiny">antippen: passende Übungen</small></h3>${focusChips(foci(e), { link: true, mark: p?.focus })}
             <ul class="foci-explain">${foci(e).map((k, i) => `<li><strong>${esc(k)}</strong>${i ? '' : ' <span class="tiny">Hauptschwerpunkt</span>'} – ${esc(FOCUS[k]?.hint || '')} <span class="tiny">· ${esc(AREAS[FOCUS[k]?.area]?.label || '')}</span></li>`).join('')}</ul></section>` : ''}
+          ${coachRole(e) ? `<section class="coach-role"><h3>Trainerrolle</h3><p>${esc(coachRole(e).role)}</p><p class="small muted">TRAINR-Anpassung: Trainer übernimmt nur die Helferrolle, nicht Torwart, Gegner oder Spieler im Wettkampf. Kinder wechseln die Übungsrolle; Trainer bleibt Helfer. Im Block abschaltbar, Pflicht-Zuwurf bleibt nötig.</p><p class="tiny">Animation zeigt den Originalablauf, nicht die Trainerbesetzung.</p></section>` : ''}
           <section><h3>Ablauf</h3><ol class="steps" id="d-steps"></ol></section>
           <section><h3>Coaching</h3>${Array.isArray(e.points) && e.points.length ? `<ul class="points">${e.points.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : `<p>${esc(e.coaching)}</p>`}
             ${Array.isArray(e.points) && e.points.length && e.safety ? `<p class="small muted">${esc(e.safety)}</p>` : ''}</section>
-          <section><h3>Aufbau & Material <small class="tiny">je Gruppe</small></h3><div>${materialChips(e.equipment)}</div>${e.type === 'keeper' && e.min <= 2 ? '<p class="tiny">Bei Partneraufgaben zählt das zuspielende Kind mit. Erwachsene Helfer zusätzlich.</p>' : ''}</section>
+          <section><h3>Aufbau & Material <small class="tiny">je Gruppe</small></h3><div>${materialChips(e.equipment)}</div>${e.type === 'keeper' && e.min <= 2 ? '<p class="tiny">Kinder und Trainer werden getrennt gezählt. Eine belegte Helferrolle ersetzt einen Partnerplatz, nicht die Übungsrolle.</p>' : ''}</section>
           ${variants ? `<section><h3>Leichter / schwerer</h3><p class="small"><strong>Leichter:</strong> ${esc(variants[0])}</p><p class="small"><strong>Schwerer:</strong> ${esc(variants[1])}</p></section>` : ''}
           ${lernweg(s, e)}
           <details class="disclosure"><summary>Deine Variante <span class="tiny">${m.variant ? 'aktiv' : 'Spieler & Minuten anpassen'}</span></summary><div class="body">

@@ -32,7 +32,7 @@ export function openSquadSheet() {
       <div class="grid-2">
         ${row('people', keeperTeam ? 'Torwarte' : 'Spieler', keeperTeam ? 'Alle Anwesenden trainieren als Torwart.' : 'Feldspieler, ohne Torwart.', 1)}
         ${keeperTeam ? '' : row('keepers', 'Torwart', 'Spielen bei Feldübungen mit, im Tor nur, wo es nötig ist.', 0)}
-        ${row('coaches', 'Trainer', 'Betreuen Gruppen und können Gruppen notfalls auffüllen.', 0)}
+        ${row('coaches', 'Trainer', 'Übernehmen geprüfte Helferrollen, keine Spieler- oder Gegnerrolle.', 0)}
       </div>
       <p class="small" id="sq-total" aria-live="polite"></p>
       <h3 style="margin:14px 0 6px">So läuft jeder Block</h3>

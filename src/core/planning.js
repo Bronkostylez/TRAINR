@@ -3,6 +3,8 @@ import { SEED, AGES, TAGS } from '../data/drills.js';
 import { META } from '../data/drill-meta.js';
 import { FOCUS, FOCUS_KEYS, DRILL_FOCUS } from '../data/focus.js';
 import { flowOf } from '../data/flow.js';
+import { coachRole } from '../data/coach-roles.js';
+export { coachRole } from '../data/coach-roles.js';
 import { localizeExercise } from '../i18n/catalog.js';
 import { time, fmtTime, sum, DAYS } from './util.js';
 
@@ -71,7 +73,7 @@ export function groupsFor(e, n) {
 export const fit = (s, e, n) => groupsFor(effective(s, e), n);
 
 // ---------- Besetzung und Ablauf ----------
-// Wer ist da: Spieler (Feld), Torwart, Trainer. Spieler und Torwart üben; Trainer betreuen und füllen nur im Notfall auf.
+// Wer ist da: Spieler (Feld), Torwart, Trainer. Spieler und Torwart üben; Trainer übernehmen ausschließlich ausdrücklich geprüfte nicht-spielerische Rollen.
 // Ob daraus Gruppen entstehen, entscheidet die Übung (Ablaufart): feste Gruppen, eine Schlange oder alle gemeinsam.
 export const DEFAULT_SQUAD = Object.freeze({ players: 12, keepers: 0, coaches: 1 });
 export const STATION_MAX = 6;
@@ -93,41 +95,56 @@ export function squadLabel(p, type = p?.sessionType) {
  * `groups` = parallele Gruppen bzw. Schlangen, `active` = gleichzeitig aktiv, `waiting` = Schlange / Wechselspieler / Unbeteiligte,
  * `sets` = wie oft Material und Feld gebraucht werden. Gruppen entstehen nur bei „group“ – und dort so wenige wie möglich.
  */
-export function layout(s, e, sq, stations = 1) {
+export function layout(s, e, sq, stations = 1, useCoach = true) {
   const x = effective(s, e), mode = flowOf(e), bodies = sq.players + sq.keepers, K = sq.keepers;
-  const L = { mode, bodies, level: 'ok', why: '', groups: 1, active: bodies, waiting: 0, sets: 1, size: [x.min, x.max], keepersMissing: 0, coachFill: 0, stationsHint: 0 };
+  const role = coachRole(e), available = Math.max(0, sq.coaches - (e.requiredCoaches || 0)), support = useCoach && role?.slots ? available : 0;
+  const L = { coachRole: role?.role || '', coachesUsed: e.requiredCoaches || 0, mode, bodies, level: 'ok', why: '', groups: 1, active: bodies, waiting: 0, sets: 1, size: [x.min, x.max], keepersMissing: 0, coachFill: 0, stationsHint: 0 };
   if (e.requiredCoaches && sq.coaches < e.requiredCoaches) return { ...L, level: 'no', why: 'nocoach', active: 0 };
-  if (bodies < x.min) return { ...L, level: 'no', why: 'few', active: 0, waiting: bodies };
+  if (bodies < Math.max(1, x.min - Math.min(support, 1))) return { ...L, level: 'no', why: 'few', active: 0, waiting: bodies };
   if (e.type === 'keeper' && K < 1) return { ...L, level: 'no', why: 'nokeeper', active: 0 };
   if (mode === 'open') return { ...L, sets: Math.ceil(bodies / x.max) };
   if (mode === 'queue') {
-    const st = Math.max(1, Math.min(STATION_MAX, Math.floor(stations) || 1, Math.floor(bodies / x.min))), active = Math.min(bodies, st * x.max), waiting = bodies - active;
-    const out = { ...L, groups: st, sets: st, active, waiting };
+    const st = Math.max(1, Math.min(STATION_MAX, Math.floor(stations) || 1, e.requiredCoaches ? Math.floor(sq.coaches / e.requiredCoaches) : STATION_MAX, Math.floor(bodies / x.min))), active = Math.min(bodies, st * x.max), waiting = bodies - active;
+    const out = { ...L, groups: st, sets: st, active, waiting, coachesUsed: st * (e.requiredCoaches || 0) };
     if (waiting > active) { out.level = 'tight'; out.why = 'longqueue'; out.stationsHint = Math.min(STATION_MAX, Math.ceil(bodies / (2 * x.max))); }
     return out;
   }
-  // feste Gruppen: so wenige wie möglich; passt keine ganze Zahl, wechseln die übrigen Spieler ein
-  const cap = e.type === 'keeper' ? K : Infinity, gMin = Math.ceil(bodies / x.max), gMax = Math.max(1, Math.min(Math.floor(bodies / x.min), cap));
-  const groups = Math.min(gMin, gMax), active = Math.min(bodies, groups * x.max), waiting = bodies - active;
-  const out = { ...L, groups, sets: groups, active, waiting };
+  // Try actual child + support-role allocations. A coach is never counted as a child.
+  const cap = e.type === 'keeper' ? K : bodies;
+  const candidates = [];
+  for (let groups = 1; groups <= cap; groups++) {
+    const options = e.type === 'keeper' ? [Math.min(support, groups)] : [...new Set([Math.min(support, groups), 0])];
+    for (const used of options) {
+      const min = Math.max(groups, groups * x.min - used), capacity = groups * x.max - used;
+      if (bodies < min || capacity < groups) continue;
+      const active = Math.min(bodies, capacity), waiting = bodies - active;
+      candidates.push({ ...L, groups, sets: groups, active, waiting, coachFill: used, coachesUsed: used + (e.requiredCoaches || 0) });
+    }
+  }
+  candidates.sort((a, b) => a.waiting - b.waiting || b.coachFill - a.coachFill || a.groups - b.groups);
+  const out = candidates[0] || { ...L, level: 'no', why: 'few', active: 0, waiting: bodies };
+  const { groups, waiting } = out;
   if (waiting) {
-    out.why = e.type === 'keeper' ? 'idle' : 'spare';
-    const need = x.min - waiting;
-    if (e.type !== 'keeper' && waiting < x.min && need <= sq.coaches) out.coachFill = need;
-    if ((waiting > 2 && !out.coachFill) || e.type === 'keeper') out.level = 'tight';
+    out.why = e.type === 'keeper' ? (out.coachFill ? 'rotation' : 'idle') : 'spare';
+    if (waiting > 2 || (e.type === 'keeper' && !out.coachFill)) out.level = 'tight';
   }
   if (e.type === 'both' && groups > K) { out.keepersMissing = groups - K; out.level = 'tight'; out.why = out.why || 'keeperfill'; }
   return out;
 }
 
 /** Kurztext zur Verteilung, z. B. „3 Gruppen à 4–5“ oder „Schlange · 4 aktiv, 6 in der Reihe“. */
-export function layoutText(L) {
+function distributionText(L) {
   const n = (k, one, many) => `${k} ${k === 1 ? one : many}`;
   if (L.level === 'no') return L.why === 'nocoach' ? 'Trainer fehlt' : L.why === 'nokeeper' ? 'Torwart fehlt' : `zu wenige Spieler, mind. ${L.size[0]}`;
   if (L.mode === 'open') return L.sets > 1 ? `Alle gemeinsam · Feld und Material ×${L.sets}` : 'Alle gemeinsam';
   if (L.mode === 'queue') return `${L.groups === 1 ? 'Schlange' : `${L.groups} Schlangen`} · ${L.active} aktiv${L.waiting ? `, ${L.waiting} in der Reihe` : ''}`;
   const base = Math.floor(L.active / L.groups), rest = L.active % L.groups;
   return `${n(L.groups, 'Gruppe', 'Gruppen')} à ${rest ? `${base}–${base + 1}` : base}${L.waiting ? ` · ${L.waiting} ${L.why === 'idle' ? 'unbeteiligt' : L.waiting === 1 ? 'wechselt ein' : 'wechseln ein'}` : ''}`;
+}
+/** Distribution plus the coach's concrete role, shared by planner, assistant and exports. */
+export function layoutText(L) {
+  const base = distributionText(L);
+  return base + (L.level !== 'no' && L.coachesUsed && L.coachRole ? ` · ${L.coachesUsed} Trainer: ${L.coachRole}` : '');
 }
 /** Hinweis zur Verteilung für den Trainer; leer, wenn alles passt. */
 export function layoutAdvice(L) {
@@ -140,14 +157,15 @@ function advice(L) {
     case 'nocoach': return 'Diese Übung braucht einen Trainer zum Zuspielen. Besetzung prüfen oder andere Übung wählen.';
     case 'nokeeper': return 'Diese Übung braucht einen Torwart. Torwart eintragen oder andere Übung wählen.';
     case 'longqueue': return `In der Schlange warten ${L.waiting} Spieler. ${L.stationsHint > L.groups ? `Mit ${L.stationsHint} Schlangen ist mehr los.` : 'Ball holen oder Passgeber sein lässt die Wartenden mitarbeiten.'}`;
-    case 'spare': return `${L.waiting === 1 ? 'Ein Spieler wechselt ein.' : `Es wechseln ${L.waiting} Spieler ein.`}${L.coachFill ? ' Ein Trainer kann auffüllen.' : ''}`;
+    case 'spare': return `${L.waiting === 1 ? 'Ein Spieler wechselt ein.' : `Es wechseln ${L.waiting} Spieler ein.`}${''}`;
+    case 'rotation': return 'Torwarte wechseln nach kurzen Serien. Trainer bleibt Zuspieler; Wartende stehen außerhalb der Zuspielbahn.';
     case 'idle': return `Bei dieser Übung sind ${L.waiting} Spieler nicht beteiligt. Zweite Aufgabe für sie vorsehen.`;
     case 'keeperfill': return 'Nicht für jede Gruppe ein Torwart da. Ein Feldspieler geht ins Tor.';
-    default: return L.coachFill ? 'Ein Trainer kann auffüllen.' : '';
+    default: return '';
   }
 }
 /** Verteilung eines Blocks in der Einheit. */
-export const blockLayout = (s, p, b) => { const e = exercise(s, b.exerciseId); return e ? layout(s, e, squadOf(s, p, b), b.stations) : null; };
+export const blockLayout = (s, p, b) => { const e = exercise(s, b.exerciseId); return e ? layout(s, e, squadOf(s, p, b), b.stations, b.coachSupport !== false) : null; };
 
 export const activeTeam = s => s.teams.find(t => t.id === s.activeTeamId) || null;
 export const teamOf = (s, p) => s.teams.find(t => t.id === p?.teamId) || activeTeam(s);
