@@ -1,4 +1,5 @@
 // Englisches Wörterbuch (Schlüssel = deutscher Text). Aufbau siehe index.js. Teile liegen in en-*.js.
+import { GOALIE } from './en-goalie.js';
 import { CORE } from './en-core.js';
 import { HELP } from './en-help.js';
 import { TODAY } from './en-today.js';
@@ -17,4 +18,4 @@ import { SEASON } from './en-season.js';
 import { SOURCE_SUPPORTS_EN } from './catalog-en-tags.js';
 
 // Spätere Teile überschreiben frühere bei gleichem Schlüssel; Spezielles zuletzt.
-export const EN = Object.assign({}, CORE, HELP, ONBOARDING, TODAY, LIBRARY, DETAIL, PLAN, MORE, CALENDAR, EXPORT, SCENES, SOURCE_SUPPORTS_EN, MATCHDAY, MISC, FLOW, SEASON);
+export const EN = Object.assign({}, CORE, HELP, ONBOARDING, TODAY, LIBRARY, DETAIL, PLAN, MORE, CALENDAR, EXPORT, SCENES, SOURCE_SUPPORTS_EN, MATCHDAY, MISC, FLOW, SEASON, GOALIE);
