@@ -82,9 +82,9 @@ export function squadOf(s, p, b) {
   return planType(s, p) === 'keeper' ? { players: 0, keepers: n + k, coaches } : { players: n, keepers: k, coaches };
 }
 /** Kurzform: „12 Spieler · 2 Torwart · 1 Trainer“ (Rollen ohne Personen entfallen, Spieler stehen immer da). */
-export function squadLabel(p) {
+export function squadLabel(p, type = p?.sessionType) {
   const k = p?.keepers || 0, c = p?.coaches ?? 1;
-  return [`${p?.people ?? 0} Spieler`, k ? `${k} Torwart` : '', c ? `${c} Trainer` : ''].filter(Boolean).join(' · ');
+  return [`${p?.people ?? 0} ${type === 'keeper' ? 'Torwarte' : 'Spieler'}`, k ? `${k} Torwart` : '', c ? `${c} Trainer` : ''].filter(Boolean).join(' · ');
 }
 
 /**
@@ -96,6 +96,7 @@ export function squadLabel(p) {
 export function layout(s, e, sq, stations = 1) {
   const x = effective(s, e), mode = flowOf(e), bodies = sq.players + sq.keepers, K = sq.keepers;
   const L = { mode, bodies, level: 'ok', why: '', groups: 1, active: bodies, waiting: 0, sets: 1, size: [x.min, x.max], keepersMissing: 0, coachFill: 0, stationsHint: 0 };
+  if (e.requiredCoaches && sq.coaches < e.requiredCoaches) return { ...L, level: 'no', why: 'nocoach', active: 0 };
   if (bodies < x.min) return { ...L, level: 'no', why: 'few', active: 0, waiting: bodies };
   if (e.type === 'keeper' && K < 1) return { ...L, level: 'no', why: 'nokeeper', active: 0 };
   if (mode === 'open') return { ...L, sets: Math.ceil(bodies / x.max) };
@@ -122,7 +123,7 @@ export function layout(s, e, sq, stations = 1) {
 /** Kurztext zur Verteilung, z. B. „3 Gruppen à 4–5“ oder „Schlange · 4 aktiv, 6 in der Reihe“. */
 export function layoutText(L) {
   const n = (k, one, many) => `${k} ${k === 1 ? one : many}`;
-  if (L.level === 'no') return L.why === 'nokeeper' ? 'Torwart fehlt' : `zu wenige Spieler, mind. ${L.size[0]}`;
+  if (L.level === 'no') return L.why === 'nocoach' ? 'Trainer fehlt' : L.why === 'nokeeper' ? 'Torwart fehlt' : `zu wenige Spieler, mind. ${L.size[0]}`;
   if (L.mode === 'open') return L.sets > 1 ? `Alle gemeinsam · Feld und Material ×${L.sets}` : 'Alle gemeinsam';
   if (L.mode === 'queue') return `${L.groups === 1 ? 'Schlange' : `${L.groups} Schlangen`} · ${L.active} aktiv${L.waiting ? `, ${L.waiting} in der Reihe` : ''}`;
   const base = Math.floor(L.active / L.groups), rest = L.active % L.groups;
@@ -136,6 +137,7 @@ export function layoutAdvice(L) {
 function advice(L) {
   switch (L.why) {
     case 'few': return `Zu wenige Spieler: mindestens ${L.size[0]} nötig.`;
+    case 'nocoach': return 'Diese Übung braucht einen Trainer zum Zuspielen. Besetzung prüfen oder andere Übung wählen.';
     case 'nokeeper': return 'Diese Übung braucht einen Torwart. Torwart eintragen oder andere Übung wählen.';
     case 'longqueue': return `In der Schlange warten ${L.waiting} Spieler. ${L.stationsHint > L.groups ? `Mit ${L.stationsHint} Schlangen ist mehr los.` : 'Ball holen oder Passgeber sein lässt die Wartenden mitarbeiten.'}`;
     case 'spare': return `${L.waiting === 1 ? 'Ein Spieler wechselt ein.' : `Es wechseln ${L.waiting} Spieler ein.`}${L.coachFill ? ' Ein Trainer kann auffüllen.' : ''}`;
@@ -153,7 +155,7 @@ export const currentPlan = s => s.plans.find(p => p.id === s.selectedPlanId) || 
 export const plansOfTeam = (s, teamId = s.activeTeamId) => s.plans.filter(p => !p.template && (p.teamId === teamId || p.teamId === null));
 export const templates = s => s.plans.filter(p => p.template);
 export const planAge = (s, p) => p?.age || teamOf(s, p)?.age || null;
-export const planType = (s, p) => teamOf(s, p)?.type || 'field';
+export const planType = (s, p) => p?.sessionType || teamOf(s, p)?.type || 'field';
 export const blockPeople = (p, b) => b.people || p.people;
 /** Reine Übungszeit ohne eingeplante Pausen. */
 export const exerciseMinutes = p => sum(p?.blocks || [], b => b.minutes);
@@ -334,7 +336,7 @@ export function check(s, p) {
 export function score(s, p, e) {
   const reasons = [], L = layout(s, e, squadOf(s, p));
   let pts = 0;
-  if (L.level !== 'no') { pts += L.level === 'ok' ? 100 : 70; reasons.push(layoutText(L)); } else reasons.push(L.why === 'nokeeper' ? 'Torwart fehlt' : 'Spielerzahl passt nicht');
+  if (L.level !== 'no') { pts += L.level === 'ok' ? 100 : 70; reasons.push(layoutText(L)); } else reasons.push(L.why === 'nocoach' ? 'Trainer fehlt' : L.why === 'nokeeper' ? 'Torwart fehlt' : 'Spielerzahl passt nicht');
   if (p && p.focus !== 'Alle' && hasFocus(e, p.focus)) { pts += foci(e)[0] === p.focus || e.tag === p.focus ? 40 : 28; reasons.push('dein Schwerpunkt'); }
   const slot = p ? slotOf(s, p) : null, left = slot ? slotMinutes(slot) - totalMinutes(p, s) : 90;
   if (effective(s, e).minutes <= Math.max(0, left)) { pts += 20; reasons.push('passt in die Restzeit'); } else reasons.push('länger als die Restzeit');

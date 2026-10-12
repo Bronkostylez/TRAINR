@@ -155,6 +155,8 @@ export function validateV3(x) {
     if (!text(p.id, 100) || pids.has(p.id) || !text(p.name, 80) || !integer(p.people, 1, 100) || !PLAN_FOCUS.has(p.focus) ||
       !(p.slot === null || integer(p.slot, 0, 6)) || !Array.isArray(p.blocks) || p.blocks.length > LIMITS.blocks ||
       !(p.teamId === null || tids.has(p.teamId)) || !optText(p.notes, LIMITS.notes) || !optText(p.goal, 200) ||
+      (p.sessionType !== undefined && !['field', 'keeper', 'both'].includes(p.sessionType)) ||
+      (p.targetMinutes !== undefined && !integer(p.targetMinutes, 20, 150)) ||
       (p.age !== undefined && !AGES.includes(p.age)) || (p.template !== undefined && typeof p.template !== 'boolean') ||
       (p.date !== undefined && p.date !== null && !/^\d{4}-\d\d-\d\d$/.test(p.date)) || (p.pauses !== undefined && !validPauses(p.pauses)) ||
       (p.keepers !== undefined && !integer(p.keepers, 0, 20)) || (p.coaches !== undefined && !integer(p.coaches, 0, 10)) ||

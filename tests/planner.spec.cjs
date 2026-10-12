@@ -81,6 +81,7 @@ test('Planer: Zeiger-Sortierung am Griff und Tastatur', async ({ page }) => {
   const ids = (await plan(page)).blocks.map(b => b.id);
   const h0 = page.locator('#pl-blocks > li.block').nth(0).locator('[data-handle]');
   const h2 = page.locator('#pl-blocks > li.block').nth(2);
+  await h2.scrollIntoViewIfNeeded();
   const a = await h0.boundingBox(), b = await h2.boundingBox();
   await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
   await page.mouse.down();
@@ -113,10 +114,11 @@ test('Planassistent, Check, Packliste, Notizen, Kopieren, Vorlagen, Löschen', a
   await go(page, '#planen');
   await page.click('#pl-assist');
   await expect(page.locator('dialog[open] .proposal-item').first()).toBeVisible();
-  await page.click('dialog[open] [data-st=technique]');
+  await page.click('dialog[open] .assistant-options summary');await page.click('dialog[open] [data-st=technique]');
   await expect(page.locator('dialog[open] .proposal-item')).toHaveCount(4);
   await expect(page.locator('dialog[open] .why').first()).not.toBeEmpty();
   // Alternative wählen
+  await page.locator('dialog[open] .proposal-details summary').first().click();
   const altName = await page.locator('dialog[open] [data-alt]').first().textContent();
   await page.locator('dialog[open] [data-alt]').first().click();
   await expect(page.locator('dialog[open] .proposal-item strong').first()).toHaveText(altName.trim());

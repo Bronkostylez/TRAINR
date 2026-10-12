@@ -2,7 +2,7 @@
 // animierter Vorschlag mit Begründung, Quelle und Plan B je Block. Wird von „Heute“ und „Planen“ genutzt.
 import * as store from '../core/store.js';
 import {
-  activeTeam, currentPlan, planAge, slotOf, slotMinutes, exercise, foci, focusMinutes,
+  activeTeam, currentPlan, planType, planAge, slotOf, slotMinutes, exercise, foci, focusMinutes,
   squadLabel, AGES, FOCI, AREAS, RELEVANT, MAX_FOCI,
 } from '../core/planning.js';
 import { propose, STRATEGIES } from '../core/assistant.js';
@@ -33,7 +33,7 @@ export function pickerHtml(f, gaps, type) {
 /** Vorschlag als animierte Liste: Phase, Begründung, Quelle, Plan B zum Antippen. */
 function proposalHtml(s, pr) {
   return `<div class="proposal" style="margin-top:12px">
-    <div class="row between"><strong>${pr.minutes} Min${pr.pauseCount ? ` (inkl. ${pr.pauseCount} ${pr.pauseCount === 1 ? 'Pause' : 'Pausen'})` : ''} · ${esc(pr.age)} · ${esc(squadLabel(pr))}</strong><span class="tiny">${STRATEGIES[pr.strategy].name}</span></div>
+    <div class="row between"><strong>${pr.minutes} Min${pr.pauseCount ? ` (inkl. ${pr.pauseCount} ${pr.pauseCount === 1 ? 'Pause' : 'Pausen'})` : ''} · ${esc(pr.age)} · ${esc(squadLabel(pr, pr.type))}</strong><span class="tiny">${STRATEGIES[pr.strategy].name}</span></div>
     ${pr.notes.map(n => `<p class="notice">${esc(n)}</p>`).join('')}
     ${(() => { const fm = focusMinutes(pr.blocks.map(b => [exercise(s, b.exerciseId), b.minutes])); return fm.list.length ? `<div class="focus-strip" style="margin:8px 0"><details class="disclosure"><summary>Schwerpunkte im Vorschlag</summary><div class="body">${focusSummary(fm, { mark: pr.foci[0] || null, max: 5, link: false })}</div></details></div>` : ''; })()}
     ${pr.blocks.map((b, i) => { const e = exercise(s, b.exerciseId); return `<div class="proposal-item">
@@ -55,16 +55,17 @@ export function openAssistant({ preset = {}, onApplied, eventId = null } = {}) {
   if (eventId && !event) return;
   if (event && s0.plans.some(p => p.id === event.planId)) return toast('Für diesen Termin ist bereits eine Einheit verknüpft.');
   const gaps = neglected(s0);
-  const start = event ? (event.foci || []) : preset.foci?.length ? preset.foci : p.foci?.length ? p.foci : p.focus && p.focus !== 'Alle' ? [p.focus] : gaps.slice(0, 1);
+  const start = event ? (event.foci || []) : preset.foci?.length ? preset.foci : p.foci?.length ? p.foci : p.focus && p.focus !== 'Alle' ? [p.focus] : planType(s0, p) === 'keeper' ? ['Fangen'] : gaps.slice(0, 1);
   const f = {
     foci: [...new Set(start)].slice(0, MAX_FOCI),
     strategy: 'classic',
-    minutes: clamp(preset.minutes || slotMinutes(slot) || 60, 20, 150),
+    minutes: clamp(preset.minutes || p.targetMinutes || (planType(s0, p) === 'keeper' ? 20 : slotMinutes(slot)) || 60, 20, 150),
     people: Math.min(60, p.people),
     keepers: Math.min(20, p.keepers || 0),
     coaches: p.coaches ?? 1,
     age: planAge(s0, p) || team.age,
-    type: team.type,
+    type: planType(s0, p),
+    sourceOnly: p.sessionType === 'keeper',
     seed: Date.now() % 100000,
     pauses: { count: p.pauses?.after ? p.pauses.after.length : p.pauses?.count ?? 'auto', minutes: p.pauses?.minutes || 2 },
   };
@@ -85,24 +86,24 @@ export function openAssistant({ preset = {}, onApplied, eventId = null } = {}) {
   const planName = () => `${f.foci.length ? f.foci.join(' + ') : 'Abwechslungsreich'} · ${STRATEGIES[f.strategy].name}`.slice(0, 80);
   openSheet({
     title: 'Planassistent', wide: true, className: 'assistant-sheet',
-    body: `${event ? `<div class="assistant-context"><strong>Trainingstag vorbereiten</strong><p class="tiny">${esc(event.date)} · ${esc(event.start)} - ${esc(event.end)}</p><p class="small">Fokus aus deinem Wochenplan. Wer ist heute da? Besetzung und Material vor Ort prüfen.</p>${preset.minutes < 20 || preset.minutes > 150 ? '<p class="notice">Der Assistent plant 20 bis 150 Minuten. Dauer für diesen Termin prüfen.</p>' : ''}</div>` : ''}<p class="small muted">Regelbasiert und nachvollziehbar – keine KI, keine Datenübertragung. ${esc(TYPE_SHORT[team.type])} · nie Falltechnik automatisch.</p>
-      <div class="field"><span>Schwerpunkte <small class="tiny">bis zu ${MAX_FOCI} – verteilt auf die Phasen</small>${gaps.length ? ' <small class="tiny">· <span class="dot-gap" aria-hidden="true"></span> lange nicht trainiert</small>' : ''}</span>${pickerHtml(f, gaps, team.type)}</div>
-      <div class="field"><span>Dauer <small class="tiny">inkl. Pausen</small></span><div class="chips" role="radiogroup" aria-label="Dauer">${MINUTE_PRESETS.map(m => `<button type="button" class="chip" role="radio" data-min="${m}" aria-checked="${f.minutes === m}">${m} Min</button>`).join('')}</div>
+    body: `${event ? `<div class="assistant-context"><strong>Trainingstag vorbereiten</strong><p class="tiny">${esc(event.date)} · ${esc(event.start)} - ${esc(event.end)}</p><p class="small">Fokus aus deinem Wochenplan. Wer ist heute da? Besetzung und Material vor Ort prüfen.</p>${preset.minutes < 20 || preset.minutes > 150 ? '<p class="notice">Der Assistent plant 20 bis 150 Minuten. Dauer für diesen Termin prüfen.</p>' : ''}</div>` : ''}<p class="small muted">Regelbasiert und nachvollziehbar – keine KI, keine Datenübertragung. ${esc(TYPE_SHORT[f.type])} · nie Falltechnik automatisch.</p>${f.sourceOnly ? '<p class="tiny muted">Geprüfte Originalabläufe. Dauer und sichere Rollenwechsel sind TRAINR-Anpassungen.</p>' : ''}
+      <div class="field"><span>Schwerpunkte <small class="tiny">bis zu ${MAX_FOCI} – verteilt auf die Phasen</small>${gaps.length ? ' <small class="tiny">· <span class="dot-gap" aria-hidden="true"></span> lange nicht trainiert</small>' : ''}</span>${f.sourceOnly ? `<details class="disclosure"><summary>${esc(f.foci.join(' + ') || 'Schwerpunkte wählen')}</summary><div class="body">${pickerHtml(f, gaps, f.type)}</div></details>` : pickerHtml(f, gaps, f.type)}</div>
+      <div class="field"><span>Dauer <small class="tiny">inkl. Pausen</small></span><div class="chips" role="radiogroup" aria-label="Dauer">${(f.type === 'keeper' ? [20, 30, 45, 60] : MINUTE_PRESETS).map(m => `<button type="button" class="chip" role="radio" data-min="${m}" aria-checked="${f.minutes === m}">${m} Min</button>`).join('')}</div>
         <div class="stepper" style="max-width:220px"><button type="button" data-step-min="-5" aria-label="5 Minuten weniger">−</button><input id="as-min" type="number" min="20" max="150" value="${f.minutes}" aria-label="Minuten"><button type="button" data-step-min="5" aria-label="5 Minuten mehr">+</button></div></div>
       <div class="grid-2">
-        <div class="field"><span>${team.type === 'keeper' ? 'Torwarte' : 'Spieler'}</span><div class="stepper"><button type="button" data-step="people" data-d="-1" aria-label="Weniger">−</button><input id="as-people" type="number" min="1" max="60" value="${f.people}" aria-label="${team.type === 'keeper' ? 'Torwarte' : 'Spieler'}"><button type="button" data-step="people" data-d="1" aria-label="Mehr">+</button></div></div>
-        ${team.type === 'keeper' ? '' : `<div class="field"><span>Torwarte</span><div class="stepper"><button type="button" data-step="keepers" data-d="-1" aria-label="Weniger">−</button><input id="as-keepers" type="number" min="0" max="20" value="${f.keepers}" aria-label="Torwarte"><button type="button" data-step="keepers" data-d="1" aria-label="Mehr">+</button></div></div>`}
+        <div class="field"><span>${f.type === 'keeper' ? 'Torwarte' : 'Spieler'}</span><div class="stepper"><button type="button" data-step="people" data-d="-1" aria-label="Weniger">−</button><input id="as-people" type="number" min="1" max="60" value="${f.people}" aria-label="${f.type === 'keeper' ? 'Torwarte' : 'Spieler'}"><button type="button" data-step="people" data-d="1" aria-label="Mehr">+</button></div></div>
+        ${f.type === 'keeper' ? '' : `<div class="field"><span>Torwarte</span><div class="stepper"><button type="button" data-step="keepers" data-d="-1" aria-label="Weniger">−</button><input id="as-keepers" type="number" min="0" max="20" value="${f.keepers}" aria-label="Torwarte"><button type="button" data-step="keepers" data-d="1" aria-label="Mehr">+</button></div></div>`}
       </div>
       <details class="disclosure assistant-options"><summary>Rahmen anpassen</summary><div class="body">      <div class="field"><span>Altersklasse</span><div class="chips" role="radiogroup" aria-label="Altersklasse">${AGES.map(a => `<button type="button" class="chip" role="radio" data-age="${esc(a)}" aria-checked="${f.age === a}">${esc(a)}</button>`).join('')}</div></div>
       <div class="field"><span>Strategie</span><div class="seg" role="radiogroup" aria-label="Strategie">${Object.entries(STRATEGIES).map(([k, v]) => `<button type="button" role="radio" data-st="${k}" aria-checked="${f.strategy === k}">${v.name}</button>`).join('')}</div><small class="tiny" id="as-why">${esc(STRATEGIES[f.strategy].short)} · ${esc(STRATEGIES[f.strategy].why)}</small></div>
 </div></details>
-      <details class="disclosure"><summary><span class="grow">Feintuning: Pausen${team.type === 'keeper' ? '' : ', Trainer'}</span></summary><div class="body"><div class="grid-2">
+      <details class="disclosure"><summary><span class="grow">Feintuning: Pausen${f.type === 'keeper' ? '' : ', Trainer'}</span></summary><div class="body"><div class="grid-2">
         <label class="field"><span>Pausen</span><select class="input" id="as-pz">${[['0', 'Keine'], ['auto', 'Automatisch'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4']].map(([v, t]) => `<option value="${v}" ${String(f.pauses.count) === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
         <label class="field"><span>Minuten je Pause</span><input class="input" id="as-pzm" type="number" min="1" max="15" value="${f.pauses.minutes}"></label>
-        ${team.type === 'keeper' ? '' : `<label class="field"><span>Trainer</span><input class="input" id="as-coaches" type="number" min="0" max="10" value="${f.coaches}"></label>`}
+        <label class="field"><span>Trainer</span><input class="input" id="as-coaches" type="number" min="0" max="10" value="${f.coaches}"></label>
       </div></div></details>
       <div id="as-out" aria-live="polite"></div>`,
-    foot: `<button class="btn" type="button" id="as-reroll">${icon('dice')} Neu würfeln</button>${event ? '' : '<button class="btn" type="button" data-apply="replace">Ablauf ersetzen</button>'}<button class="btn primary" type="button" data-apply="new">${icon('sparkles')} ${event ? 'Einheit für Termin' : 'Als neue Einheit'}</button>`,
+    foot: `<button class="btn" type="button" id="as-reroll">${icon('dice')} Neu würfeln</button>${event ? '' : `<button class="btn ${f.sourceOnly ? 'primary' : ''}" type="button" data-apply="replace">${f.sourceOnly ? 'Plan übernehmen' : 'Ablauf ersetzen'}</button>`}<button class="btn primary" type="button" data-apply="new">${icon('sparkles')} ${event ? 'Einheit für Termin' : f.sourceOnly ? 'Als weitere Einheit' : 'Als neue Einheit'}</button>`,
     onMount: sh => {
       const b = sh.body;
       if (event) { const squad = b.querySelector('.grid-2'); b.querySelector('.assistant-context').after(squad); }
@@ -139,7 +140,8 @@ export function openAssistant({ preset = {}, onApplied, eventId = null } = {}) {
         const blocks = pr.blocks.map(bb => ({ id: uid(), exerciseId: bb.exerciseId, minutes: bb.minutes, why: bb.why.slice(0, 300), alternatives: bb.alternatives.slice(0, 3) }));
         if (x.dataset.apply === 'new') {
           if (store.get().plans.length >= LIMITS.plans) return toast(`Maximal ${LIMITS.plans} Einheiten.`);
-          const n = { ...blankPlan(store.get(), planName()), people: f.people, ...(f.keepers && team.type !== 'keeper' ? { keepers: f.keepers } : {}), ...(f.coaches !== 1 ? { coaches: f.coaches } : {}), focus: pr.focus, blocks, notes: pr.notes.join(' '), pauses: pr.pauses || { count: 0, minutes: f.pauses.minutes } };
+          const n = { ...blankPlan(store.get(), planName()), ...(f.type === 'keeper' ? { sessionType: f.type, targetMinutes: f.minutes } : {}), people: f.people, ...(f.keepers && f.type !== 'keeper' ? { keepers: f.keepers } : {}), ...(f.coaches !== 1 ? { coaches: f.coaches } : {}), focus: pr.focus, blocks, notes: pr.notes.join(' '), pauses: pr.pauses || { count: 0, minutes: f.pauses.minutes } };
+          if (f.type === 'keeper') delete n.keepers;
           if (event) { n.date = event.date; n.slot = (new Date(event.date + 'T12:00').getDay() + 6) % 7; }
           if (f.foci.length > 1) n.foci = f.foci;
           if (f.age !== team.age) n.age = f.age;
@@ -147,7 +149,7 @@ export function openAssistant({ preset = {}, onApplied, eventId = null } = {}) {
           undoToast(`„${n.name}“ erstellt. Bestehende Einheiten bleiben erhalten.`);
           if (pr.notes.length) toast(pr.notes[0]);
         } else {
-          updatePlan('Vorschlag übernommen', (x2, d) => { x2.blocks = blocks; x2.people = f.people; if (f.keepers && team.type !== 'keeper') x2.keepers = f.keepers; else delete x2.keepers; if (f.coaches !== 1) x2.coaches = f.coaches; else delete x2.coaches; x2.focus = pr.focus; if (f.foci.length > 1) x2.foci = f.foci; else delete x2.foci; x2.pauses = pr.pauses || { count: 0, minutes: f.pauses.minutes }; if (f.age !== team.age) x2.age = f.age; else delete x2.age; blocks.forEach(bb => markUsed(d, bb.exerciseId)); });
+          updatePlan('Vorschlag übernommen', (x2, d) => { if (f.type === 'keeper') { x2.sessionType = f.type; x2.targetMinutes = f.minutes; } x2.blocks = blocks; x2.people = f.people; if (f.keepers && f.type !== 'keeper') x2.keepers = f.keepers; else delete x2.keepers; if (f.coaches !== 1) x2.coaches = f.coaches; else delete x2.coaches; x2.focus = pr.focus; if (f.foci.length > 1) x2.foci = f.foci; else delete x2.foci; x2.pauses = pr.pauses || { count: 0, minutes: f.pauses.minutes }; if (f.age !== team.age) x2.age = f.age; else delete x2.age; blocks.forEach(bb => markUsed(d, bb.exerciseId)); });
           undoToast('Vorschlag übernommen. Rückgängig stellt den alten Ablauf wieder her.');
         }
         haptic('ok');

@@ -1,5 +1,5 @@
 // Ein gemeinsames Dokumentmodell für PDF, PNG und Druck. Layouts: detailed | compact | cards | coach.
-import { exercise, effective, blockLayout, layoutText, layoutAdvice, squadLabel, blockPeople, timeline, slotOf, slotLabel, planAge, teamOf, totalMinutes, exerciseMinutes, pauses, requirements, check, foci, planFocus, keyFirst } from '../core/planning.js';
+import { exercise, effective, blockLayout, layoutText, layoutAdvice, squadLabel, blockPeople, timeline, slotOf, slotLabel, planAge, planType, teamOf, totalMinutes, exerciseMinutes, pauses, requirements, check, foci, planFocus, keyFirst } from '../core/planning.js';
 import { LABELS, BRAND } from '../core/util.js';
 import { stepsFor } from '../scene/pitch.js';
 import { t, locale } from '../i18n/index.js';
@@ -23,7 +23,7 @@ export function blocksData(s, p) {
       i, b, e, n, g, label, num: String(i + 1).padStart(2, '0'), keeper: e.type === 'keeper',
       pause: pause ? { minutes: pause.minutes, label: pause.label, text: `Trinkpause · ${pause.minutes} Min${pause.label ? ` (${pause.label})` : ''}` } : null,
       foci: foci(e).join(', '), kind: foci(e).slice(0, 3).join(' · ') || e.tag,
-      groups: L.level === 'no' ? (L.why === 'nokeeper' ? 'ACHTUNG: Torwart fehlt' : `ACHTUNG: ${n} Spieler passen nicht in Gruppen von ${x.min}–${x.max}`) : layoutText(L) + (L.level === 'tight' && layoutAdvice(L) ? ` – ${layoutAdvice(L)}` : ''),
+      groups: L.level === 'no' ? (L.why === 'nocoach' ? 'ACHTUNG: Trainer fehlt' : L.why === 'nokeeper' ? 'ACHTUNG: Torwart fehlt' : `ACHTUNG: ${n} Spieler passen nicht in Gruppen von ${x.min}–${x.max}`) : layoutText(L) + (L.level === 'tight' && layoutAdvice(L) ? ` – ${layoutAdvice(L)}` : ''),
       matLabel: L.mode === 'queue' ? 'Material je Schlange' : L.mode === 'open' ? 'Material insgesamt' : 'Material je Gruppe',
       material: e.equipment.map(([m, c]) => `${c} ${m}`).join(', '), points: Array.isArray(e.points) && e.points.length ? e.points : [e.coaching],
       steps: stepsFor(e), source: src, ageWarn: age && !e.ages.includes(age) ? `ACHTUNG: nicht für ${age} vorgesehen.` : '',
@@ -34,8 +34,8 @@ export function blocksData(s, p) {
 export function headerData(s, p) {
   const team = teamOf(s, p), slot = slotOf(s, p);
   return {
-    title: p.name, team: team?.name || '', type: LABELS[team?.type] || '', age: planAge(s, p) || '', slot: slot ? slotLabel(slot) : '',
-    people: p.people, squad: squadLabel(p), total: totalMinutes(p, s), goal: p.goal || '', notes: p.notes || '',
+    title: p.name, team: team?.name || '', type: LABELS[planType(s, p)] || '', age: planAge(s, p) || '', slot: slot ? slotLabel(slot) : '',
+    people: p.people, squad: squadLabel(p, planType(s, p)), total: totalMinutes(p, s), goal: p.goal || '', notes: p.notes || '',
     pauses: (() => { const ps = pauses(s, p); return ps.length ? `${exerciseMinutes(p)} Min Übungen + ${ps.length} ${ps.length === 1 ? 'Pause' : 'Pausen'} à ${ps[0].minutes} Min` : ''; })(),
     focus: p.focus && p.focus !== 'Alle' ? p.focus : '', foci: keyFirst(planFocus(s, p).list, p.focus).slice(0, 5).map(o => `${o.key} (${o.minutes} Min)`).join(', '),
     material: Object.entries(requirements(s, p)).map(([n, c]) => `${c} ${n}`), checks: check(s, p).filter(c => c.level === 'warn').map(c => c.text),

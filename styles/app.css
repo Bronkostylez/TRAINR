@@ -967,3 +967,9 @@ details.focus-strip > summary { min-height: 48px; font-size: .9rem; }
 .more-disclosure > summary { min-height: 56px; font-size: 1.1rem; }
 .more-disclosure > .body { padding-top: 8px; }
 .more-disclosure .settings-card { border: 0; padding-inline: 0; }
+
+/* A separate keeper session, not a parallel field block. */
+.keeper-entry { margin: 12px 0; border-color: var(--line); gap: 8px; text-align:left; }
+.keeper-entry .tiny { color: var(--ink-2); white-space: normal; }
+.keeper-entry { display: flex; flex-wrap: nowrap; align-items: center; }
+.keeper-entry .tiny { font-size: .75rem; }

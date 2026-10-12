@@ -68,6 +68,8 @@ export function importSharedPlan(obj) {
     slot: team.slots[0].day, focus: p.focus || 'Alle', notes: typeof p.notes === 'string' ? p.notes.slice(0, 2000) : '', goal: typeof p.goal === 'string' ? p.goal.slice(0, 200) : '', date: null,
     blocks: p.blocks.map(b => { const n = { id: uid(), exerciseId: remap.get(b.exerciseId) || b.exerciseId, minutes: b.minutes }; ids.set(b.id, n.id); if (b.people !== undefined) n.people = b.people; if (Number.isInteger(b.stations) && b.stations >= 1 && b.stations <= 6) n.stations = b.stations; if (typeof b.note === 'string' && b.note) n.note = b.note.slice(0, 300); return n; }),
   };
+  if (p.sessionType !== undefined) plan.sessionType = p.sessionType;
+  if (p.targetMinutes !== undefined) plan.targetMinutes = p.targetMinutes;
   if (p.age) plan.age = p.age;
   if (Number.isInteger(p.keepers) && p.keepers >= 1 && p.keepers <= 20) plan.keepers = p.keepers;
   if (Number.isInteger(p.coaches) && p.coaches >= 0 && p.coaches <= 10 && p.coaches !== 1) plan.coaches = p.coaches;

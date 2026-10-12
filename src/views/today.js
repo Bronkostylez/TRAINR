@@ -1,7 +1,7 @@
 // Heute: nächste Einheit, Ein-Tipp-Erstellung, Start und Schnellaktionen.
 import { openWeek, prepareEvent } from './week.js';
 import * as store from '../core/store.js';
-import { currentPlan, activeTeam, exercise, squadLabel, blockLayout, layoutText, totalMinutes, timeline, slotOf, slotMinutes, planAge, check, foci, planFocus } from '../core/planning.js';
+import { currentPlan, activeTeam, exercise, squadLabel, blockLayout, layoutText, totalMinutes, timeline, slotOf, slotMinutes, planAge, planType, check, foci, planFocus } from '../core/planning.js';
 import { focusChips, areaBar } from '../ui/focus.js';
 import { openAssistant } from './assistant.js';
 import { DAYS, LABELS, esc, time, fmtTime, plural } from '../core/util.js';
@@ -64,7 +64,7 @@ export const todayView = {
     const events = upcoming(s, { limit: 3 }), nextEv = events[0], review = needsReview(s), nextPlan = nextEv && s.plans.find(x => x.id === nextEv.planId);
     $('#today', this.root).innerHTML = `
       <div class="page-head"><div>
-        <p class="eyebrow"><span translate="no">${esc(team.name)}</span> · ${esc(planAge(s, p))} · ${esc(LABELS[team.type])}</p>
+        <p class="eyebrow"><span translate="no">${esc(team.name)}</span> · ${esc(planAge(s, p))} · ${esc(LABELS[planType(s, p)])}</p>
         ${nextEv ? `<h1 id="h-heute">${esc(DAYS[weekday(nextEv.date)])}, ${esc(nextEv.start)}</h1>
         <p class="muted">${esc(evTitle(nextEv))} ${esc(eventWhen(nextEv))} · ${duration(nextEv)} Min${nextEv.place ? ` · ${esc(nextEv.place)}` : ''}</p>`
         : `<h1 id="h-heute">${next ? `${esc(DAYS[next.slot.day])}, ${esc(next.slot.start)}` : 'Dein Training'}</h1>
@@ -83,7 +83,7 @@ export const todayView = {
           <div><strong>${p.blocks.length}</strong><small>${p.blocks.length === 1 ? 'Übung' : 'Übungen'}</small></div>
           <div><strong>${p.people}</strong><small>Spieler</small></div>
         </div>
-        <p class="tiny" style="margin:-6px 0 10px"><button class="chip sm-chip" type="button" id="t-squad" aria-haspopup="dialog" title="Wer ist da: Spieler, Torwart, Trainer">${esc(squadLabel(p))}</button></p>
+        <p class="tiny" style="margin:-6px 0 10px"><button class="chip sm-chip" type="button" id="t-squad" aria-haspopup="dialog" title="Wer ist da: Spieler, Torwart, Trainer">${esc(squadLabel(p, planType(s, p)))}</button></p>
         ${p.blocks.length ? `<div class="hero-bar" aria-hidden="true">${p.blocks.map(b => `<i style="width:${(b.minutes / Math.max(total, avail || total)) * 100}%"></i>`).join('')}</div>` : ''}
         ${fm.list.length ? `<div class="hero-foci"><span class="tiny">Im Fokus</span>${focusChips(fm.list.map(o => ({ key: o.key, minutes: o.minutes })), { max: 2, link: true, mark: p.focus })}</div>` : ''}
         ${warns.length ? `<p class="small hero-warn">${icon('warn')} ${esc(warns[0].text)}</p>` : ''}
