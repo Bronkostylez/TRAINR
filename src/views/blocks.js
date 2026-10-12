@@ -1,7 +1,7 @@
 // Block-Werkzeuge, die Heute und Planen gemeinsam nutzen: bearbeiten, tauschen, schnell hinzufügen.
 import * as store from '../core/store.js';
 import {
-  exercise, effective, layout, layoutText, layoutAdvice, squadOf, squadLabel, flowOf, FLOW_LABEL, STATION_MAX, currentPlan, allExercises, suits, score, blockPeople, planAge, foci, focusOverlap,
+  exercise, effective, coachRole, layout, layoutText, layoutAdvice, squadOf, squadLabel, flowOf, FLOW_LABEL, STATION_MAX, currentPlan, allExercises, suits, score, blockPeople, planAge, foci, focusOverlap,
   pauses, pauseEvery, timeline, slotOf, slotMinutes, totalMinutes, exerciseMinutes, fitBlocks, PAUSE_MAX, PAUSE_MINUTES,
 } from '../core/planning.js';
 import { focusChips } from '../ui/focus.js';
@@ -13,9 +13,9 @@ import { toast } from '../ui/feedback.js';
 import { drillPitch } from '../scene/pitch.js';
 
 /** Erklärung zur Verteilung eines Blocks bei `n` Spielern (Feld) und `stations` Schlangen. */
-const groupText = (s, p, e, n, stations = 1) => {
-  const x = effective(s, e), L = layout(s, e, squadOf(s, p, { people: n }), stations), flow = flowOf(e), range = x.min === x.max ? x.min : `${x.min}–${x.max}`;
-  const lead = flow === 'queue' ? `Je Station ${range} Spieler aktiv` : flow === 'open' ? `Ab ${x.min} Spielern` : `${range} Spieler pro Gruppe`, adv = layoutAdvice(L);
+const groupText = (s, p, e, n, stations = 1, useCoach = true) => {
+  const x = effective(s, e), L = layout(s, e, squadOf(s, p, { people: n }), stations, useCoach), flow = flowOf(e), range = x.min === x.max ? x.min : `${x.min}–${x.max}`;
+  const lead = flow === 'queue' ? `Je Station ${range} Spieler aktiv` : flow === 'open' ? `Ab ${x.min} Spielern` : coachRole(e)?.slots ? `${range} Rollen pro Gruppe (Kinder + Helfer)` : `${range} Spieler pro Gruppe`, adv = layoutAdvice(L);
   return `${lead} · ${L.level === 'no' ? `passt nicht: ${layoutText(L)}` : layoutText(L)}${adv && L.level !== 'no' ? ` · ${adv}` : ''}`;
 };
 
@@ -32,7 +32,7 @@ export function swapBlock(blockId, toId) {
   if (!b) return;
   const next = toId ? exercise(s, toId) : alternatives(s, p, b, 1)[0];
   if (!next) { toast('Keine weitere passende Übung. Über „Hinzufügen“ manuell wählen.'); return; }
-  updatePlan('Übung getauscht', (plan, d) => { const x = plan.blocks.find(y => y.id === blockId); x.exerciseId = next.id; delete x.stations; markUsed(d, next.id); });
+  updatePlan('Übung getauscht', (plan, d) => { const x = plan.blocks.find(y => y.id === blockId); x.exerciseId = next.id; delete x.stations; delete x.coachSupport; markUsed(d, next.id); });
   undoToast(`Getauscht gegen „${next.name}“. Blockzeit bleibt gleich.`);
 }
 
@@ -51,6 +51,7 @@ export function openBlockEditor(blockId) {
           <div class="field"><span>Spieler bei dieser Übung</span><div class="stepper"><button type="button" data-step="p" data-d="-1" aria-label="Ein Spieler weniger">−</button><input name="people" type="number" inputmode="numeric" min="1" max="100" value="${blockPeople(p, b)}" aria-label="Spieler"><button type="button" data-step="p" data-d="1" aria-label="Ein Spieler mehr">+</button></div></div>
         </div>
         ${flowOf(e) === 'queue' ? `<div class="field"><span>Schlangen (Stationen)</span><div class="stepper"><button type="button" data-step="s" data-d="-1" aria-label="Eine Schlange weniger">−</button><input name="stations" type="number" inputmode="numeric" min="1" max="${STATION_MAX}" value="${b.stations || 1}" aria-label="Schlangen"><button type="button" data-step="s" data-d="1" aria-label="Eine Schlange mehr">+</button></div></div>` : ''}
+        ${coachRole(e)?.slots ? `<label class="coach-toggle"><input type="checkbox" name="coachSupport" ${b.coachSupport !== false ? 'checked' : ''}><span>Trainer übernimmt Helferrolle <small>${esc(coachRole(e).role)}</small></span></label>` : ''}
         <p class="small muted" id="be-hint" aria-live="polite"></p>
         <label class="field"><span>Notiz zu diesem Block (optional)</span><input class="input" name="note" maxlength="300" value="${esc(b.note || '')}" placeholder="z. B. Feld B, Leibchen rot"></label>
         <p class="error" id="be-err" role="alert"></p>
@@ -63,9 +64,10 @@ export function openBlockEditor(blockId) {
     onMount(sh) {
       const f = sh.body.querySelector('#be');
       const stations = () => (f.stations ? Math.min(STATION_MAX, Math.max(1, Number(f.stations.value) || 1)) : 1);
-      const hint = () => { const n = Number(f.people.value); sh.body.querySelector('#be-hint').textContent = integer(n, 1, 100) ? groupText(store.get(), p, e, n, stations()) + (n === p.people ? ' · wie in der Einheit' : '') : '1–100 Spieler eintragen.'; };
+      const hint = () => { const n = Number(f.people.value); sh.body.querySelector('#be-hint').textContent = integer(n, 1, 100) ? groupText(store.get(), p, e, n, stations(), f.coachSupport?.checked ?? true) + (n === p.people ? ' · wie in der Einheit' : '') : '1–100 Spieler eintragen.'; };
       hint();
       f.people.addEventListener('input', hint);
+      f.coachSupport?.addEventListener('change', hint);
       f.stations?.addEventListener('input', hint);
       on(sh.body, 'click', '[data-step]', (_, btn) => { const k = btn.dataset.step, inp = k === 'm' ? f.minutes : k === 's' ? f.stations : f.people, max = k === 'm' ? 120 : k === 's' ? STATION_MAX : 100; inp.value = Math.min(max, Math.max(1, (Number(inp.value) || 0) + Number(btn.dataset.d))); hint(); });
       sh.body.querySelector('#be-same').onclick = () => { f.people.value = p.people; hint(); };
@@ -82,6 +84,7 @@ export function openBlockEditor(blockId) {
         updatePlan('Block angepasst', plan => {
           const x = plan.blocks.find(y => y.id === blockId); if (!x) return;
           x.minutes = m;
+          if (f.coachSupport && !f.coachSupport.checked) x.coachSupport = false; else delete x.coachSupport;
           if (n === plan.people) delete x.people; else x.people = n;
           if (stations() > 1) x.stations = stations(); else delete x.stations;
           if (note) x.note = note; else delete x.note;
