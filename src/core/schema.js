@@ -164,7 +164,7 @@ export function validateV3(x) {
     pids.add(p.id);
     for (const b of p.blocks) {
       if (!text(b.id, 100) || bids.has(b.id) || !ids.has(b.exerciseId) || !integer(b.minutes, 1, 120) ||
-        (b.people !== undefined && !integer(b.people, 1, 100)) || !optText(b.note, 300) ||
+        (b.coachSupport !== undefined && typeof b.coachSupport !== 'boolean') || (b.people !== undefined && !integer(b.people, 1, 100)) || !optText(b.note, 300) ||
         (b.groupLabel !== undefined && !optText(b.groupLabel, 40)) || (b.stations !== undefined && !integer(b.stations, 1, 6)) ||
         (b.why !== undefined && !optText(b.why, 300)) ||
         (b.alternatives !== undefined && (!Array.isArray(b.alternatives) || b.alternatives.length > 6 || b.alternatives.some(id => !text(id, 100))))) fail('Ungültiger Block.');
