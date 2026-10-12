@@ -64,7 +64,7 @@ export const planView = {
   paint(reason) {
     const s = store.get(), p = currentPlan(s), team = activeTeam(s);
     if (!p || !team) return;
-    const slot = slotOf(s, p), total = totalMinutes(p, s), avail = slotMinutes(slot), over = avail && total > avail, ps = new Map(pauses(s, p).map(x => [x.afterId, x]));
+    const slot = slotOf(s, p), total = totalMinutes(p, s), avail = p.targetMinutes || slotMinutes(slot), over = avail && total > avail, ps = new Map(pauses(s, p).map(x => [x.afterId, x]));
     const dates = upcoming(s).filter(ev => ev.planId === p.id), linked = dates[0], more = dates.length;
     const main = $('#plan-main', this.root), optionsOpen = !!$('#pl-options', this.root)?.open;
     main.innerHTML = `
@@ -73,10 +73,11 @@ export const planView = {
           <div class="row" style="gap:2px"><button class="icon-btn" type="button" id="pl-undo" aria-label="Rückgängig" ${store.canUndo() ? '' : 'disabled'} title="${esc(store.undoLabel())}">${icon('undo')}</button><button class="icon-btn" type="button" id="pl-redo" aria-label="Wiederholen" ${store.canRedo() ? '' : 'disabled'}>${icon('redo')}</button><button class="icon-btn" type="button" id="pl-cal" aria-label="Kalender öffnen" title="Kalender">${icon('calendar')}</button><button class="icon-btn" type="button" id="pl-share" aria-label="Exportieren und teilen">${icon('share')}</button><button class="icon-btn" type="button" id="pl-more" aria-label="Weitere Aktionen">${icon('more')}</button></div></div>
         <label class="sr-only" for="pl-name">Name der Einheit</label>
         <h1 id="h-planen" class="sr-only">Planen: ${esc(p.name)}</h1>
+        ${planType(s, p) === 'keeper' ? '<p class="eyebrow">Torwart · eigener Einheitstyp</p>' : ''}
         <input class="plan-title" id="pl-name" maxlength="80" value="${esc(p.name)}" autocomplete="off">
         <div class="plan-facts">
-          <button class="fact" type="button" id="pl-slot">${icon('clock')} ${slot ? esc(slotLabel(slot)) : 'Kein Termin'}</button>
-          <span class="fact" style="padding:0 4px;cursor:default">${icon('users')}<span class="stepper" style="border:0"><button type="button" id="pl-pminus" aria-label="Ein Spieler weniger">−</button><input id="pl-people" type="number" min="1" max="100" value="${p.people}" aria-label="Spieler insgesamt ohne Trainer"><button type="button" id="pl-pplus" aria-label="Ein Spieler mehr">+</button></span></span>
+          <button class="fact" type="button" id="pl-slot">${icon('clock')} ${p.sessionType === 'keeper' && p.targetMinutes ? `${p.targetMinutes} Min · ${slot ? esc(slotLabel(slot)) : 'Kein Termin'}` : slot ? esc(slotLabel(slot)) : 'Kein Termin'}</button>
+          <span class="fact" style="padding:0 4px;cursor:default">${icon('users')}<span class="stepper" style="border:0"><button type="button" id="pl-pminus" aria-label="Ein Spieler weniger">−</button><input id="pl-people" type="number" min="1" max="100" value="${p.people}" aria-label="${planType(s, p) === 'keeper' ? 'Torwarte insgesamt ohne Trainer' : 'Spieler insgesamt ohne Trainer'}"><button type="button" id="pl-pplus" aria-label="Ein Spieler mehr">+</button></span></span>
           <button class="fact" type="button" id="pl-squad" aria-haspopup="dialog" title="Wer ist da: Spieler, Torwart, Trainer">${p.keepers ? `${p.keepers} Torwart · ` : ''}${(p.coaches ?? 1) === 1 ? '1 Trainer' : `${p.coaches} Trainer`}</button>
           <button class="fact" type="button" id="pl-date" data-ev="${esc(linked?.id || '')}">${icon('calendar')} ${linked ? esc(fmtDate(linked.date, { relative: true })) + (more > 1 ? ` +${more - 1}` : '') : 'Im Kalender eintragen'}</button>
         </div>
@@ -91,6 +92,7 @@ export const planView = {
           <div class="budget-label"><span>${total} Min geplant</span><span class="${over ? 'block-warn' : ''}">${avail ? (over ? `${total - avail} Min zu lang` : `${avail - total} Min frei von ${avail}`) : 'Kein Zeitrahmen'}</span></div>
         </div>
       </div>
+      <button class="btn block keeper-entry" id="pl-keeper" type="button">${icon('users')} Torwart-Einheit <span class="grow"></span><span class="tiny">2 Torwarte · 20 Min</span>${icon('chevron')}</button>
       <button class="btn block week-entry" id="pl-week" type="button">${icon('calendar')} Wochenplaner <span class="grow"></span>${icon('chevron')}</button>
       <div class="plan-tabs"><div class="seg" role="tablist" aria-label="Bereiche der Einheit">${TABS.map(([k, t]) => `<button type="button" role="tab" data-ptab="${k}" aria-selected="${this.sub === k}" aria-pressed="${this.sub === k}">${t}${k === 'check' ? checkBadge(s, p) : ''}</button>`).join('')}</div></div>
       <div id="pl-body"></div>`;
@@ -174,6 +176,14 @@ export const planView = {
     $('#pl-undo', r).onclick = () => { const l = store.undo(); if (l) toast(`„${l}“ rückgängig.`); };
     $('#pl-redo', r).onclick = () => { const l = store.redo(); if (l) toast(`„${l}“ wiederhergestellt.`); };
     $('#pl-switch', r).onclick = () => this.plansSheet();
+    $('#pl-keeper', r).onclick = () => {
+      const live = store.get(); if (live.plans.length >= LIMITS.plans) return toast(`Maximal ${LIMITS.plans} Einheiten.`);
+      const n = { ...blankPlan(live, 'Torwart · 20 Min'), sessionType: 'keeper', targetMinutes: 20, people: 2, coaches: 1, focus: 'Fangen', pauses: { count: 0, minutes: 1 } };
+      delete n.keepers;
+      store.update('Torwart-Einheit erstellt', d => { d.plans.push(n); d.selectedPlanId = n.id; });
+      undoToast('Torwart-Einheit angelegt. Feldtraining bleibt erhalten.');
+      openAssistant();
+    };
     $('#pl-week', r).onclick = openWeek;
     $('#pl-cal', r).onclick = () => go('kalender');
     $('#pl-share', r).onclick = () => import('../exports/sheet.js').then(m => m.openExport());
@@ -219,7 +229,7 @@ export const planView = {
       const s = store.get(), team = activeTeam(s), list = plansOfTeam(s);
       sh.setBody(`<p class="small muted"><span translate="no">${esc(team.name)}</span> · ${plural(list.length, 'Einheit', 'Einheiten')}</p><div class="stack">${list.map(p => { const t = totalMinutes(p, s); return `
         <button class="plan-card" type="button" data-pick="${p.id}" aria-current="${p.id === s.selectedPlanId}">
-          <span class="row between"><strong>${esc(p.name)}</strong><span class="tiny">${t} Min · ${plural(p.blocks.length, 'Block', 'Blöcke')}</span></span>
+          <span class="row between"><strong>${esc(p.name)}</strong><span class="tiny">${esc(TYPE_SHORT[planType(s, p)])} · ${t} Min · ${plural(p.blocks.length, 'Block', 'Blöcke')}</span></span>
           ${p.blocks.length ? `<span class="hero-bar" aria-hidden="true">${p.blocks.map(b => `<i style="width:${b.minutes / Math.max(1, t) * 100}%"></i>`).join('')}</span>` : '<span class="tiny">leer</span>'}
           <span class="tiny">${p.blocks.slice(0, 4).map(b => esc(exercise(s, b.exerciseId)?.name || '')).join(' · ')}${p.blocks.length > 4 ? ' …' : ''}</span>
         </button>`; }).join('')}</div>`);
@@ -296,7 +306,7 @@ function blockHtml(s, p, b, i, label) {
     <button class="block-handle" type="button" data-handle aria-label="Block ${i + 1} verschieben (Pfeiltasten)"><span class="num">${i + 1}</span>${icon('drag')}</button>
     <div class="block-main">
       <button class="title" type="button" data-edit="${b.id}" aria-label="${esc(e.name)} bearbeiten">${esc(e.name)}</button>
-      <div class="block-sub"><span>${label || ''}</span><span title="Kategorie: ${esc(e.tag)}">${esc(foci(e).slice(0, 2).join(' · ') || e.tag)}</span><span>${n} Spieler${b.people ? ' (nur hier)' : ''}</span>${L.level !== 'no' ? `<span class="flow flow-${L.mode}">${esc(layoutText(L))}</span>` : ''}${b.note ? `<span>${esc(b.note)}</span>` : ''}</div>
+      <div class="block-sub"><span>${label || ''}</span><span title="Kategorie: ${esc(e.tag)}">${esc(foci(e).slice(0, 2).join(' · ') || e.tag)}</span><span>${n} ${planType(s, p) === 'keeper' ? 'Torwarte' : 'Spieler'}${b.people ? ' (nur hier)' : ''}</span>${L.level !== 'no' ? `<span class="flow flow-${L.mode}">${esc(layoutText(L))}</span>` : ''}${b.note ? `<span>${esc(b.note)}</span>` : ''}</div>
       ${warn ? `<div class="block-sub block-warn">${esc(warn)}</div>` : ''}
     </div>
     <div class="block-actions">
