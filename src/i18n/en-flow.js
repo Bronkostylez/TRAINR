@@ -1,5 +1,20 @@
 // Englisch: Ablaufarten (Gruppen, Schlange, alle gemeinsam) und Besetzung (Spieler, Torwart, Trainer).
 export const FLOW = {
+  'Torwarte wechseln nach kurzen Serien. Trainer bleibt Zuspieler; Wartende stehen außerhalb der Zuspielbahn.': 'Goalkeepers rotate after short sets. The coach stays as feeder; waiting children stand outside the feed lane.',
+  '{} Rollen pro Gruppe (Kinder + Helfer)': '{} roles per group (children + helper)',
+  '{} Rollen (Kinder + Helfer) / Gruppe': '{} roles (children + helper) / group',
+  'Trainerrolle': 'Coach role',
+  'Trainer übernimmt Helferrolle': 'Coach takes a support role',
+  'Partner-Zuspiel': 'Cooperative partner feed',
+  'Zuspiel / Zuwurf': 'Pass / throw feed',
+  'Richtung zeigen': 'Show direction',
+  'Kontrollierter Zuwurf': 'Controlled throw',
+  '1 Trainer: {}': '1 coach: {}',
+  '{#} Trainer: {}': '{1} coaches: {2}',
+  'Übernehmen geprüfte Helferrollen, keine Spieler- oder Gegnerrolle.': 'Take reviewed support roles, never a player or opponent role.',
+  'TRAINR-Anpassung: Trainer übernimmt nur die Helferrolle, nicht Torwart, Gegner oder Spieler im Wettkampf. Kinder wechseln die Übungsrolle; Trainer bleibt Helfer. Im Block abschaltbar, Pflicht-Zuwurf bleibt nötig.': 'TRAINR adaptation: the coach takes only the support role, not goalkeeper, opponent or competing player. Children rotate the training role; the coach remains the helper. Can be turned off per block; a required thrower is still needed.',
+  'Animation zeigt den Originalablauf, nicht die Trainerbesetzung.': 'Animation shows the original drill, not the coach allocation.',
+  'Kinder und Trainer werden getrennt gezählt. Eine belegte Helferrolle ersetzt einen Partnerplatz, nicht die Übungsrolle.': 'Children and coaches are counted separately. An assigned support role replaces a partner slot, not the training role.',
   // Rollen
   'Torwarte': 'Goalkeepers', 'Trainer': 'Coaches', '1 Trainer': '1 coach', '{#} Trainer': '{} coaches', '1 Torwart': '1 goalkeeper', '{#} Torwart': '{} goalkeepers',
   'Spieler (Feld)': 'Players (outfield)', 'kein Trainer': 'no coach', 'ein Trainer': 'one coach',
