@@ -202,4 +202,4 @@ export function emptyV3() {
     version: 3, teams: [], activeTeamId: null, custom: [], plans: [], selectedPlanId: null,
     exerciseMeta: {}, boards: [], events: [], settings: { ...DEFAULT_SETTINGS }, help: { tour: false },
   };
-    }
+}
