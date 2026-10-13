@@ -7,5 +7,6 @@ export const COACH_ROLES = Object.fromEntries([
   ...feed.map(id => [id, { role: 'Zuspiel / Zuwurf', slots: 1 }]),
   ['v5-scan', { role: 'Richtung zeigen', slots: 1 }],
   ['gk-steps', { role: 'Kontrollierter Zuwurf', external: true }],
+  ['gk-handball', { role: 'Flaches Zuspiel aus der Mitte', external: true }],
 ]);
 export const coachRole = e => e && !e.custom ? COACH_ROLES[e.id] || null : null;
