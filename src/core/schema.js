@@ -73,12 +73,12 @@ function validVariant(a) { return !!a && integer(a.min, 1, 100) && integer(a.max
 const THEMES = ['system', 'light', 'dark'], MOTION = ['full', 'reduced', 'off'], LAYOUTS = ['detailed', 'compact', 'cards', 'coach'];
 export const DEFAULT_SETTINGS = Object.freeze({
   theme: 'system', motion: 'full', haptics: false, sound: true, fontScale: 100, clubColor: null,
-  autoAdvance: false, warnSeconds: 30, wakeLock: true, exportLayout: 'detailed', exportStyle: 'brand', lang: 'auto',
+  autoAdvance: false, speech: false, warnSeconds: 30, wakeLock: true, exportLayout: 'detailed', exportStyle: 'brand', lang: 'auto',
 });
 
 export function validSettings(s) {
   return !!s && THEMES.includes(s.theme) && MOTION.includes(s.motion) && typeof s.haptics === 'boolean' && typeof s.sound === 'boolean' &&
-    integer(s.fontScale, 85, 130) && (s.clubColor === null || /^#[0-9a-f]{6}$/i.test(s.clubColor)) && typeof s.autoAdvance === 'boolean' &&
+    integer(s.fontScale, 85, 130) && (s.clubColor === null || /^#[0-9a-f]{6}$/i.test(s.clubColor)) && typeof s.autoAdvance === 'boolean' && (s.speech === undefined || typeof s.speech === 'boolean') &&
     integer(s.warnSeconds, 0, 120) && typeof s.wakeLock === 'boolean' && LAYOUTS.includes(s.exportLayout) && ['brand', 'ink'].includes(s.exportStyle) &&
     (s.lang === undefined || s.lang === 'auto' || LANG_CODES.includes(s.lang));
 }

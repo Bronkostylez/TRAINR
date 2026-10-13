@@ -15,7 +15,7 @@ for(const theme of ['dark','light'])for(const width of [360,390,768,1280])test(`
 test('Torwart: Backup, Übersetzung, Quellen und Trainerbesetzung',async({page})=>{
  await keeper(page);await page.click('dialog[open] [data-apply=replace]');
  const result=await page.evaluate(async()=>{const P=await import('/src/core/planning.js'),S=await import('/src/core/schema.js'),A=await import('/src/core/assistant.js');let s=window.__trainr.store.get(),p=P.currentPlan(s);let saved=S.validateV3(JSON.parse(JSON.stringify(s)));let drills=P.allExercises(s).filter(e=>e.id.startsWith('gk-'));let f={age:'E-Jugend',people:2,keepers:0,coaches:0,minutes:20,type:'keeper',sourceOnly:true,seed:3};return {type:P.planType(saved,P.currentPlan(saved)), count:drills.length, urls:drills.every(e=>e.url.startsWith('https:')&&e.sources.length),plan:A.propose(s,f).blocks.map(b=>b.exerciseId)};});
- expect(result.type).toBe('keeper');expect(result.count).toBe(5);expect(result.urls).toBeTruthy();expect(result.plan).not.toContain('gk-steps');
+ expect(result.type).toBe('keeper');expect(result.count).toBe(6);expect(result.urls).toBeTruthy();expect(result.plan).not.toContain('gk-steps');
  await page.evaluate(()=>window.__trainr.store.update('English',d=>{d.settings.lang='en'}));await page.reload();await go(page,'#planen');await expect(page.locator('#pl-keeper')).toContainText('Goalkeeper session');await page.click('#pl-assist');await expect(page.locator('dialog[open]')).toContainText('Goalkeepers');await expect(page.locator('dialog[open] .proposal-item').first()).not.toContainText('Partnerrollen');
 });
 test('Torwart: Offline-Neustart, Teilen/Import, Vorlagen, alle Animationen und Undo',async({page,context})=>{

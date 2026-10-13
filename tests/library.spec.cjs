@@ -13,12 +13,12 @@ test('Bibliothek: Suche, Filter, Merkliste, Detail, Bewertung, Notiz, Variante, 
   await page.click('dialog[open] [data-k=type][data-v=all]');
   await page.selectOption('dialog[open] [data-sel=age]', 'all');
   await page.click('dialog[open] [data-fapply]');
-  await expect(cards).toHaveCount(146);
+  await expect(cards).toHaveCount(152);
   // Archivierte einblenden
   await page.click('#lib-filter');
   await page.locator('dialog[open] [data-chk=archived]').check({ force: true });
   await page.click('dialog[open] [data-fapply]');
-  await expect(cards).toHaveCount(148);
+  await expect(cards).toHaveCount(154);
   // Kategorie Falltechnik: 2 Übungen, keine für Bambini
   await page.click('#lib-filter');
   await page.click('[data-tagf="Falltechnik"]');
@@ -95,8 +95,8 @@ test('Jede Übung hat Ziel, Coaching-Punkte und https-Quelle; keine Kopfbälle; 
       bambiniKeeper: all.filter(e => e.type === 'keeper' && e.ages.includes('Bambini')).map(e => e.id),
     };
   });
-  expect(r.n).toBe(148);
-  expect(r.ids).toBe(148);
+  expect(r.n).toBe(154);
+  expect(r.ids).toBe(154);
   expect(r.incomplete).toEqual([]);
   expect(r.heading).toEqual([]);
   expect(r.fall.every(a => a === 'D-Jugend')).toBe(true);
