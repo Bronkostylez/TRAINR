@@ -35,3 +35,12 @@ html, body { background: #fff !important; color: #111 !important; font-size: 10.
 .print-doc .psketch .sketch-trail { fill: none; stroke: #ffffff; stroke-width: 2; stroke-dasharray: 6 4; } .print-doc .psketch .sketch-trail.ball { stroke: #ffe58a; stroke-dasharray: 2 3; }
 .print-doc .ppause { margin: 4px 0 8px; font-weight: 700; color: #5a574d; text-align: center; letter-spacing: .02em; }
 .print-doc tr.pause td { color: #5a574d; font-style: italic; border-top: 1px dashed #cfc9b9; }
+
+.print-doc .material-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0 14px; }
+.print-doc .material-item { display:flex; gap:10px; align-items:center; background:#f1ede3; padding:10px; break-inside:avoid; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+.print-doc .material-item b { font-size:18pt; min-width:26px; }
+.print-doc .material-check { width:12px; height:12px; flex-shrink:0; border:1px solid #555; background:#fff; }
+.print-doc.style-ink .material-item { background:#f2f2f2; }
+.print-doc.layout-detailed .pblock { break-before:page; }
+.print-doc .psketch .setup-box { fill:none; stroke:white; stroke-width:2; }
+.print-doc.style-ink .psketch svg { filter:grayscale(1); }
