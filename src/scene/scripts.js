@@ -769,4 +769,5 @@ export function scriptRoute(sc) {
     const b = pos.b0, last = pts[pts.length - 1];
     if (Math.hypot(b[0] - last[0], b[1] - last[1]) > 6) pts.push(b.slice());
   }
-  return pts.length > 1 ? 'M' + pts.map(p => p.map(v => v.toFixed(0)).join(' ')).join(' L') : '';}
+  return pts.length > 1 ? 'M' + pts.map(p => p.map(v => v.toFixed(0)).join(' ')).join(' L') : '';
+}
