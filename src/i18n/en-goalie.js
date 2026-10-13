@@ -47,5 +47,15 @@ export const GOALIE = {
   "Partner-Rechteck · Ball sichern": "Partner rectangle · secure the ball",
   "Zwei Keeper · Besonderen Ball erkennen": "Two keepers · recognise the special ball",
   "Trainer · Keeper · Rollenwechsel": "Coach · keeper · role change",
+  "Torwart-Handball": "Goalkeeper handball",
+  "Zwei Tore stehen sich gegenüber, Abstand nach Leistungsstand; in jedem Tor ein Torwart, viele Bälle liegen bereit. Der Trainer steht in der Mitte und spielt flach oder als flachen Aufsetzer auf einen Torwart. Dieser nimmt den Ball sicher auf und wirft ihn als Aufsetzer aufs andere Tor. Der zweite Torwart verhindert das Tor. Der Trainer wechselt das Zuspiel zwischen beiden Torwarten. Variante: Vier Bodenmarkierungen vor jedem Tor; vor der Aktion im Slalom mit Sidesteps durchqueren.": "Two goals face each other, distance to suit the level; one goalkeeper in each goal and plenty of balls ready. The coach stands in the middle and plays a flat ball or a low bounce to one goalkeeper. The keeper secures the ball and throws it as a bounce at the other goal. The second goalkeeper stops the goal. The coach alternates the feed between both keepers. Variation: four floor markers in front of each goal; move through them in a slalom with side steps before each action.",
+  "Ball sicher aufnehmen, dann werfen Mit dem Aufsetzer das Tor treffen.": "Secure the ball, then throw Hit the goal with the bounce.",
+  "Ball sicher aufnehmen, dann werfen": "Secure the ball, then throw",
+  "Mit dem Aufsetzer das Tor treffen": "Hit the goal with the bounce",
+  "Ball sicher aufnehmen und gezielt zum Tor werfen.": "Secure the ball and throw accurately at the goal.",
+  "TRAINR-Anpassung: Dauer und Rollenwechsel sind Vorschläge. Kontrollierte Zuspiele, keine harten Nahschüsse. Tore sichern. Der Trainer spielt nur zu, er spielt nicht mit. Wettkampf nur freiwillig; die Skizze zeigt keine Fang- oder Falltechnik.": "TRAINR adaptation: duration and role changes are suggestions. Use controlled feeds, no powerful close-range shots. Secure the goals. The coach only feeds and does not play. Competition is optional; the sketch shows no catching or diving technique.",
+  "Soccerdrills: Torwarttraining E-Jugend (U10, U11), Torwart-Handball": "Soccerdrills: goalkeeper training U10/U11, goalkeeper handball",
+  "Torwart-Handball · Trainer spielt zu": "Goalkeeper handball · coach feeds",
+  "Flaches Zuspiel aus der Mitte": "Flat feed from the middle",
   "2 Torwarte · 20 Min": "2 keepers · 20 min"
 };
