@@ -8,23 +8,32 @@ import { toast } from '../ui/feedback.js';
 import { buildDoc, layoutPages, LAYOUTS, STYLES, planText, planCsv, blocksData, headerData } from './doc.js';
 import { pdfBytes, renderCanvases } from './pdf.js';
 import { downloadBlob, shareFiles, sharePlanFile } from './share.js';
+import { prepareImages } from './images.js';
 import { drillPitch } from '../scene/pitch.js';
 
-export function exportPdf(s, p, layout, style) { return pdfBytes(layoutPages(buildDoc(s, p, layout), style), { title: `TRAINR · ${p.name}` }); }
+export async function exportPdf(s, p, layout, style) { return pdfBytes(await prepareImages(layoutPages(buildDoc(s, p, layout), style)), { title: `TRAINR · ${p.name}` }); }
 
 export function openExport() {
   const s0 = store.get(), p0 = currentPlan(s0);
   if (!p0?.blocks.length) { toast('Erst Übungen zur Einheit hinzufügen.'); return; }
-  let layout = s0.settings.exportLayout, style = s0.settings.exportStyle;
+  let layout = LAYOUTS[s0.settings.exportLayout] ? s0.settings.exportLayout : 'detailed', style = STYLES[s0.settings.exportStyle] ? s0.settings.exportStyle : 'brand';
   const base = () => `${slug(currentPlan(store.get()).name)}-${fileDate()}`;
-  const preview = sh => {
-    const s = store.get(), p = currentPlan(s);
-    const pages = layoutPages(buildDoc(s, p, layout), style);
-    const cv = renderCanvases(pages.slice(0, 2), 380 / 595.28 * 1.5);
-    const box = $('#ex-prev', sh.body);
-    box.replaceChildren(...cv);
-    cv.forEach((c, i) => { c.setAttribute('role', 'img'); c.setAttribute('aria-label', `Vorschau Seite ${i + 1}`); });
-    $('#ex-pages', sh.body).textContent = `${pages.length} ${pages.length === 1 ? 'Seite' : 'Seiten'} A4${pages.length > 2 ? ' · Vorschau zeigt Seite 1–2' : ''}`;
+  let previewId = 0;
+  const preview = async sh => {
+    const id = ++previewId;
+    $('#ex-prev', sh.body).setAttribute('aria-busy', 'true');
+    try {
+      const s = store.get(), p = currentPlan(s);
+      const pages = layoutPages(buildDoc(s, p, layout), style);
+      await prepareImages(pages.slice(0, 2));
+      if (id !== previewId || !sh.body.isConnected) return;
+      const cv = renderCanvases(pages.slice(0, 2), 380 / 595.28 * 1.5);
+      const box = $('#ex-prev', sh.body);
+      box.replaceChildren(...cv);
+      cv.forEach((c, i) => { c.setAttribute('role', 'img'); c.setAttribute('aria-label', `Vorschau Seite ${i + 1}`); });
+      $('#ex-pages', sh.body).textContent = `${pages.length} ${pages.length === 1 ? 'Seite' : 'Seiten'} A4${pages.length > 2 ? ' · Vorschau zeigt Seite 1–2' : ''}`;
+    } catch (err) { if (id === previewId) $('#ex-prev', sh.body).textContent = `Export nicht möglich: ${err.message}`; }
+    finally { if (id === previewId) $('#ex-prev', sh.body).setAttribute('aria-busy', 'false'); }
   };
   const seg = (key, opts, cur) => `<div class="seg" role="radiogroup">${Object.entries(opts).map(([k, v]) => `<button type="button" role="radio" data-${key}="${k}" aria-checked="${cur === k}">${Array.isArray(v) ? v[0] : v}</button>`).join('')}</div>`;
   openSheet({
@@ -42,7 +51,7 @@ export function openExport() {
         <button class="btn" type="button" data-do="csv">${icon('download')} CSV (Tabelle)</button>
         <button class="btn" type="button" data-do="file">${icon('share')} Als TRAINR-Datei teilen</button>
       </div>
-      <p class="tiny" style="margin-top:8px">PDF mit echtem, durchsuchbarem Text. „Übungskarten“ zeigt beim Drucken zusätzlich die Platzskizzen. TRAINR-Dateien können andere Trainer in ihre App importieren.</p>`,
+      <p class="tiny" style="margin-top:8px">PDF mit durchsuchbarem Text und Bildern. Ausführlich, Übungskarten und Trainerkarte enthalten Aufbauskizzen. Kompakt bleibt eine kurze Übersicht. TRAINR-Dateien können andere Trainer importieren.</p>`,
     onMount: sh => {
       preview(sh);
       on(sh.body, 'click', '[data-layout]', (_, b) => { layout = b.dataset.layout; sh.body.querySelectorAll('[data-layout]').forEach(x => x.setAttribute('aria-checked', String(x === b))); $('#ex-ldesc', sh.body).textContent = LAYOUTS[layout][1]; store.setting('exportLayout', layout); preview(sh); });
@@ -50,10 +59,10 @@ export function openExport() {
       on(sh.body, 'click', '[data-do]', async (_, b) => {
         const s = store.get(), p = currentPlan(s), what = b.dataset.do;
         try {
-          if (what === 'pdf') { downloadBlob(`${base()}.pdf`, exportPdf(s, p, layout, style), 'application/pdf'); toast('PDF erstellt.'); }
-          if (what === 'share') await shareFiles([new File([exportPdf(s, p, layout, style)], `${base()}.pdf`, { type: 'application/pdf' })], { title: `TRAINR · ${p.name}` });
+          if (what === 'pdf') { downloadBlob(`${base()}.pdf`, await exportPdf(s, p, layout, style), 'application/pdf'); toast('PDF erstellt.'); }
+          if (what === 'share') await shareFiles([new File([await exportPdf(s, p, layout, style)], `${base()}.pdf`, { type: 'application/pdf' })], { title: `TRAINR · ${p.name}` });
           if (what === 'png') {
-            const cv = renderCanvases(layoutPages(buildDoc(s, p, layout), style));
+            const cv = renderCanvases(await prepareImages(layoutPages(buildDoc(s, p, layout), style)));
             for (let i = 0; i < cv.length; i++) { const blob = await new Promise(r => cv[i].toBlob(r, 'image/png')); downloadBlob(`${base()}${cv.length > 1 ? `-${i + 1}` : ''}.png`, blob, 'image/png'); }
             toast(cv.length > 1 ? `${cv.length} PNG-Seiten erstellt. Der Browser fragt evtl. nach.` : 'PNG erstellt.');
           }
@@ -74,11 +83,11 @@ export function printHtml(s, p, layout = 'detailed', style = 'brand') {
   const block = d => one(d) + pause(d);
   const one = d => {
     if (layout === 'compact') return `<tr class="${d.keeper ? 'keeper' : ''}"><td>${esc(d.label || d.num)}</td><td><strong>${esc(d.e.name)}</strong><br><small>${esc(d.kind)} · ${esc(d.groups)} · ${esc(d.material)}${d.b.note ? ` · ${esc(d.b.note)}` : ''}</small></td><td>${d.b.minutes} Min</td></tr>`;
-    if (layout === 'coach') return `<article class="coach ${d.keeper ? 'keeper' : ''}"><h2>${d.num} ${esc(d.e.name)} <span>${d.b.minutes} Min</span></h2><p>${esc(d.groups)}</p><ul>${d.points.slice(0, 3).map(t => `<li>${esc(t)}</li>`).join('')}</ul></article>`;
+    if (layout === 'coach') return `<article class="coach ${d.keeper ? 'keeper' : ''}"><h2>${d.num} ${esc(d.e.name)} <span>${d.b.minutes} Min</span></h2><div class="psketch">${drillPitch(d.e)}</div><p>${esc(d.groups)}</p><ul>${d.points.slice(0, 3).map(t => `<li>${esc(t)}</li>`).join('')}</ul></article>`;
     return `<article class="pblock ${layout === 'cards' ? 'card' : ''} ${d.keeper ? 'keeper' : ''}">
       <h2>${d.num} · ${esc(d.e.name)} <span>${d.label ? esc(d.label) + ' · ' : ''}${d.b.minutes} Min</span></h2>
       <p class="sub">${esc(d.kind)} · ${esc(d.groups)}</p>
-      ${layout === 'cards' ? `<div class="psketch">${drillPitch(d.e)}</div>` : ''}
+      <div class="psketch">${drillPitch(d.e)}</div><p class="src">Aufbauskizze · schematisch, Text beachten.</p>
       ${d.e.goal ? `<p><strong>Ziel:</strong> ${esc(d.e.goal)}</p>` : ''}
       <ol>${d.steps.map(t => `<li>${esc(t)}</li>`).join('')}</ol>
       <p><strong>Coaching:</strong></p><ul>${d.points.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
@@ -88,8 +97,9 @@ export function printHtml(s, p, layout = 'detailed', style = 'brand') {
   };
   return `<div class="print-doc style-${style} layout-${layout}">
     <header><div class="bar">TRAINR / TRAININGSPLAN</div><h1>${esc(h.title)}</h1><p>${esc([h.team, h.age, h.type].filter(Boolean).join(' · '))}</p><p>${esc([h.slot, h.squad, `${h.total} Min`, h.pauses].filter(Boolean).join(' · '))}</p>${h.goal ? `<p><strong>Ziel:</strong> ${esc(h.goal)}</p>` : ''}${h.foci ? `<p><strong>Schwerpunkte:</strong> ${esc(h.focus ? `${h.focus} · ` : '')}${esc(h.foci)}</p>` : ''}</header>
+    <section class="pmaterials"><h3>Materialübersicht</h3><p class="src">Höchstbedarf der Einheit, nicht die Summe aller Übungen.</p><div class="material-grid">${h.equipment.map(([name,count]) => `<div class="material-item"><span class="material-check"></span><b>${count}</b><strong>${esc(name)}</strong></div>`).join('')}</div></section>
     ${layout === 'compact' ? `<table>${B.map(block).join('')}</table>` : B.map(block).join('')}
-    <section><h3>Materialübersicht</h3><p>${esc(h.material.join(' · '))}</p>${h.checks.length ? `<h3>Hinweise</h3><ul>${h.checks.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}${h.notes ? `<h3>Coaching-Notizen</h3><p>${esc(h.notes)}</p>` : ''}</section>
+    <section>${h.checks.length ? `<h3>Hinweise</h3><ul>${h.checks.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}${h.notes ? `<h3>Coaching-Notizen</h3><p>${esc(h.notes)}</p>` : ''}</section>
     <p class="foot">Lokal erstellt mit TRAINR. Altersgrenzen, Maße und Mengen sind Vorschläge, keine Normen. Spieler, Torwart und Trainer sind getrennt gezählt.</p></div>`;
 }
 

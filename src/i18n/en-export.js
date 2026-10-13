@@ -1,5 +1,11 @@
 // Englisch: Export, Teilen, Dokumente (PDF/Text/CSV entstehen im Code, nicht im DOM) und Skizzen-Beschriftungen.
 export const EXPORT = {
+  'Ablauf im Überblick': 'Session overview',
+  'Die Bilder zeigen den Grundaufbau, nicht jede Anpassung an Gruppen oder Trainerrollen.': 'The images show the basic setup, not every change to groups or coach roles.',
+  'Höchstbedarf der Einheit, nicht die Summe aller Übungen.': 'Peak need for the session, not the sum of all exercises.',
+  'Aufbauskizze · schematisch, Text beachten.': 'Setup sketch · schematic, follow the instructions.',
+  'Eine Karte pro Übung mit Bild und Ablauf': 'One card per exercise with image and steps',
+  'PDF mit durchsuchbarem Text und Bildern. Ausführlich, Übungskarten und Trainerkarte enthalten Aufbauskizzen. Kompakt bleibt eine kurze Übersicht. TRAINR-Dateien können andere Trainer importieren.': 'PDF with searchable text and images. Detailed, exercise cards and coach cards include setup sketches. Compact stays a short overview. Other coaches can import TRAINR files.',
   'Erst Übungen zur Einheit hinzufügen.': 'Add exercises to the session first.', 'Vorschau Seite {}': 'Preview page {}', 'Seite': 'Page', 'Seiten': 'pages', '· Vorschau zeigt Seite 1–2': '· preview shows pages 1–2',
   'Export & Teilen': 'Export & share', '„{}“ · alles wird lokal auf diesem Gerät erstellt.': '“{}” · everything is created locally on this device.', 'Layout': 'Layout', 'Stil': 'Style',
   'PDF': 'PDF', 'PDF teilen': 'Share PDF', 'Bild (PNG)': 'Image (PNG)', 'Drucken': 'Print', 'Text': 'Text', 'CSV (Tabelle)': 'CSV (table)', 'Als TRAINR-Datei teilen': 'Share as TRAINR file',
