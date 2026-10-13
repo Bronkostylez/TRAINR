@@ -1,13 +1,13 @@
 // Ein gemeinsames Dokumentmodell für PDF, PNG und Druck. Layouts: detailed | compact | cards | coach.
 import { exercise, effective, blockLayout, layoutText, layoutAdvice, squadLabel, blockPeople, timeline, slotOf, slotLabel, planAge, planType, teamOf, totalMinutes, exerciseMinutes, pauses, requirements, check, foci, planFocus, keyFirst } from '../core/planning.js';
 import { LABELS, BRAND } from '../core/util.js';
-import { stepsFor } from '../scene/pitch.js';
+import { drillPitch, stepsFor } from '../scene/pitch.js';
 import { t, locale } from '../i18n/index.js';
 
 export const LAYOUTS = {
   detailed: ['Ausführlich', 'Alle Infos je Übung: Ziel, Ablauf, Coaching, Material, Quelle'],
   compact: ['Kompakt', 'Eine Übersicht – ideal zum Mitnehmen'],
-  cards: ['Übungskarten', 'Eine Karte pro Übung mit Skizze (Druck)'],
+  cards: ['Übungskarten', 'Eine Karte pro Übung mit Bild und Ablauf'],
   coach: ['Trainerkarte', 'Großer Text für den Platz'],
 };
 export const STYLES = { brand: 'Farbig', ink: 'Druckerfreundlich' };
@@ -38,6 +38,7 @@ export function headerData(s, p) {
     people: p.people, squad: squadLabel(p, planType(s, p)), total: totalMinutes(p, s), goal: p.goal || '', notes: p.notes || '',
     pauses: (() => { const ps = pauses(s, p); return ps.length ? `${exerciseMinutes(p)} Min Übungen + ${ps.length} ${ps.length === 1 ? 'Pause' : 'Pausen'} à ${ps[0].minutes} Min` : ''; })(),
     focus: p.focus && p.focus !== 'Alle' ? p.focus : '', foci: keyFirst(planFocus(s, p).list, p.focus).slice(0, 5).map(o => `${o.key} (${o.minutes} Min)`).join(', '),
+    equipment: Object.entries(requirements(s, p)),
     material: Object.entries(requirements(s, p)).map(([n, c]) => `${c} ${n}`), checks: check(s, p).filter(c => c.level === 'warn').map(c => c.text),
   };
 }
@@ -55,17 +56,32 @@ export function buildDoc(s, p, layout = 'detailed') {
   push('meta', [h.slot, h.squad, `${h.total} Min`, h.pauses].filter(Boolean).join(' · '));
   if (h.goal) push('p', `Ziel: ${h.goal}`, { bold: true });
   if (h.foci) push('p', `Schwerpunkte: ${h.focus ? `${h.focus} · ` : ''}${h.foci}`, { size: 9.5 });
+  push('h2', 'Materialübersicht', { keep: 80 });
+  push('p', 'Höchstbedarf der Einheit, nicht die Summe aller Übungen.', { size: 9, color: 'muted' });
+  push('materials', '', { items: h.equipment.map(([name, count]) => [t(name), count]) });
+  push('gap', '', { h: 8 });
+  if (layout !== 'compact') {
+    push('h2', 'Ablauf im Überblick', { keep: 50 });
+    for (const d of B) {
+      push('row', '', { cols: [d.label || d.num, d.e.name, `${d.b.minutes} Min`], keeper: d.keeper });
+      if (d.pause) push('row', '', { cols: [d.pause.label || '', 'Trinkpause', `${d.pause.minutes} Min`], pause: true });
+    }
+    push('gap', '', { h: 10 });
+    push('p', 'Die Bilder zeigen den Grundaufbau, nicht jede Anpassung an Gruppen oder Trainerrollen.', { size: 9, color: 'muted' });
+  }
   if (layout === 'compact') {
     push('gap', '', { h: 8 });
     for (const d of B) {
       push('row', '', { cols: [d.label || d.num, `${d.keeper ? '◆ ' : ''}${d.e.name}`, `${d.b.minutes} Min`], keeper: d.keeper });
-      push('p', `${d.kind} · ${d.groups}${d.b.people ? ` · ${d.n} Spieler` : ''} · ${d.material}${d.b.note ? ` · ${d.b.note}` : ''}`, { size: 9, color: 'muted', indent: 62 });
-      if (d.ageWarn) push('p', d.ageWarn, { size: 9, color: 'warn', indent: 62 });
+      push('p', `${d.kind} · ${d.groups}${d.b.people ? ` · ${d.n} Spieler` : ''} · ${d.material}${d.b.note ? ` · ${d.b.note}` : ''}`, { size: 9, color: 'muted', indent: 82 });
+      if (d.ageWarn) push('p', d.ageWarn, { size: 9, color: 'warn', indent: 82 });
       if (d.pause) push('row', '', { cols: [d.pause.label || '', '— Trinkpause —', `${d.pause.minutes} Min`], pause: true });
     }
   } else if (layout === 'coach') {
     for (const d of B) {
+      push('break');
       push('h', `${d.num}  ${d.e.name}`, { size: 22, minutes: `${d.b.minutes} Min`, keeper: d.keeper, keep: 140 });
+      push('diagram', '', { svg: drillPitch(d.e), h: 150 });
       push('p', `${d.groups}${d.b.note ? ` · ${d.b.note}` : ''}`, { size: 13, color: 'muted' });
       for (const t of d.points.slice(0, 3)) push('li', t, { size: 15 });
       if (d.pause) push('p', `— ${d.pause.text} —`, { size: 13, bold: true, color: 'muted' });
@@ -73,9 +89,11 @@ export function buildDoc(s, p, layout = 'detailed') {
     }
   } else {
     for (const d of B) {
-      if (layout === 'cards') push('cardstart', '', { keeper: d.keeper, keep: 300 });
+      push('break');
+      if (layout === 'cards') push('cardstart', '', { keeper: d.keeper });
       push('h', `${d.num} · ${d.e.name}`, { minutes: `${d.label ? d.label + ' · ' : ''}${d.b.minutes} Min`, keeper: d.keeper, keep: 160 });
       push('p', `${d.kind} · ${d.groups}${d.b.people ? ` · ${d.n} Spieler bei dieser Übung` : ''}`, { size: 9.5, bold: true, color: 'accent' });
+      push('diagram', '', { svg: drillPitch(d.e), h: 230 });
       if (d.e.goal) push('p', `Ziel: ${d.e.goal}`, { size: 10 });
       d.steps.forEach((t, k) => push('li', `${k + 1}. ${t}`, { size: 10, bullet: false }));
       push('p', 'Coaching', { size: 9.5, bold: true });
@@ -89,8 +107,7 @@ export function buildDoc(s, p, layout = 'detailed') {
     }
   }
   push('gap', '', { h: 6 });
-  push('h2', 'Materialübersicht', { keep: 60 });
-  push('p', h.material.join(' · ') || 'Keine Übungen.', { size: 10 });
+
   if (h.checks.length) { push('h2', 'Hinweise', { keep: 40 }); for (const c of h.checks) push('li', c, { size: 9.5, color: 'warn' }); }
   if (h.notes) { push('h2', 'Coaching-Notizen', { keep: 40 }); push('p', h.notes, { size: 10 }); }
   push('gap', '', { h: 6 });
@@ -152,6 +169,32 @@ export function layoutPages(doc, style = 'brand') {
   for (const el of doc) {
     if (el.keep) room(Math.min(el.keep, H - 120));
     switch (el.k) {
+      case 'break': newPage(); break;
+      case 'diagram': {
+        const height = el.h || 198; room(height + 30);
+        const width = height * 320 / 190;
+        page.ops.push({ t: 'image', x: M, y: y + 4, w: width, h: height, svg: el.svg, style });
+        y += height + 10;
+        text(t('Aufbauskizze · schematisch, Text beachten.'), { s: 8, color: 'muted' }); y += 6; break;
+      }
+      case 'materials': {
+        const items = el.items || [], gap = 10, width = (CW - gap) / 2;
+        if (!items.length) { text(t('Keine Übungen.')); break; }
+        for (let i = 0; i < items.length; i += 2) {
+          const pair = items.slice(i, i + 2), lines = pair.map(([name]) => wrap(name, 10.5, true, width - 74));
+          const height = Math.max(46, ...lines.map(l => 20 + l.length * 14)); room(height + 8);
+          pair.forEach(([name, count], j) => {
+            const x = M + j * (width + gap);
+            page.ops.push({ t: 'rect', x, y, w: width, h: height, fill: C.soft });
+            page.ops.push({ t: 'rect', x: x + 10, y: y + 16, w: 10, h: 10, fill: '#ffffff' });
+            for (const [x1,y1,x2,y2] of [[x+10,y+16,x+20,y+16],[x+20,y+16,x+20,y+26],[x+20,y+26,x+10,y+26],[x+10,y+26,x+10,y+16]]) page.ops.push({ t:'line', x1,y1,x2,y2,color:C.muted,lw:.7 });
+            page.ops.push({ t: 'text', x: x + 29, y: y + 28, s: 18, bold: true, color: C.ink, text: String(count) });
+            lines[j].forEach((line,k) => page.ops.push({ t: 'text', x: x + 64, y: y + 24 + k * 14, s: 10.5, bold: true, color: C.ink, text: line }));
+          });
+          y += height + 8;
+        }
+        break;
+      }
       case 'title': text(el.text, { s: 22, bold: true, lh: 1.2 }); y += 4; break;
       case 'meta': text(el.text, { s: 10.5, color: 'muted' }); break;
       case 'h2': y += 6; text(el.text, { s: 13, bold: true }); y += 2; break;
@@ -174,10 +217,10 @@ export function layoutPages(doc, style = 'brand') {
         const [a, b, c] = el.cols;
         if (el.keeper) page.ops.push({ t: 'rect', x: M - 10, y: y - 10, w: 4, h: 14, fill: C.keeper });
         page.ops.push({ t: 'text', x: M, y, s: 9.5, bold: true, color: C.muted, text: a });
-        const nameLines = wrap(b, 11.5, true, CW - 62 - 60);
-        page.ops.push({ t: 'text', x: M + 62, y, s: 11.5, bold: true, color: el.pause ? C.muted : C.ink, text: nameLines[0] });
+        const nameLines = wrap(b, 11.5, true, CW - 82 - 60);
+        page.ops.push({ t: 'text', x: M + 82, y, s: 11.5, bold: true, color: el.pause ? C.muted : C.ink, text: nameLines[0] });
         page.ops.push({ t: 'text', x: W - M - measure(c, 10.5, true), y, s: 10.5, bold: true, color: C.accent, text: c });
-        for (const ln of nameLines.slice(1)) { y += 14; page.ops.push({ t: 'text', x: M + 62, y, s: 11.5, bold: true, color: C.ink, text: ln }); }
+        for (const ln of nameLines.slice(1)) { y += 14; page.ops.push({ t: 'text', x: M + 82, y, s: 11.5, bold: true, color: C.ink, text: ln }); }
         y += 4; break;
       }
       case 'gap': y += el.h || 8; break;
