@@ -2,12 +2,14 @@
 import * as store from './core/store.js';
 import * as timer from './core/timer.js';
 import * as i18n from './i18n/index.js';
-import { exercise, activeTeam, currentPlan } from './core/planning.js';
+import { exercise, activeTeam, currentPlan, blockLayout } from './core/planning.js';
 import { setResolver } from './scene/motion.js';
 import { $, $$, icon } from './ui/dom.js';
 import { setLevel, onChange as onMotion } from './ui/motion.js';
 import { register, start, setGuard, refresh, currentView, go, TAB_ORDER } from './ui/router.js';
 import { toast, beep, haptic } from './ui/feedback.js';
+import { speak, silence } from './ui/speech.js';
+import { ensurePersist } from './core/persist.js';
 import { showHelp } from './ui/help.js';
 import { initUpdates } from './ui/update.js';
 import { anyOpen } from './ui/sheet.js';
@@ -81,10 +83,16 @@ store.subscribe((s, reason) => {
 });
 
 // ---------- Timer-Rückmeldungen (global, auch außerhalb der Trainingsansicht) ----------
+/** Konkrete Trainerrolle des Blocks als Ansage (nur bei geprüften Helferrollen). */
+function coachCue(b) {
+  try { const s = store.get(), L = blockLayout(s, currentPlan(s), b); return L && L.level !== 'no' && L.coachesUsed && L.coachRole ? ' ' + i18n.t('Trainer: {}.', i18n.t(L.coachRole)) : ''; } catch { return ''; }
+}
 timer.setHooks({
-  onWarn: snap => { beep('warn'); haptic('warn'); toast(`Noch ${store.get().settings.warnSeconds} Sekunden: ${snap.block.pause ? 'Pause' : exercise(store.get(), snap.block.exerciseId)?.name || ''}`, { ms: 3000 }); },
+  onStart: snap => { if (!store.get().settings.speech || !snap.block) return; speak(snap.block.pause ? i18n.t('Pause. {} Minuten.', snap.block.minutes) : i18n.t('Los: {}. {} Minuten.', i18n.t(exercise(store.get(), snap.block.exerciseId)?.name || ''), snap.block.minutes) + coachCue(snap.block)); },
+  onWarn: snap => { if (store.get().settings.speech) speak(i18n.t('Noch {} Sekunden.', store.get().settings.warnSeconds)); beep('warn'); haptic('warn'); toast(`Noch ${store.get().settings.warnSeconds} Sekunden: ${snap.block.pause ? 'Pause' : exercise(store.get(), snap.block.exerciseId)?.name || ''}`, { ms: 3000 }); },
   onEnd: snap => {
     beep('end'); haptic('end');
+    if (store.get().settings.speech) speak(snap.hasNext ? i18n.t('Block fertig.') : i18n.t('Training geschafft.'));
     const ev = !snap.hasNext && todaysTraining(store.get()); // letzter Block: heutigen Kalendertermin direkt nachbereiten
     toast(snap.hasNext ? (snap.block.pause ? (store.get().settings.autoAdvance ? 'Pause vorbei. Weiter geht’s gleich.' : 'Pause vorbei. Alle zusammenholen.') : store.get().settings.autoAdvance ? 'Block fertig. Nächster Schritt startet gleich.' : 'Block fertig. Kurz sammeln, dann weiter.') : 'Training geschafft! Auslaufen und kurz besprechen.',
       snap.hasNext && !store.get().settings.autoAdvance ? { action: 'Weiter', onAction: () => timer.next({ autostart: true }) } : ev ? { action: 'Nachbereiten', onAction: () => reviewEvent(ev.id), ms: 10000 } : {});
@@ -94,6 +102,17 @@ timer.setHooks({
 });
 timer.subscribe(() => { const was = $('.tab-live-dot'); if (!!was !== timer.running()) syncChrome(); });
 timer.restore();
+
+// ---------- Sicherheitsnetz ----------
+let lastCrash = 0;
+function crashNotice(msg) {
+  if (/ResizeObserver/.test(String(msg)) || Date.now() - lastCrash < 30000) return;
+  lastCrash = Date.now();
+  toast('Etwas ist schiefgelaufen. Neu laden hilft meistens; gespeicherte Daten bleiben unverändert.', { action: 'Neu laden', onAction: () => location.reload(), ms: 12000 });
+}
+addEventListener('error', ev => crashNotice(ev.message));
+addEventListener('unhandledrejection', ev => crashNotice(ev.reason?.message || ev.reason));
+ensurePersist();
 
 // ---------- Tastatur ----------
 addEventListener('keydown', ev => {
@@ -125,7 +144,7 @@ fillSeries();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) fillSeries(); });
 initReminders(id => (id ? go('kalender', 'termin', id) : go('kalender')));
 if (info.problem === 'invalid-v3') toast('Gespeicherte Daten waren ungültig und wurden gesichert, nicht überschrieben. Details unter „Mehr“.', { ms: 8000 });
-window.__trainr = { store, timer, version: '21.19.0' }; // für Tests und Fehlersuche
+window.__trainr = { store, timer, version: '21.24.0' }; // für Tests und Fehlersuche
 
 // ---------- Wischen zwischen den Haupt-Tabs (nur Touch, nur schmale Bildschirme) ----------
 {
