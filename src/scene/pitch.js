@@ -58,7 +58,7 @@ export function drillPitch(e,large=false,step=0){
  const zone=(x,y,w,h,label)=>`<g class="setup-zone"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="7"/><text x="${x+w/2}" y="${h>60?y+11:y+h/2+3}">${label}</text></g>`;
  let objects='',route='',ball=[65,100],name='Aufbau';let ps=[];
  const pair=()=>{ps=[[65,95,'1'],[250,95,'2']];ball=[80,95];route='M80 95 L235 95';};
- const match=(count=e.min,goals=true)=>{const each=Math.min(5,Math.floor(count/2));for(let i=0;i<each;i++){ps.push([75+(i%2)*30,48+i*23,String(i+1)]);ps.push([215+(i%2)*30,48+i*23,String(i+1),true]);}ball=[115,95];route='M115 95 L165 65 L205 110';if(goals){const four=e.equipment.some(([n,c])=>/tor/i.test(n)&&c===4);objects+=goal(24,four?45:82)+goal(286,four?45:82);if(four)objects+=goal(24,123)+goal(286,123);}};
+ const match=(count=e.min,goals=true)=>{const each=Math.min(8,Math.floor(count/2)),step=each>5?102/(each-1):23,y0=each>5?52:48;for(let i=0;i<each;i++){ps.push([75+(i%2)*30,y0+i*step,String(i+1)]);ps.push([215+(i%2)*30,y0+i*step,String(i+1),true]);}ball=[115,95];route='M115 95 L165 65 L205 110';if(goals){const four=e.equipment.some(([n,c])=>/tor/i.test(n)&&c===4);objects+=goal(24,four?45:82)+goal(286,four?45:82);if(four)objects+=goal(24,123)+goal(286,123);}};
  const box=(x,y,w,h)=>`<rect class="setup-box" x="${x}" y="${y}" width="${w}" height="${h}" rx="2"/>`;
  let statics=null;
  switch(kind){
