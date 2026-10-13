@@ -6,7 +6,7 @@ const KEY = 'trainr-timer';
 let t = { planId: null, blockId: null, remaining: 0, deadline: null, warned: false, ended: false, extra: 0 };
 let tickId = null, wake = null, lastIndex = 0;
 const listeners = new Set();
-const hooks = { onWarn() {}, onEnd() {}, onAuto() {} };
+const hooks = { onWarn() {}, onEnd() {}, onAuto() {}, onStart() {} };
 
 export const setHooks = h => Object.assign(hooks, h);
 export const subscribe = fn => { listeners.add(fn); return () => listeners.delete(fn); };
@@ -44,9 +44,11 @@ export function sync() {
 
 export function start() {
   const b = block(); if (!b) return;
+  const fresh = t.ended || t.remaining <= 0 || t.remaining === t.lastFull;
   if (t.ended || t.remaining <= 0) { t.remaining = b.minutes * 60; t.extra = 0; t.ended = false; t.warned = false; }
   t.deadline = Date.now() + t.remaining * 1000;
   startTick(); requestWake(); emit();
+  if (fresh) hooks.onStart(snapshot());
 }
 export function pause() { if (!running()) return; t.remaining = currentRemaining(); t.deadline = null; stopTick(); releaseWake(); emit(); }
 export const toggle = () => (running() ? pause() : start());
