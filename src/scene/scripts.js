@@ -46,11 +46,12 @@ export function scriptPlan(sc) {
 }
 
 export const SCRIPTS = {
-"gk-gateroll": {"name": "Zwei Keeper · Rollen durch Tore", "obj": [["gate", 160, 65], ["gate", 160, 135]], "pl": [[85, 65, "K"], [235, 65, "K"]], "balls": [0], "ph": [[0, 700, "p0>1 roll"], [1, 800, "r0 85 135 jog;r1 235 135 jog"], [2, 700, "p1>0 roll"], [1, 800, "r0 85 65 jog;r1 235 65 jog"]]},
+"gk-gateroll": {"name": "Zwei Keeper · Rollen durch Tore", "obj": [["gate", 160, 65], ["gate", 160, 135]], "pl": [[85, 65, "K"], [235, 65, "K"]], "balls": [0], "ph": [[0, 700, "p0>1 roll"], [1, 800, "r0 85 135 jog;r1 235 135 jog"], [1, 700, "p1>0 roll"], [1, 800, "r0 85 65 jog;r1 235 65 jog"]]},
 "gk-gatepass": {"name": "Zwei Keeper · Passen durch Tore", "obj": [["gate", 160, 65], ["gate", 160, 135]], "pl": [[85, 65, "K"], [235, 65, "K"]], "balls": [0], "ph": [[0, 700, "p0>1 pass"], [1, 800, "r0 85 135 jog;d1 235 135 dribble"], [2, 700, "p1>0 pass"], [1, 800, "d0 85 65 dribble;r1 235 65 jog"]]},
 "gk-rectangle": {"name": "Partner-Rechteck · Ball sichern", "obj": [["cone", 85, 50], ["cone", 235, 50], ["cone", 85, 145], ["cone", 235, 145]], "pl": [[85, 65, "K"], [235, 65, "K"]], "balls": [0], "ph": [[0, 700, "p0>1 roll"], [1, 800, "r0 85 130 jog;d1 235 130 walk"], [2, 700, "p1>0 roll"], [1, 800, "d0 85 65 walk;r1 235 65 jog"]]},
 "gk-strike": {"name": "Zwei Keeper · Besonderen Ball erkennen", "obj": [["goal", 285, 95]], "pl": [[70, 95, "K"], [260, 95, "K"]], "balls": [0, [80, 45], [80, 65], [80, 125], [80, 145]], "ph": [[0, 700, "p0>1 roll"], [1, 900, "p1>0 roll"], [2, 700, "s0 295 95 roll"], [2, 900, "b0 81 98 roll;g0 0"]]},
 "gk-steps": {"name": "Trainer · Keeper · Rollenwechsel", "obj": [["goal", 285, 95], ["gate", 220, 70], ["gate", 220, 120]], "pl": [[80, 95, "T"], [240, 70, "K"], [260, 155, "K"]], "balls": [0], "ph": [[0, 800, "r1 220 120 shuffle"], [0, 800, "r1 240 70 shuffle"], [1, 700, "p0>1 toss"], [2, 700, "p1>0 roll"]]},
+"gk-handball": {"name": "Torwart-Handball · Trainer spielt zu", "obj": [["goal", 35, 95], ["goal", 285, 95]], "pl": [[160, 95, "T"], [60, 95, "K"], [260, 95, "K"]], "balls": [0, [150, 80], [150, 112]], "ph": [[0, 700, "p0>1 roll"], [1, 700, "s1 285 95 chip"], [0, 700, "g0 1"], [0, 700, "p0>2 roll"], [1, 700, "s2 35 95 chip"]]},
   // ================= Neue Übungen V21.5 =================
   'v22-zauberer': {
     name: 'Zauberer jagen · Steine erlösen',
