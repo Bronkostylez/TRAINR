@@ -43,7 +43,7 @@ test('Schwerpunkte in Einheit: Übersicht, Auswahl, Check, Assistent, Heute, Tra
   // Heute: „Im Fokus“ im Einheiten-Kasten
   await expect(page.locator('.hero-foci .fchip').first()).toBeVisible();
   await go(page, '#planen');
-  await page.locator('.focus-strip summary').click(); await expect(page.locator('.focus-strip .abar i').first()).toBeVisible();
+  await page.locator('.focus-strip summary').first().click(); await expect(page.locator('.focus-strip .abar i').first()).toBeVisible();
   await expect(page.locator('.block-sub').first()).not.toBeEmpty();
   // Schwerpunkt der Einheit aus dem gruppierten Sheet wählen
   await page.locator('#pl-options').evaluate(e => e.open = true);
@@ -62,6 +62,7 @@ test('Schwerpunkte in Einheit: Übersicht, Auswahl, Check, Assistent, Heute, Tra
   await page.click('dialog[open] [data-af="Wahrnehmung"]'); // Vorauswahl abwählen, damit genau ein Schwerpunkt aktiv ist
   await page.click('dialog[open] [data-af="Ballannahme"]');
   await expect(page.locator('.proposal-item', { hasText: 'dein Schwerpunkt' }).first()).toBeVisible();
+  await page.locator('.proposal-item', { hasText: 'dein Schwerpunkt' }).first().locator('summary').click(); // Begründung ist seit 21.16 eingeklappt
   await expect(page.locator('.proposal-item .fchip.mark', { hasText: 'Ballannahme' }).first()).toBeVisible();
   await page.click('dialog[open] [data-apply=replace]');
   await expect.poll(async () => (await plan(page)).focus).toBe('Ballannahme');
