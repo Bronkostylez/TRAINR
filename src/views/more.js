@@ -13,7 +13,9 @@ import { showHelp, tour } from '../ui/help.js';
 import { go } from '../ui/router.js';
 import { downloadBlob } from '../exports/share.js';
 import { autoFill, resyncAuto } from '../core/calendar.js';
-import { LANGS, locale } from '../i18n/index.js';
+import { LANGS, locale, t } from '../i18n/index.js';
+import { ensurePersist } from '../core/persist.js';
+import { speak, silence, supported as speechOK } from '../ui/speech.js';
 
 const CLUB = [null, '#d4f26b', '#ffd23f', '#ff8a3d', '#ef4444', '#3b82f6', '#22c55e', '#e5e7eb'];
 
@@ -144,6 +146,7 @@ export const moreView = {
       <details class="disclosure settings-group more-disclosure" data-more-group="controls" ${expanded.has('controls') ? 'open' : ''}><summary>Bedienung & Training</summary><div class="body"><div class="settings-card">
         ${sw('haptics', 'Vibration bei Aktionen', 'Nur auf unterstützten Geräten')}
         ${sw('sound', 'Signaltöne', 'Vorwarnung und Blockende')}
+        <label class="switch-row"><span>Sprachansagen<small>${speechOK() ? 'Sagt Übung, Vorwarnung und Blockende an' : 'Auf diesem Gerät nicht verfügbar'}</small></span><input class="switch" type="checkbox" data-toggle="speech" ${st.speech ? 'checked' : ''} ${speechOK() ? '' : 'disabled'}></label>
         ${sw('autoAdvance', 'Automatisch zum nächsten Block', 'Startet 2,5 s nach Blockende den nächsten Block')}
         ${sw('wakeLock', 'Bildschirm anlassen', 'Während der Timer läuft, falls der Browser es erlaubt')}
         <div class="field"><span>Vorwarnung vor Blockende</span>${seg('warnSeconds', [[0, 'Aus'], [10, '10 s'], [30, '30 s'], [60, '60 s']])}</div>
@@ -156,6 +159,7 @@ export const moreView = {
         <details class="disclosure" style="margin-bottom:12px"><summary>Weitere Optionen</summary><div class="body">
           <button class="btn sm danger" type="button" id="m-reset" style="margin-top:8px">${icon('trash')} Alle V21-Daten zurücksetzen</button>
           <p class="tiny">Lade vorher ein Backup herunter.</p></div></details>
+        <p class="tiny" id="m-persist"></p>
         <p class="tiny">${s.help.lastBackup ? `Letztes Backup: ${new Date(s.help.lastBackup).toLocaleDateString(locale())}` : 'Noch kein Backup erstellt.'}</p>
       </div></section>
 
@@ -174,6 +178,7 @@ export const moreView = {
         <p>Die App ruft keine externen Inhalte ab; nur bewusst geöffnete Quellenlinks führen nach außen. Lokal: <code>node serve.cjs</code> und <code>http://localhost:8765</code>.</p></div></details>
       <p class="tiny" style="text-align:center;margin-top:24px">TRAINR ${APP_VERSION} · Fußballtraining lokal geplant</p></div></details>`;
     this.bind();
+    ensurePersist().then(ok => { const el = $('#m-persist', this.root); if (el) el.textContent = ok === true ? t('Browser-Speicher: geschützt, der Browser löscht deine Daten nicht von selbst.') : ok === false ? t('Browser-Speicher: nicht geschützt. Der Browser könnte Daten bei Platzmangel löschen. Backup herunterladen.') : ''; });
   },
   bind() {
     const r = this.root;
@@ -187,7 +192,7 @@ export const moreView = {
       store.setting('lang', b.dataset.lang); store.flush(); haptic('tap');
       location.reload(); // Die Anzeige wird einmal beim Start übersetzt; ein Neustart der Ansicht ist der sauberste Wechsel.
     });
-    on(r, 'change', '[data-toggle]', (_, c) => { store.setting(c.dataset.toggle, c.checked); haptic('tap'); });
+    on(r, 'change', '[data-toggle]', (_, c) => { store.setting(c.dataset.toggle, c.checked); haptic('tap'); if (c.dataset.toggle === 'speech') { if (c.checked) speak(t('Sprachansagen sind an.')); else silence(); } });
     on(r, 'click', '[data-club]', (_, b) => { store.setting('clubColor', b.dataset.club || null); haptic('tap'); });
     on(r, 'click', '[data-use-team]', (_, b) => switchTeam(b.dataset.useTeam));
     on(r, 'click', '[data-edit-team]', (_, b) => editTeam(b.dataset.editTeam));
