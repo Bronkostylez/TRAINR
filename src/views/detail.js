@@ -19,10 +19,12 @@ const fmt = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60
 /** Öffnet die Detailansicht. `order` = Liste von IDs zum Blättern. */
 export function openDetail(id, order = null) {
   let idx = order ? Math.max(0, order.indexOf(id)) : 0, ids = order || [id], player = null;
+  let paintId = 0;
   const sheet = openSheet({ title: '', wide: true, label: 'Übungsdetails', onClose: () => player?.destroy() });
   sheet.dialog.classList.add('detail-sheet');
 
   function paint() {
+    const renderId = ++paintId;
     player?.destroy();
     const s = store.get(), e = exercise(s, ids[idx]);
     if (!e) { sheet.close(); return; }
@@ -31,7 +33,7 @@ export function openDetail(id, order = null) {
     const age = planAge(s, p);
     sheet.setTitle(e.name);
     sheet.setBody(`
-      <div class="row" style="margin-bottom:10px">
+      <div class="row detail-tags">
         <span class="tag">${esc(e.tag)}</span>
         <span class="tag ${e.type === 'keeper' ? 'keeper' : e.type === 'both' ? 'both' : ''}">${esc(TYPE_SHORT[e.type])}</span>
         <span class="tag">${esc(LEVEL_LABEL[level(e)])}</span>
@@ -52,28 +54,29 @@ export function openDetail(id, order = null) {
           </div>
           <p class="tiny" id="d-disclaimer" style="margin-top:6px">Schematische Darstellung: keine maßstabsgetreuen Positionen oder exakten Laufwege${e.type !== 'field' ? ', keine Fang- oder Falltechnik-Demonstration' : ''}.</p>
         </div>
-        <div class="stack">
+        <div class="stack detail-content">
           <div class="facts"><span>${icon('clock')} ${x.minutes} Min${m.variant ? ' · deine Variante' : ''}</span><span>${flow === 'open' ? `ab ${x.min} Spieler` : flow === 'queue' ? `Je Station ${x.min === x.max ? x.min : `${x.min}–${x.max}`} Spieler aktiv` : `${x.min === x.max ? x.min : `${x.min}–${x.max}`} ${coachRole(e)?.slots ? 'Rollen (Kinder + Helfer)' : 'Spieler'} / Gruppe`}</span><span>${esc(FLOW_LABEL[flow])}</span><span>ab ${esc(e.ages[0])}</span><span class="${g ? '' : 'warn'}">${esc(layoutText(L))}</span></div>
           ${e.goal ? `<section><h3>Ziel</h3><p>${esc(e.goal)}</p></section>` : ''}
-          ${foci(e).length ? `<section class="detail-foci"><h3>Schwerpunkte <small class="tiny">antippen: passende Übungen</small></h3>${focusChips(foci(e), { link: true, mark: p?.focus })}
-            <ul class="foci-explain">${foci(e).map((k, i) => `<li><strong>${esc(k)}</strong>${i ? '' : ' <span class="tiny">Hauptschwerpunkt</span>'} – ${esc(FOCUS[k]?.hint || '')} <span class="tiny">· ${esc(AREAS[FOCUS[k]?.area]?.label || '')}</span></li>`).join('')}</ul></section>` : ''}
-          ${coachRole(e) ? `<section class="coach-role"><h3>Trainerrolle</h3><p>${esc(coachRole(e).role)}</p><p class="small muted">TRAINR-Anpassung: Trainer übernimmt nur die Helferrolle, nicht Torwart, Gegner oder Spieler im Wettkampf. Kinder wechseln die Übungsrolle; Trainer bleibt Helfer. Im Block abschaltbar, Pflicht-Zuwurf bleibt nötig.</p><p class="tiny">Animation zeigt den Originalablauf, nicht die Trainerbesetzung.</p></section>` : ''}
-          <section><h3>Ablauf</h3><ol class="steps" id="d-steps"></ol></section>
-          <section><h3>Coaching</h3>${Array.isArray(e.points) && e.points.length ? `<ul class="points">${e.points.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : `<p>${esc(e.coaching)}</p>`}
+          <section class="detail-section"><h3>Aufbau & Material <small class="tiny">je Gruppe</small></h3><div>${materialChips(e.equipment)}</div>${e.type === 'keeper' && e.min <= 2 ? '<p class="tiny">Kinder und Trainer werden getrennt gezählt. Eine belegte Helferrolle ersetzt einen Partnerplatz, nicht die Übungsrolle.</p>' : ''}</section>
+          <section class="detail-section detail-steps"><h3>Ablauf</h3><ol class="steps" id="d-steps"></ol></section>
+          ${coachRole(e) ? `<section class="coach-role detail-section"><h3>Trainerrolle</h3><p>${esc(coachRole(e).role)}</p><details class="detail-context"><summary>Hinweise zur Trainerrolle</summary><p class="small muted">TRAINR-Anpassung: Trainer übernimmt nur die Helferrolle, nicht Torwart, Gegner oder Spieler im Wettkampf. Kinder wechseln die Übungsrolle; Trainer bleibt Helfer. Im Block abschaltbar, Pflicht-Zuwurf bleibt nötig.</p></details><p class="tiny">Animation zeigt den Originalablauf, nicht die Trainerbesetzung.</p></section>` : ''}
+          <section class="detail-section"><h3>Coaching</h3>${Array.isArray(e.points) && e.points.length ? `<ul class="points">${e.points.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : `<p>${esc(e.coaching)}</p>`}
             ${Array.isArray(e.points) && e.points.length && e.safety ? `<p class="small muted">${esc(e.safety)}</p>` : ''}</section>
-          <section><h3>Aufbau & Material <small class="tiny">je Gruppe</small></h3><div>${materialChips(e.equipment)}</div>${e.type === 'keeper' && e.min <= 2 ? '<p class="tiny">Kinder und Trainer werden getrennt gezählt. Eine belegte Helferrolle ersetzt einen Partnerplatz, nicht die Übungsrolle.</p>' : ''}</section>
-          ${variants ? `<section><h3>Leichter / schwerer</h3><p class="small"><strong>Leichter:</strong> ${esc(variants[0])}</p><p class="small"><strong>Schwerer:</strong> ${esc(variants[1])}</p></section>` : ''}
+
+          ${foci(e).length ? `<details class="disclosure detail-foci"><summary>Schwerpunkte</summary><div class="body">${focusChips(foci(e), { link: true, mark: p?.focus })}
+            <ul class="foci-explain">${foci(e).map((k, i) => `<li><strong>${esc(k)}</strong>${i ? '' : ' <span class="tiny">Hauptschwerpunkt</span>'} – ${esc(FOCUS[k]?.hint || '')} <span class="tiny">· ${esc(AREAS[FOCUS[k]?.area]?.label || '')}</span></li>`).join('')}</ul></div></details>` : ''}
+          ${variants ? `<details class="disclosure"><summary>Leichter / schwerer</summary><div class="body"><p class="small"><strong>Leichter:</strong> ${esc(variants[0])}</p><p class="small"><strong>Schwerer:</strong> ${esc(variants[1])}</p></div></details>` : ''}
           ${lernweg(s, e)}
           <details class="disclosure"><summary>Deine Variante <span class="tiny">${m.variant ? 'aktiv' : 'Spieler & Minuten anpassen'}</span></summary><div class="body">
             <p class="tiny">Nur auf diesem Gerät. Gilt für neue Blöcke, Gruppenberechnung und Vorschläge. Material bleibt beim Original.</p>
             <div class="row"><label class="field grow"><span>Von Spielern</span><input class="input" id="v-min" type="number" min="1" max="100" value="${x.min}"></label><label class="field grow"><span>Bis Spielern</span><input class="input" id="v-max" type="number" min="1" max="100" value="${x.max}"></label><label class="field grow"><span>Minuten</span><input class="input" id="v-min2" type="number" min="1" max="120" value="${x.minutes}"></label></div>
             <div class="row"><button class="btn sm" type="button" id="v-save">Variante merken</button>${m.variant ? '<button class="btn sm ghost" type="button" id="v-reset">Original</button>' : ''}</div>
           </div></details>
-          <section><h3>Deine Bewertung</h3><div class="stars" role="group" aria-label="Bewertung">${[1, 2, 3, 4, 5].map(k => `<button type="button" data-rate-star="${k}" aria-pressed="${(m.rating || 0) >= k}" aria-label="${k} von 5 Sternen">★</button>`).join('')}</div>
-            <label class="field"><span>Deine Notiz (keine Spielernamen)</span><textarea class="input" id="d-note" maxlength="1000" rows="3" placeholder="Was hat funktioniert? Was ändern?">${esc(m.note || '')}</textarea></label></section>
-          <section><h3>Quellen</h3>${sourcesHtml(e)}
-            <p class="tiny">Eigene Kurzfassung bzw. Variante, keine offizielle Übung des Verbands. Maße, Minuten, Altersgrenzen und Mengen sind redaktionelle Vorschläge, keine Normen. Belastung an Können, Platz und Gruppe anpassen.</p></section>
-          <section><h3>Ähnliche Übungen</h3><div class="stack">${similar(s, e, 3).map(o => `<button class="mini-drill" type="button" data-open="${esc(o.id)}">${drillPitch(o)}<span><strong>${esc(o.name)}</strong><br><small>${esc(foci(o).slice(0, 2).join(' · ') || o.tag)} · ${effective(s, o).minutes} Min</small></span></button>`).join('')}</div></section>
+          <details class="disclosure" id="d-feedback"><summary>Deine Bewertung & Notiz${m.rating || m.note ? ' <span class="tiny">gespeichert</span>' : ''}</summary><div class="body"><div class="stars" role="group" aria-label="Bewertung">${[1, 2, 3, 4, 5].map(k => `<button type="button" data-rate-star="${k}" aria-pressed="${(m.rating || 0) >= k}" aria-label="${k} von 5 Sternen">★</button>`).join('')}</div>
+            <label class="field"><span>Deine Notiz (keine Spielernamen)</span><textarea class="input" id="d-note" maxlength="1000" rows="3" placeholder="Was hat funktioniert? Was ändern?">${esc(m.note || '')}</textarea></label></div></details>
+          <details class="disclosure"><summary>Quellen & Hinweise</summary><div class="body">${sourcesHtml(e)}
+            <p class="tiny">Eigene Kurzfassung bzw. Variante, keine offizielle Übung des Verbands. Maße, Minuten, Altersgrenzen und Mengen sind redaktionelle Vorschläge, keine Normen. Belastung an Können, Platz und Gruppe anpassen.</p></div></details>
+          <details class="disclosure"><summary>Ähnliche Übungen</summary><div class="body"><div class="stack">${similar(s, e, 3).map(o => `<button class="mini-drill" type="button" data-open="${esc(o.id)}">${drillPitch(o)}<span><strong>${esc(o.name)}</strong><br><small>${esc(foci(o).slice(0, 2).join(' · ') || o.tag)} · ${effective(s, o).minutes} Min</small></span></button>`).join('')}</div></div></details>
           <div class="row">
             ${e.custom ? `<button class="btn sm" type="button" id="d-edit">${icon('edit')} Bearbeiten</button><button class="btn sm danger" type="button" id="d-del">${icon('trash')} Löschen</button>` : `<button class="btn sm" type="button" id="d-copy">${icon('copy')} Als eigene Übung anpassen</button>`}
           </div>
@@ -83,7 +86,7 @@ export function openDetail(id, order = null) {
       ${ids.length > 1 ? `<button class="btn" type="button" id="d-prev" aria-label="Vorherige Übung" ${idx <= 0 ? 'disabled' : ''} style="flex:0 0 auto;min-width:56px">${icon('back')}</button>` : ''}
       <button class="btn primary" type="button" id="d-add">${icon('plus')} In den Plan</button>
       ${ids.length > 1 ? `<button class="btn" type="button" id="d-next" aria-label="Nächste Übung" ${idx >= ids.length - 1 ? 'disabled' : ''} style="flex:0 0 auto;min-width:56px">${icon('chevron')}</button>` : ''}`);
-    bind(e);
+    bind(e, renderId);
   }
 
   function sourcesHtml(e) {
@@ -92,7 +95,7 @@ export function openDetail(id, order = null) {
     return `<div class="stack">${list.map(src => `<a class="source" href="${esc(src.url)}" target="_blank" rel="noopener noreferrer"><strong>${esc(src.title)} ↗</strong>${src.supports ? `<small>Belegt: ${esc(src.supports)}</small>` : ''}<small>${esc(src.url.replace(/^https:\/\//, ''))}</small></a>`).join('')}</div>`;
   }
 
-  function bind(e) {
+  function bind(e, renderId) {
     const b = sheet.body, f = sheet.foot;
     const stepsEl = $('#d-steps', b);
     const stepsHtml = () => player.steps.map((t, i) => `<li data-step="${i}" class="${i === player.step ? 'current' : ''}" tabindex="0">${esc(t)}</li>`).join('');
@@ -108,7 +111,7 @@ export function openDetail(id, order = null) {
       },
     });
     stepsEl.innerHTML = stepsHtml();
-    if (player.animated) { timeEl.textContent = `0:00 / ${fmt(player.total)}`; scrub.max = player.total; setTimeout(() => { if (sheet.dialog.isConnected && player.state === 'pause' && player.animated) player.play(); }, 650); }
+    if (player.animated) { timeEl.textContent = `0:00 / ${fmt(player.total)}`; scrub.max = player.total; setTimeout(() => { if (renderId === paintId && sheet.dialog.isConnected && player.state === 'pause' && player.animated) player.play(); }, 650); }
     else $('#d-disclaimer', b).textContent += ' Animation aus – Schritte einzeln ansehen.';
     playBtn.onclick = () => { if (player.animated) player.toggle(); else player.goStep((player.step + 1) % player.steps.length); };
     on(b, 'click', '[data-rate]', (_, btn) => { player.rate(Number(btn.dataset.rate)); b.querySelectorAll('[data-rate]').forEach(x => x.setAttribute('aria-pressed', String(x === btn))); });
@@ -147,7 +150,7 @@ export function openDetail(id, order = null) {
   function nav(d) { const n = idx + d; if (n < 0 || n >= ids.length) return; idx = n; paint(); sheet.body.scrollTop = 0; haptic('tap'); }
   sheet.dialog.addEventListener('keydown', ev => { if (ev.target.closest('input,textarea,select')) return; if (ev.key === 'ArrowRight') { ev.preventDefault(); nav(1); } if (ev.key === 'ArrowLeft') { ev.preventDefault(); nav(-1); } });
   let sw = null;
-  sheet.body.addEventListener('touchstart', ev => { if (ev.target.closest('input,button,a,.pitch-scene,textarea')) return; sw = { x: ev.touches[0].clientX, y: ev.touches[0].clientY }; }, { passive: true });
+  sheet.body.addEventListener('touchstart', ev => { if (ev.target.closest('input,button,a,summary,.pitch-scene,textarea')) return; sw = { x: ev.touches[0].clientX, y: ev.touches[0].clientY }; }, { passive: true });
   sheet.body.addEventListener('touchend', ev => { if (!sw) return; const dx = ev.changedTouches[0].clientX - sw.x, dy = ev.changedTouches[0].clientY - sw.y; sw = null; if (Math.abs(dx) > 80 && Math.abs(dy) < 50) nav(dx < 0 ? 1 : -1); }, { passive: true });
   paint();
   return sheet;
@@ -158,7 +161,7 @@ function lernweg(s, e) {
   const { easier, harder } = progression(s, e);
   if (!easier && !harder) return '';
   const link = (o, t) => o ? `<button class="mini-drill" type="button" data-open="${esc(o.id)}">${drillPitch(o)}<span><small>${t} · ${esc(LEVEL_LABEL[level(o)])}</small><br><strong>${esc(o.name)}</strong></span></button>` : '';
-  return `<section><h3>Lernweg <small class="tiny">gleiche Idee, andere Stufe</small></h3><div class="stack">${link(easier, 'Vorstufe')}${link(harder, 'Weiterführung')}</div></section>`;
+  return `<details class="disclosure"><summary>Lernweg</summary><div class="body stack">${link(easier, 'Vorstufe')}${link(harder, 'Weiterführung')}</div></details>`;
 }
 
 function copyAsCustom(e) {
