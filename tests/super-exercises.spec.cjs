@@ -112,6 +112,7 @@ test('Als eigene Übung: generierte Animation wird in die Skizze übernommen und
   await onboard(page); await open(page, 'v5-rondo~o4.v2');
   await page.click('dialog[open] #d-copy');
   await expect(page.locator('#ed-pitch')).toBeVisible();
+  await expect(page.locator('body')).toContainText('Nicht übernommen oder vereinfacht: Spielfeld-Rahmen');
   await page.locator('[data-ed-tab=details]').evaluate(b => b.click());
   await page.click('.mat-toggle >> nth=0').catch(() => {});
   await page.click('dialog[open] button[type=submit]');

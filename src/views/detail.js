@@ -14,7 +14,7 @@ import { toast, haptic } from '../ui/feedback.js';
 import { pulse } from '../ui/motion.js';
 import { materialChips } from '../ui/material.js';
 import { validAnimation } from '../core/schema.js';
-import { familyOf, variantParams, variantId, defaults, scriptToAnimation } from '../data/variants.js';
+import { familyOf, variantParams, variantId, defaults, convertScript } from '../data/variants.js';
 import { getLang } from '../i18n/index.js';
 
 const fmt = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
@@ -187,7 +187,7 @@ function lernweg(s, e) {
 function copyAsCustom(e) {
   const c = deepClone({ id: 'custom-' + uid(), name: `${e.name} (eigene)`.slice(0, 80), type: e.type, tag: e.tag, ages: e.ages, min: e.min, max: e.max, minutes: e.minutes, description: e.description, coaching: e.coaching, equipment: e.equipment, url: e.url || '', custom: true });
   if (e.goal) c.goal = e.goal;
-  if (e.script) { const an = scriptToAnimation(e.script, e.steps); if (an && validAnimation(an)) c.animation = an; }
+  if (e.script) { const r = convertScript(e.script, e.steps); if (r.animation && validAnimation(r.animation)) { c.animation = r.animation; if (r.notes.length) setTimeout(() => toast(`Animation übernommen. Nicht übernommen oder vereinfacht: ${r.notes.join(', ')}.`), 400); } else setTimeout(() => toast('Die Animation konnte nicht übernommen werden, nur Text und Material.'), 400); }
   if (foci(e).length) c.focus = foci(e).slice(0, MAX_FOCI);
   return c;
 }

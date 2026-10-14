@@ -264,7 +264,12 @@ export function buildVariant(id, baseEx) {
 
 /** Spielzug-Skript → eigene Skizze (Format V2 aus dem Editor), damit „Als eigene Übung“ die Animation behält.
  *  Zonen, Linien und Felder des Skripts gibt es im Editor nicht; sie entfallen. Zu lange Abläufe werden auf 20 Schritte gekürzt. */
-export function scriptToAnimation(sc, steps = []) {
+export function scriptToAnimation(sc, steps = []) { return convertScript(sc, steps).animation; }
+/** Wie scriptToAnimation, plus `notes`: was beim Übernehmen weggelassen oder vereinfacht wird (für den Hinweis vor dem Kopieren). */
+export function convertScript(sc, steps = []) {
+  const notes = [], lost = { box: 0, zone: 0, line: 0 };
+  for (const [k] of sc.obj) if (k in lost) lost[k]++;
+  if (lost.box) notes.push(T('Spielfeld-Rahmen', 'field frame')); if (lost.zone) notes.push(T('Zonen', 'zones')); if (lost.line) notes.push(T('Linien', 'lines'));
   const OFF = [11, 3], cl = (v, a, b) => Math.max(a, Math.min(b, v));
   const items = [], pos = [];
   const add = (k, x, y) => { items.push({ k }); pos.push([x, y]); };
@@ -277,7 +282,7 @@ export function scriptToAnimation(sc, steps = []) {
   sc.pl.forEach(([x, y, l, op]) => add(l === 'K' ? 'k' : op ? 'b' : 'a', x, y));
   const owner = {}, B0 = items.length;
   sc.balls.forEach((b, i) => { if (Array.isArray(b)) add('ball', b[0], b[1]); else { add('ball', sc.pl[b][0] + OFF[0], sc.pl[b][1] + OFF[1]); owner[b] = B0 + i; } });
-  if (items.length > 30) return null;
+  if (items.length > 30) return { animation: null, notes };
   const snap = () => pos.map(p => [cl(Math.round(p[0]), 10, 310), cl(Math.round(p[1]), 10, 180)]);
   const raw = [{ points: snap(), step: 0, kind: 'start' }];
   for (const [step, , src] of sc.ph) {
@@ -289,12 +294,14 @@ export function scriptToAnimation(sc, steps = []) {
     raw.push({ points: snap(), step, kind });
   }
   // Auf 20 Schritte kürzen: zuerst jeden zweiten reinen Dribbel-/Laufschritt streichen.
-  let fr = raw;
+  let fr = raw; const before = raw.length;
   while (fr.length > 20) {
     const idx = fr.map((f, i) => (i > 0 && i < fr.length - 1 && f.kind !== 'pass' && fr[i + 1].kind === f.kind ? i : -1)).filter(i => i >= 0);
     const drop = idx.length ? idx.filter((_, j) => j % 2 === 0) : [fr.length - 2];
     fr = fr.filter((_, i) => !drop.includes(i));
   }
+  if (before > 20) notes.push(T(`Laufwege gekürzt (${before - 1} auf ${fr.length - 1} Schritte, Pässe bleiben)`, `paths shortened (${before - 1} to ${fr.length - 1} steps, passes kept)`));
   const cap = s => String(s || '').slice(0, 180) || '-';
-  return { version: 2, camera: 'auto', items, frames: fr.map((f, i) => ({ seconds: i === 0 ? 1 : f.kind === 'pass' ? 1 : 1, caption: cap(i === 0 ? steps[0] : steps[f.step]), points: f.points })) };
+  const animation = { version: 2, camera: 'auto', items, frames: fr.map((f, i) => ({ seconds: i === 0 ? 1 : f.kind === 'pass' ? 1 : 1, caption: cap(i === 0 ? steps[0] : steps[f.step]), points: f.points })) };
+  return { animation, notes, passes: raw.filter(f => f.kind === 'pass').length, passesKept: fr.filter(f => f.kind === 'pass').length, rawFrames: before, frames: fr.length };
 }
