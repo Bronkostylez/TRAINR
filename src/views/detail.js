@@ -81,7 +81,7 @@ export function openDetail(id, order = null) {
             <p class="tiny">Eigene Kurzfassung bzw. Variante, keine offizielle Übung des Verbands. Maße, Minuten, Altersgrenzen und Mengen sind redaktionelle Vorschläge, keine Normen. Belastung an Können, Platz und Gruppe anpassen.</p></div></details>
           <details class="disclosure"><summary>Ähnliche Übungen</summary><div class="body"><div class="stack">${similar(s, e, 3).map(o => `<button class="mini-drill" type="button" data-open="${esc(o.id)}">${drillPitch(o)}<span><strong>${esc(o.name)}</strong><br><small>${esc(foci(o).slice(0, 2).join(' · ') || o.tag)} · ${effective(s, o).minutes} Min</small></span></button>`).join('')}</div></div></details>
           <div class="row">
-            ${e.custom ? `<button class="btn sm" type="button" id="d-edit">${icon('edit')} Bearbeiten</button><button class="btn sm danger" type="button" id="d-del">${icon('trash')} Löschen</button>` : `<button class="btn sm" type="button" id="d-copy">${icon('copy')} Als eigene Übung anpassen</button>`}
+            ${e.custom ? `<button class="btn sm" type="button" id="d-edit">${icon('edit')} Bearbeiten</button><button class="btn sm danger" type="button" id="d-del">${icon('trash')} Löschen</button>` : `<button class="btn sm" type="button" id="d-copy">${icon('copy')} ${e.variantOf ? 'Als eigene Übung (ohne Animation)' : 'Als eigene Übung anpassen'}</button>`}
           </div>
         </div>
       </div>`);

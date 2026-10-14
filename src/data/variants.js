@@ -67,15 +67,15 @@ const PASS = {
     };
     const shape = [null, null, null, ['Dreieck', 'triangle'], ['Quadrat', 'square'], ['Fünfeck', 'pentagon'], ['Sechseck', 'hexagon']][n];
     const steps = [
-      T(`Aufbau: ${shape[0]} aus ${n} Hütchen mit ${['kleinem', 'mittlerem', 'großem'][p.s - 1]} Abstand, ein Kind je Hütchen, ${p.b === 2 ? 'zwei Bälle bei Kindern, die sich gegenüber stehen' : 'ein Ball bei einem Kind'}.`,
-        `Setup: ${shape[1]} of ${n} cones, ${['short', 'medium', 'long'][p.s - 1]} distances, one player per cone, ${p.b === 2 ? 'two balls with players opposite each other' : 'one ball with one player'}.`),
+      T(`Aufbau: ${shape[0]} aus ${n} Hütchen mit ${['kleinem', 'mittlerem', 'großem'][p.s - 1]} Abstand, ein Kind je Hütchen, ${p.b === 2 ? 'zwei Bälle bei Kindern, die möglichst weit auseinander stehen' : 'ein Ball bei einem Kind'}.`,
+        `Setup: ${shape[1]} of ${n} cones, ${['short', 'medium', 'long'][p.s - 1]} distances, one player per cone, ${p.b === 2 ? 'two balls with players as far apart as possible' : 'one ball with one player'}.`),
       p.r === 3
         ? T('Der Passgeber spielt zum übernächsten Mitspieler und läuft zu dessen Hütchen. Der Empfänger spielt gleich weiter.', 'The passer plays to the second player along and runs to that cone. The receiver plays on straight away.')
-        : T('Der Passgeber spielt zum nächsten Kind und läuft zu dessen Hütchen. Der Empfänger spielt gleich weiter.', 'The passer plays to the next player and runs to that cone. The receiver plays on straight away.'),
-      p.r === 1 ? T('Regel: Annehmen und Passen in einem Kontakt, wenn die Passqualität stimmt; sonst zwei Kontakte.', 'Rule: pass first time when the quality is right, otherwise two touches.')
+        : T('Der Passgeber spielt zum nächsten Mitspieler im Kreis und läuft zu dessen Hütchen. Der Empfänger spielt gleich weiter.', 'The passer plays to the next player in the circle and runs to that cone. The receiver plays on straight away.'),
+      p.r === 1 ? T('Regel: Annehmen und Passen in einem Kontakt, wenn die Passqualität stimmt; sonst zwei Kontakte (in der Animation nicht sichtbar, sie zeigt nur den Passweg).', 'Rule: pass first time when the quality is right, otherwise two touches (not visible in the animation, which shows the pass path only).')
         : p.r === 2 ? T('Auf Zuruf des Trainers wechselt die Passrichtung.', 'On the coach’s call the passing direction changes.')
         : p.r === 3 ? T('Immer den Ball und den freien Platz im Blick behalten, die Pässe werden länger.', 'Keep watching the ball and the free space; the passes get longer.')
-        : T('Nach einer Runde wechselt die Passrichtung.', 'After one round the passing direction changes.'),
+        : T('Passen und Laufen im gleichen Rhythmus: erst sicher, dann schneller.', 'Pass and run in the same rhythm: secure first, then faster.'),
       p.b === 2 ? T('Zwei Bälle laufen gleichzeitig: Vor jedem Pass prüfen, wo der zweite Ball ist.', 'Two balls move at once: check where the other ball is before every pass.')
         : T('Ab der zweiten Runde Tempo erhöhen, wenn die Pässe sauber ankommen.', 'From the second round raise the tempo if the passes arrive cleanly.'),
     ];
@@ -84,8 +84,8 @@ const PASS = {
       script, steps, nameParts: [shape[0] === 'Quadrat' ? null : [shape[0], shape[1]], p.b === 2 ? ['2 Bälle', '2 balls'] : null, ['Direkt', 'One touch'], ['Wechsel', 'Switch'], ['Übernächster', 'Skip one']].filter((x, i) => i < 2 || (i === 2 && p.r === 1) || (i === 3 && p.r === 2) || (i === 4 && p.r === 3)).filter(Boolean),
       min: n, max: n, minutes: base.minutes + (hard ? 2 : 0),
       equipment: [['Bälle', p.b + 1], ['Hütchen', n]],
-      ages: hard ? base.ages.filter(a => a !== 'F-Jugend' && a !== 'E-Jugend') : base.ages,
-      extraCoaching: p.b === 2 ? T('Zweiten Ball erst nach sicheren Pässen einführen.', 'Add the second ball only after the passes are secure.') : '',
+      ages: base.ages,
+      extraCoaching: [p.b === 2 ? T('Zweiten Ball erst nach sicheren Pässen einführen.', 'Add the second ball only after the passes are secure.') : '', hard ? T('Anspruchsvoller als die Grundübung (TRAINR-Einschätzung): bei Unsicherheit mit weniger Bällen, einem Kontakt mehr oder mehr Platz beginnen.', 'More demanding than the base drill (TRAINR estimate): if players struggle, start with fewer balls, an extra touch or more space.') : ''].filter(Boolean).join(' '),
     };
   },
 };
@@ -137,19 +137,18 @@ const RONDO = {
     const steps = [
       T(`Aufbau: ${['Kleines', 'Mittleres', 'Großes'][p.s - 1]} Feld, ${o} Außenspieler an den Seiten, ${p.v} ${p.v === 1 ? 'Verteidiger' : 'Verteidiger'} innen. ${label}.`, `Setup: ${['small', 'medium', 'large'][p.s - 1]} area, ${o} outside players on the edges, ${p.v} ${p.v === 1 ? 'defender' : 'defenders'} inside. ${label}.`),
       T('Die Außenspieler halten den Ball in den eigenen Reihen und spielen Passwege frei.', 'The outside players keep the ball and open passing lanes.'),
-      p.r === 1 ? T('Regel: höchstens zwei Kontakte je Spieler.', 'Rule: two touches at most per player.')
+      p.r === 1 ? T('Regel: höchstens zwei Kontakte je Spieler (in der Animation nicht sichtbar, sie zeigt nur den Passweg).', 'Rule: two touches at most per player (not visible in the animation, which shows the pass path only).')
         : p.r === 2 ? T('Einstieg: Die Verteidiger gehen, bis der Ball sicher läuft.', 'Starter: defenders walk until the ball moves securely.')
-        : p.r === 3 ? T('Ein Pass durch die Mitte zwischen den Verteidigern zählt einen Punkt.', 'A pass through the middle between the defenders scores one point.')
+        : p.r === 3 ? T('Ein Pass durch die Mitte zwischen den Verteidigern zählt einen Punkt' + (o >= 4 ? '.' : ' (bei 3 Außenspielern ist die Mitte nicht eigens eingezeichnet).'), 'A pass through the middle between the defenders scores one point' + (o >= 4 ? '.' : ' (with 3 outside players the middle pass is not drawn separately).'))
         : T('Freie Kontakte, kein Kontaktzwang.', 'Free touches, no touch limit.'),
       T('Bei Ballgewinn oder Ausball wechseln die Verteidiger, spätestens nach 45 bis 60 Sekunden.', 'On a won ball or when the ball goes out the defenders change, after 45 to 60 seconds at most.'),
     ];
-    const cMin = p.v === 2 || o >= 5;
     return {
       script, steps, nameParts: [[`${o} gegen ${p.v}`, `${o} v ${p.v}`], p.s !== 2 ? [['Feld klein', 'Small area'], null, ['Feld groß', 'Large area']][p.s - 1] : null, p.r ? [null, ['2 Kontakte', '2 touches'], ['Einstieg', 'Starter'], ['Mitte zählt', 'Middle scores']][p.r] : null].filter(Boolean),
       min: o + p.v, max: o + p.v, minutes: base.minutes,
       equipment: [['Bälle', 2], ['Hütchen', 4], ['Leibchen', p.v]],
-      ages: cMin ? base.ages.filter(a => !['D-Jugend'].includes(a)) : base.ages,
-      extraCoaching: p.s === 1 ? T('Kleines Feld ist schwerer für die Außenspieler: bei vielen Ballverlusten vergrößern.', 'A small area is harder for the outside players: enlarge it after many losses.') : '',
+      ages: base.ages,
+      extraCoaching: [p.s === 1 ? T('Kleines Feld ist schwerer für die Außenspieler: bei vielen Ballverlusten vergrößern.', 'A small area is harder for the outside players: enlarge it after many losses.') : '', (p.v === 2 || o >= 5) ? T('Anspruchsvoller als die Grundübung (TRAINR-Einschätzung): bei vielen Ballverlusten Feld vergrößern oder Verteidiger gehen lassen.', 'More demanding than the base drill (TRAINR estimate): enlarge the area or let defenders walk after many losses.') : ''].filter(Boolean).join(' '),
     };
   },
 };
@@ -193,7 +192,8 @@ const SLALOM = {
       addZig(zig2, true, 3); ph.push([3, .1, `d1 ${end2} 92`]); addZig(back2, true, 3); ph.push([3, .1, 'd1 284 95 walk']);
       ph.push([4, .6, 'p1>0']);
     }
-    const task = [null, T('Nur mit der Außenseite des Fußes führen.', 'Dribble with the outside of the foot only.'), T('Nur mit der Innenseite des Fußes führen.', 'Dribble with the inside of the foot only.'), T('Nur mit dem schwächeren Fuß führen, nach vier Durchgängen wechseln.', 'Dribble with the weaker foot only, switch after four runs.')][p.r];
+    const NS = [' (Animation zeigt die Strecke, nicht den Fuß)', ' (animation shows the course, not the foot)'], ns = getLang() === 'en' ? NS[1] : NS[0];
+    const task = [null, T('Nur mit der Außenseite des Fußes führen.', 'Dribble with the outside of the foot only.') + ns, T('Nur mit der Innenseite des Fußes führen.', 'Dribble with the inside of the foot only.') + ns, T('Nur mit dem schwächeren Fuß führen, nach vier Durchgängen wechseln.', 'Dribble with the weaker foot only, switch after four runs.') + ns][p.r];
     const sp = ['engem', 'mittlerem', 'weitem'][p.a - 1], spEn = ['tight', 'medium', 'wide'][p.a - 1];
     const steps = [
       T(`Aufbau: Zwei Slalomstrecken mit je ${n} Hütchen in ${sp} Abstand, die Strecken liegen gegenüber, je ein Kind am äußeren Ende.`, `Setup: two slalom courses of ${n} cones with ${spEn} spacing, facing each other, one player at each outer end.`),
