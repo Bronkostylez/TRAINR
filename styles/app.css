@@ -619,7 +619,29 @@ label:has(input[name="color"]:checked) .swatch { box-shadow: 0 0 0 3px var(--ink
 details.disclosure > summary > svg { width: 20px; height: 20px; flex: none; }
 .plan-tabs .seg { display: flex; flex-wrap: nowrap; width: 100%; }
 .plan-tabs .seg button { flex: 1; padding: 6px 4px; min-width: 0; }
+/* Editor 21.27: Tabs auf dem Handy, Kamera-Fenster, Vorschau */
+.ed-tabbar { position: sticky; top: -1px; z-index: 3; margin: 6px calc(-1 * var(--s-5, 20px)) 0; padding: 8px var(--s-5, 20px) 8px; background: var(--surface); }
+.ed-tabs { display: flex; flex-wrap: nowrap; width: 100%; }
+.ed-tabs button { flex: 1; min-width: 0; min-height: 46px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.ed-tabs button svg { width: 18px; height: 18px; }
+#ed[data-tab="sketch"] .ed-side { display: none; }
+#ed[data-tab="details"] .ed-sketch { display: none; }
+#ed .ed-layout > .ed-section:first-child { margin-top: var(--s-3); }
+.ed-camera { margin-top: var(--s-3); }
+.ed-camera .seg { display: flex; flex-wrap: nowrap; width: 100%; }
+.ed-camera .seg button { flex: 1; min-width: 0; padding-inline: 6px; }
+.ed-tabs button[aria-selected="true"] { background: var(--fill); color: var(--on-fill); }
+.editor-pitch { scroll-margin-top: 76px; }
+.sk-cam-dim { fill: rgba(0, 0, 0, .5); pointer-events: none; }
+.sk-cam { fill: none; stroke: var(--signal); stroke-width: 2; stroke-dasharray: 6 3; pointer-events: none; }
+.editor-pitch .sk-cam-label { font: 800 8px var(--font); fill: var(--signal); letter-spacing: .08em; text-transform: uppercase; }
+.scene-custom [data-actor] { transform-box: fill-box; transform-origin: center; }
+.ed-prev-steps { margin-top: var(--s-4); }
+.ed-selbar .btn { flex: none; }
+.ed-stepbtn { min-height: 44px; }
 @media (min-width: 900px) {
+  .ed-tabbar { display: none; }
+  #ed[data-tab] .ed-side, #ed[data-tab] .ed-sketch { display: block; }
   .ed-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr); gap: var(--s-6); align-items: start; }
   .ed-sketch { position: sticky; top: 0; }
   .ed-layout .ed-section:first-child, .ed-side > .ed-section:first-child { margin-top: var(--s-4); }
@@ -1030,4 +1052,4 @@ details.focus-strip > summary { min-height: 48px; font-size: .9rem; }
   .detail-sheet .sheet-body { padding-inline: 16px; }
   .detail-sheet .sheet-foot { padding-inline: 16px; }
   .detail-sheet .detail-grid { gap: 16px; }
-  }
+}
