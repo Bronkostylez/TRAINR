@@ -23,7 +23,7 @@ export function mountPlayer(host, e, opts = {}) {
   function build() {
     tl?.destroy(); tl = null;
     host.innerHTML = drillPitch(e, true, 0);
-    if (full()) tl = compile(host.querySelector('.pitch-scene'), steps.length, { camera: !!opts.camera });
+    if (full()) tl = compile(host.querySelector('.pitch-scene'), steps.length, { camera: !!opts.camera, exercise: e });
     if (!tl) paintStatic(step);
     opts.onState?.(api.state);
   }
