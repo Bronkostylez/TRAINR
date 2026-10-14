@@ -13,7 +13,8 @@ import { addExercise, undoToast } from '../ui/actions.js';
 import { toast, haptic } from '../ui/feedback.js';
 import { pulse } from '../ui/motion.js';
 import { materialChips } from '../ui/material.js';
-import { familyOf, variantParams, variantId, defaults } from '../data/variants.js';
+import { validAnimation } from '../core/schema.js';
+import { familyOf, variantParams, variantId, defaults, scriptToAnimation } from '../data/variants.js';
 import { getLang } from '../i18n/index.js';
 
 const fmt = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
@@ -81,7 +82,7 @@ export function openDetail(id, order = null) {
             <p class="tiny">Eigene Kurzfassung bzw. Variante, keine offizielle Übung des Verbands. Maße, Minuten, Altersgrenzen und Mengen sind redaktionelle Vorschläge, keine Normen. Belastung an Können, Platz und Gruppe anpassen.</p></div></details>
           <details class="disclosure"><summary>Ähnliche Übungen</summary><div class="body"><div class="stack">${similar(s, e, 3).map(o => `<button class="mini-drill" type="button" data-open="${esc(o.id)}">${drillPitch(o)}<span><strong>${esc(o.name)}</strong><br><small>${esc(foci(o).slice(0, 2).join(' · ') || o.tag)} · ${effective(s, o).minutes} Min</small></span></button>`).join('')}</div></div></details>
           <div class="row">
-            ${e.custom ? `<button class="btn sm" type="button" id="d-edit">${icon('edit')} Bearbeiten</button><button class="btn sm danger" type="button" id="d-del">${icon('trash')} Löschen</button>` : `<button class="btn sm" type="button" id="d-copy">${icon('copy')} ${e.variantOf ? 'Als eigene Übung (ohne Animation)' : 'Als eigene Übung anpassen'}</button>`}
+            ${e.custom ? `<button class="btn sm" type="button" id="d-edit">${icon('edit')} Bearbeiten</button><button class="btn sm danger" type="button" id="d-del">${icon('trash')} Löschen</button>` : `<button class="btn sm" type="button" id="d-copy">${icon('copy')} Als eigene Übung anpassen</button>`}
           </div>
         </div>
       </div>`);
@@ -186,6 +187,7 @@ function lernweg(s, e) {
 function copyAsCustom(e) {
   const c = deepClone({ id: 'custom-' + uid(), name: `${e.name} (eigene)`.slice(0, 80), type: e.type, tag: e.tag, ages: e.ages, min: e.min, max: e.max, minutes: e.minutes, description: e.description, coaching: e.coaching, equipment: e.equipment, url: e.url || '', custom: true });
   if (e.goal) c.goal = e.goal;
+  if (e.script) { const an = scriptToAnimation(e.script, e.steps); if (an && validAnimation(an)) c.animation = an; }
   if (foci(e).length) c.focus = foci(e).slice(0, MAX_FOCI);
   return c;
 }

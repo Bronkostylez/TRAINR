@@ -106,3 +106,20 @@ test('Variante im Plan: Training, Export, Backup und Zurückspielen funktioniere
   await expect(page.locator('body')).toContainText('Sechseck');
   expect(errors).toEqual([]);
 });
+
+test('Als eigene Übung: generierte Animation wird in die Skizze übernommen und bleibt abspielbar', async ({ page }) => {
+  const errors = watchErrors(page);
+  await onboard(page); await open(page, 'v5-rondo~o4.v2');
+  await page.click('dialog[open] #d-copy');
+  await expect(page.locator('#ed-pitch')).toBeVisible();
+  await page.locator('[data-ed-tab=details]').evaluate(b => b.click());
+  await page.click('.mat-toggle >> nth=0').catch(() => {});
+  await page.click('dialog[open] button[type=submit]');
+  await expect(page.locator('dialog[open] #d-scene')).toBeVisible();
+  const c = (await state(page)).custom.at(-1);
+  expect(c.animation.version).toBe(2);
+  expect(c.animation.frames.length).toBeGreaterThan(3);
+  expect(c.animation.items.filter(i => i.k === 'b').length).toBe(2);
+  await page.click('dialog[open] #d-play'); await page.waitForTimeout(500);
+  expect(errors).toEqual([]);
+});
