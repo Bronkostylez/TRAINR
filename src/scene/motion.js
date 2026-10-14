@@ -68,6 +68,7 @@ const LOFT=new Set(['toss','chip']);
 const TRAIL_OP={pass:.95,dribble:.7,run:.42};
 function compileSeed(scene,steps,{camera=false}={}){
  const kind=scene.dataset.setup,e=resolveExercise(scene.dataset.exercise);if(!e||kind==='custom')return null;
+ if(e.script&&e.script.cam===false)camera=false; // Skript-Option: ganzes Feld im Blick (z. B. viele parallele Bahnen)
  const actors={};scene.querySelectorAll('[data-actor]').forEach(el=>{actors[el.dataset.actor]={el,x:+el.dataset.x,y:+el.dataset.y,k:[]};});
  const ps=[];for(let i=0;actors['p'+i];i++)ps.push([actors['p'+i].x,actors['p'+i].y,actors['p'+i].el.dataset.label,actors['p'+i].el.dataset.op==='1']);
  const pl=plan(kind,e,ps);if(!pl)return null;

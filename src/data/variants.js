@@ -248,7 +248,7 @@ const ACHT = {
       T('Zum Schluss Tempo steigern und die Runden zählen.', 'Finally raise the tempo and count the rounds.'),
     ];
     return {
-      script: { name: base.name, obj, pl: ys.map((y, i) => [cx, y, String(i + 1)]), balls: ys.map((_, i) => i), ph }, steps,
+      script: { name: base.name, obj, pl: ys.map((y, i) => [cx, y, String(i + 1)]), balls: ys.map((_, i) => i), ph, ...(k > 2 ? { cam: false } : {}) }, steps,
       nameParts: [p.s !== 2 ? [`${[4, 6, 8][p.s - 1]} m`, `${[4, 6, 8][p.s - 1]} m`] : null, p.k !== 2 ? [`${k} Kinder`, `${k} players`] : null, p.r ? [['', 'Innenseite', 'Außenseite', 'Schwacher Fuß'][p.r], ['', 'Inside', 'Outside', 'Weaker foot'][p.r]] : null].filter(Boolean),
       min: k, max: k, minutes: base.minutes + (p.s === 3 ? 1 : 0),
       equipment: [['Bälle', k], ['Hütchen', k * 2]], ages: base.ages,
