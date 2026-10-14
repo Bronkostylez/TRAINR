@@ -1,6 +1,27 @@
 // Regelbasierter Planassistent – keine KI, keine Datenübertragung. Jede Wahl wird begründet.
-import { allExercises, layout, layoutText, effective, meta, foci, hasFocus, pauseCount, AGES, FOCUS_KEYS, MAX_FOCI } from './planning.js';
+import { allExercises, exercise, layout, layoutText, effective, meta, foci, hasFocus, pauseCount, AGES, FOCUS_KEYS, MAX_FOCI } from './planning.js';
 import { rng, integer } from './util.js';
+import { familyOf, variantId, buildVariant, defaults } from '../data/variants.js';
+
+// Super-Übung: Passt die Grundübung nicht sauber zur Gruppe (Wartende, lange Schlange), wird die Variante gewählt, die besser aufgeht.
+export function bestVariant(s, e, sq) {
+  const fam = familyOf(e.id); if (!fam) return null;
+  const score = L => (L.level === 'no' ? 1e3 : 0) + (L.level === 'tight' ? 50 : 0) + L.waiting * 5 + (L.keepersMissing || 0) * 3;
+  const base = score(layout(s, e, sq)); if (base === 0) return null;
+  let best = null; const seen = new Set();
+  const walk = (i, p) => {
+    if (i === fam.params.length) {
+      const id = variantId(fam, p); if (seen.has(id) || id === fam.base) return; seen.add(id);
+      const v = buildVariant(id, e); if (!v) return;
+      const L = layout(s, v, sq), sc = score(L) + Object.keys(p).filter(k => p[k] !== defaults(fam)[k]).length * .1;
+      if (!best || sc < best.sc) best = { id, v, sc, L };
+      return;
+    }
+    for (const o of fam.params[i].opts) walk(i + 1, { ...p, [fam.params[i].k]: o[0] });
+  };
+  walk(0, {});
+  return best && best.sc < base - 1 ? best : null;
+}
 
 export const STRATEGIES = {
   classic: {
@@ -94,10 +115,13 @@ export function propose(s, f) {
     }
     if (!choice) throw new Error(`Für „${phase}“ fehlt eine passende Übung. Spielerzahl oder Trainerart ändern.`);
     used.add(choice.e.id);
+    let vn = '';
+    const bv = bestVariant(s, choice.e, sq);
+    if (bv) { choice = { ...choice, e: bv.v }; vn = `Variante „${bv.v.name}“ passt besser zu ${sq.players + sq.keepers} Spielern`; }
     const alts = (ranked.length > 1 ? ranked.slice(1, 4) : pool.filter(e => !used.has(e.id) && e.tag === choice.e.tag).map(rank).slice(0, 3)).map(o => o.e.id);
     const L = layout(s, choice.e, sq);
     blocks.push({ exerciseId: choice.e.id, phase, weight, groups: L.groups, flow: L.mode, alternatives: alts,
-      why: [fallback ? `${wants.map(t => (t === 'FOCUS' ? phaseFocus : t))[0]} nicht verfügbar – Alternative ${choice.e.tag}` : `${phase}: ${choice.why[0] || choice.e.tag}`, layoutText(L), ...choice.why.slice(1)].join(' · ') });
+      why: [fallback ? `${wants.map(t => (t === 'FOCUS' ? phaseFocus : t))[0]} nicht verfügbar – Alternative ${choice.e.tag}` : `${phase}: ${choice.why[0] || choice.e.tag}`, ...(vn ? [vn] : []), layoutText(L), ...choice.why.slice(1)].join(' · ') });
   }
   // Pausen zuerst abziehen (bei „Automatisch“ zählt die verbleibende Übungszeit), höchstens so viele, dass je Block 5 Min bleiben.
   const pz = f.pauses && f.pauses.count !== 0 ? { count: f.pauses.count, minutes: f.pauses.minutes } : null;
@@ -118,7 +142,7 @@ export function propose(s, f) {
   if (blocks.at(-1).minutes < 3) throw new Error('Zu wenig Zeit für diese Struktur. Mehr Minuten oder „Kurz & knackig“ wählen.');
   const cap = BLOCK_CAP[age] || 0;
   blocks.forEach(b => {
-    const e = effective(s, allExercises(s).find(x => x.id === b.exerciseId));
+    const e = effective(s, exercise(s, b.exerciseId));
     const round = cap ? Math.min(e.minutes, cap) : e.minutes;
     if (b.minutes > round * 2.2 || (cap && b.minutes > cap)) b.why += ` · in ${Math.ceil(b.minutes / round)} Runden à ${round} Min teilen${cap && cap < e.minutes ? ` (kurze Blöcke für ${age})` : ''}`;
   });
