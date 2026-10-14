@@ -50,7 +50,7 @@ const SCENE_GROUPS={
 export const SETUP_KIND=Object.fromEntries(Object.entries(SCENE_GROUPS).flatMap(([kind,ids])=>ids.map(id=>[id,kind])));
 export function drillPitch(e,large=false,step=0){
  if(e.custom&&validAnimation(e.animation))return customPitch(e,large,step);
- const sc=!e.custom&&SCRIPTS[e.id],kind=e.custom?'custom':sc?'script':e.setupKind||SETUP_KIND[e.id]||'custom';
+ const sc=!e.custom&&(e.script||SCRIPTS[e.id]),kind=e.custom?'custom':sc?'script':e.setupKind||SETUP_KIND[e.id]||'custom';
  const player=(x,y,n,op=false)=>`<g class="pitch-player ${n==='K'?'goalkeeper':op?'opponent':''}"><circle cx="${x}" cy="${y}" r="10"/><text x="${x}" y="${y+3}">${n}</text></g>`;
  const cone=(x,y)=>`<path class="setup-cone" d="M${x-4} ${y+4}l4-9 4 9z"/>`;
  const gate=(x,y)=>cone(x,y-12)+cone(x,y+12);

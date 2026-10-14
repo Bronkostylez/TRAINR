@@ -13,6 +13,8 @@ import { addExercise, undoToast } from '../ui/actions.js';
 import { toast, haptic } from '../ui/feedback.js';
 import { pulse } from '../ui/motion.js';
 import { materialChips } from '../ui/material.js';
+import { familyOf, variantParams, variantId, defaults } from '../data/variants.js';
+import { getLang } from '../i18n/index.js';
 
 const fmt = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 
@@ -28,7 +30,7 @@ export function openDetail(id, order = null) {
     player?.destroy();
     const s = store.get(), e = exercise(s, ids[idx]);
     if (!e) { sheet.close(); return; }
-    const p = currentPlan(s), x = effective(s, e), m = meta(s, e.id), L = layout(s, e, squadOf(s, p)), g = L.level !== 'no', flow = flowOf(e);
+    const p = currentPlan(s), x = effective(s, e), m = meta(s, e.variantOf || e.id), L = layout(s, e, squadOf(s, p)), g = L.level !== 'no', flow = flowOf(e);
     const variants = e.variants || localizeVariants(e.tag, TAG_VARIANTS[e.tag]);
     const age = planAge(s, p);
     sheet.setTitle(e.name);
@@ -56,6 +58,7 @@ export function openDetail(id, order = null) {
         </div>
         <div class="stack detail-content">
           <div class="facts"><span>${icon('clock')} ${x.minutes} Min${m.variant ? ' · deine Variante' : ''}</span><span>${flow === 'open' ? `ab ${x.min} Spieler` : flow === 'queue' ? `Je Station ${x.min === x.max ? x.min : `${x.min}–${x.max}`} Spieler aktiv` : `${x.min === x.max ? x.min : `${x.min}–${x.max}`} ${coachRole(e)?.slots ? 'Rollen (Kinder + Helfer)' : 'Spieler'} / Gruppe`}</span><span>${esc(FLOW_LABEL[flow])}</span><span>ab ${esc(e.ages[0])}</span><span class="${g ? '' : 'warn'}">${esc(layoutText(L))}</span></div>
+          ${superSection(e)}
           ${e.goal ? `<section><h3>Ziel</h3><p>${esc(e.goal)}</p></section>` : ''}
           <section class="detail-section"><h3>Aufbau & Material <small class="tiny">je Gruppe</small></h3><div>${materialChips(e.equipment)}</div>${e.type === 'keeper' && e.min <= 2 ? '<p class="tiny">Kinder und Trainer werden getrennt gezählt. Eine belegte Helferrolle ersetzt einen Partnerplatz, nicht die Übungsrolle.</p>' : ''}</section>
           <section class="detail-section detail-steps"><h3>Ablauf</h3><ol class="steps" id="d-steps"></ol></section>
@@ -67,11 +70,11 @@ export function openDetail(id, order = null) {
             <ul class="foci-explain">${foci(e).map((k, i) => `<li><strong>${esc(k)}</strong>${i ? '' : ' <span class="tiny">Hauptschwerpunkt</span>'} – ${esc(FOCUS[k]?.hint || '')} <span class="tiny">· ${esc(AREAS[FOCUS[k]?.area]?.label || '')}</span></li>`).join('')}</ul></div></details>` : ''}
           ${variants ? `<details class="disclosure"><summary>Leichter / schwerer</summary><div class="body"><p class="small"><strong>Leichter:</strong> ${esc(variants[0])}</p><p class="small"><strong>Schwerer:</strong> ${esc(variants[1])}</p></div></details>` : ''}
           ${lernweg(s, e)}
-          <details class="disclosure"><summary>Deine Variante <span class="tiny">${m.variant ? 'aktiv' : 'Spieler & Minuten anpassen'}</span></summary><div class="body">
+          ${e.variantOf ? '' : `<details class="disclosure"><summary>Deine Variante <span class="tiny">${m.variant ? 'aktiv' : 'Spieler & Minuten anpassen'}</span></summary><div class="body">
             <p class="tiny">Nur auf diesem Gerät. Gilt für neue Blöcke, Gruppenberechnung und Vorschläge. Material bleibt beim Original.</p>
             <div class="row"><label class="field grow"><span>Von Spielern</span><input class="input" id="v-min" type="number" min="1" max="100" value="${x.min}"></label><label class="field grow"><span>Bis Spielern</span><input class="input" id="v-max" type="number" min="1" max="100" value="${x.max}"></label><label class="field grow"><span>Minuten</span><input class="input" id="v-min2" type="number" min="1" max="120" value="${x.minutes}"></label></div>
             <div class="row"><button class="btn sm" type="button" id="v-save">Variante merken</button>${m.variant ? '<button class="btn sm ghost" type="button" id="v-reset">Original</button>' : ''}</div>
-          </div></details>
+          </div></details>`}
           <details class="disclosure" id="d-feedback"><summary>Deine Bewertung & Notiz${m.rating || m.note ? ' <span class="tiny">gespeichert</span>' : ''}</summary><div class="body"><div class="stars" role="group" aria-label="Bewertung">${[1, 2, 3, 4, 5].map(k => `<button type="button" data-rate-star="${k}" aria-pressed="${(m.rating || 0) >= k}" aria-label="${k} von 5 Sternen">★</button>`).join('')}</div>
             <label class="field"><span>Deine Notiz (keine Spielernamen)</span><textarea class="input" id="d-note" maxlength="1000" rows="3" placeholder="Was hat funktioniert? Was ändern?">${esc(m.note || '')}</textarea></label></div></details>
           <details class="disclosure"><summary>Quellen & Hinweise</summary><div class="body">${sourcesHtml(e)}
@@ -120,13 +123,15 @@ export function openDetail(id, order = null) {
     on(stepsEl, 'keydown', '[data-step]', (ev, li) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); li.click(); } });
 
     on(b, 'click', '[data-rate-star]', (_, btn) => {
-      const k = Number(btn.dataset.rateStar), cur = meta(store.get(), e.id).rating;
-      store.update('Bewertung', d => { const mm = (d.exerciseMeta[e.id] ||= {}); if (cur === k) delete mm.rating; else mm.rating = k; }, { reason: 'meta' });
+      const mid = e.variantOf || e.id, k = Number(btn.dataset.rateStar), cur = meta(store.get(), mid).rating;
+      store.update('Bewertung', d => { const mm = (d.exerciseMeta[mid] ||= {}); if (cur === k) delete mm.rating; else mm.rating = k; }, { reason: 'meta' });
       b.querySelectorAll('[data-rate-star]').forEach(x => x.setAttribute('aria-pressed', String((cur === k ? 0 : k) >= Number(x.dataset.rateStar))));
       haptic('tap'); pulse(btn);
     });
-    $('#d-note', b).onchange = ev => { const v = ev.target.value.trim().slice(0, 1000); store.update('Notiz', d => { const mm = (d.exerciseMeta[e.id] ||= {}); if (v) mm.note = v; else delete mm.note; }, { reason: 'meta' }); toast('Notiz gespeichert.'); };
-    $('#v-save', b).onclick = () => {
+    $('#d-note', b).onchange = ev => { const v = ev.target.value.trim().slice(0, 1000); store.update('Notiz', d => { const mm = (d.exerciseMeta[e.variantOf || e.id] ||= {}); if (v) mm.note = v; else delete mm.note; }, { reason: 'meta' }); toast('Notiz gespeichert.'); };
+    on(b, 'click', '[data-vid]', (_, btn) => { const keep = sheet.body.scrollTop, wasOpen = !!btn.closest('.seg') || !!b.querySelector('#d-super details[open]'); ids[idx] = btn.dataset.vid; haptic('tap'); paint(); const dd = sheet.body.querySelector('#d-super details'); if (dd && wasOpen) dd.open = true; sheet.body.scrollTop = keep; });
+    const vSave = $('#v-save', b);
+    if (vSave) vSave.onclick = () => {
       const v = { min: Number($('#v-min', b).value), max: Number($('#v-max', b).value), minutes: Number($('#v-min2', b).value) };
       if (!integer(v.min, 1, 100) || !integer(v.max, v.min, 100) || !integer(v.minutes, 1, 120)) { toast('Gültigen Bereich (Von ≤ Bis) und 1–120 Minuten wählen.'); return; }
       store.update('Variante gespeichert', d => { (d.exerciseMeta[e.id] ||= {}).variant = v; }, { reason: 'meta' });
@@ -154,6 +159,20 @@ export function openDetail(id, order = null) {
   sheet.body.addEventListener('touchend', ev => { if (!sw) return; const dx = ev.changedTouches[0].clientX - sw.x, dy = ev.changedTouches[0].clientY - sw.y; sw = null; if (Math.abs(dx) > 80 && Math.abs(dy) < 50) nav(dx < 0 ? 1 : -1); }, { passive: true });
   paint();
   return sheet;
+}
+
+/** Super-Übung: fertige Varianten zum Antippen und einzelne Stellschrauben. Nur für Grundübungen mit Variantenfamilie. */
+function superSection(e) {
+  const fam = familyOf(e.variantOf || e.id);
+  if (!fam) return '';
+  const en = getLang() === 'en', cur = variantParams(e.id), base = defaults(fam), active = e.id;
+  const presets = [{ de: 'Original', en: 'Original', p: {} }, ...fam.presets];
+  const chip = pr => { const id = variantId(fam, { ...base, ...pr.p }); return `<button type="button" class="chip" data-vid="${esc(id)}" aria-pressed="${id === active}">${esc(en ? pr.en : pr.de)}</button>`; };
+  const rows = fam.params.map(q => `<div class="field"><span>${esc(en ? q.label[1] : q.label[0])}</span><div class="seg" role="group" aria-label="${esc(en ? q.label[1] : q.label[0])}">${q.opts.map(o => `<button type="button" data-vid="${esc(variantId(fam, { ...cur, [q.k]: o[0] }))}" aria-pressed="${cur[q.k] === o[0]}">${esc(en ? o[2] : o[1])}</button>`).join('')}</div></div>`).join('');
+  const custom = active !== fam.base && !fam.presets.some(pr => variantId(fam, { ...base, ...pr.p }) === active);
+  return `<section class="detail-section super-section" id="d-super"><h3>Super-Übung <small class="tiny">Aufbau, Animation und Material passen sich an</small></h3>
+    <div class="chips" role="group" aria-label="Fertige Varianten">${presets.map(chip).join('')}</div>
+    <details class="disclosure"${custom ? ' open' : ''}><summary>Selbst einstellen</summary><div class="body">${rows}</div></details></section>`;
 }
 
 /** Vorstufe und Weiterführung als Sprungziele im Detail. */

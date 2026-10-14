@@ -16,7 +16,7 @@ const ev=(m,hold=.3)=>({m,hold});
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function plan(kind,e,ps){
  if(!ps.length)return null;
- if(kind==='script')return SCRIPTS[e.id]?scriptPlan(SCRIPTS[e.id]):null;
+ if(kind==='script')return (e.script||SCRIPTS[e.id])?scriptPlan(e.script||SCRIPTS[e.id]):null;
  const A=ps.map((p,i)=>({i,x:p[0],y:p[1],l:p[2],op:!!p[3]})),mine=A.filter(p=>!p.op&&p.l!=='N'&&p.l!=='K'),opp=A.filter(p=>p.op&&p.l!=='K'),own=ps.map(p=>[p[0]+OFF[0],p[1]+OFF[1]]);
  const balls=[['b0',...own[0]]];let events=[];const ball1=()=>balls.push(['b1',...own[1]]);
  const pairSet=()=>{};

@@ -3,11 +3,14 @@
 import { AGES, TAGS, SEED } from '../data/drills.js';
 import { FOCUS_KEYS, MAX_FOCI } from '../data/focus.js';
 import { FLOWS } from '../data/flow.js';
+import { parseVariantId, variantId } from '../data/variants.js';
 import { LANG_CODES } from '../i18n/index.js';
 import { LABELS, integer, text, optText, safeURL, time } from './util.js';
 
 export const LIMITS = { events: 1500, plans: 300, blocks: 100, custom: 500, teams: 20, boards: 100, backupBytes: 5_000_000, notes: 2000 };
 const SEED_IDS = new Set(SEED.map(e => e.id));
+/** Super-Übung: bekannte Grundübung mit gültigen Einstellungen (nur die kanonische Schreibweise). */
+export const validVariantId = id => { const h = parseVariantId(id); return !!h && variantId(h.fam, h.p) === id; };
 /** Schwerpunkt einer Einheit: keiner, ein Schwerpunkt oder (aus älteren Ständen) eine Kategorie. */
 export const PLAN_FOCUS = new Set(['Alle', ...TAGS, ...FOCUS_KEYS]);
 const validFoci = f => Array.isArray(f) && f.length >= 1 && f.length <= MAX_FOCI && new Set(f).size === f.length && f.every(k => FOCUS_KEYS.includes(k));
@@ -169,7 +172,7 @@ export function validateV3(x) {
       (p.foci !== undefined && !validFoci(p.foci))) fail('Ungültige Einheit.');
     pids.add(p.id);
     for (const b of p.blocks) {
-      if (!text(b.id, 100) || bids.has(b.id) || !ids.has(b.exerciseId) || !integer(b.minutes, 1, 120) ||
+      if (!text(b.id, 100) || bids.has(b.id) || !(ids.has(b.exerciseId) || validVariantId(b.exerciseId)) || !integer(b.minutes, 1, 120) ||
         (b.coachSupport !== undefined && typeof b.coachSupport !== 'boolean') || (b.people !== undefined && !integer(b.people, 1, 100)) || !optText(b.note, 300) ||
         (b.groupLabel !== undefined && !optText(b.groupLabel, 40)) || (b.stations !== undefined && !integer(b.stations, 1, 6)) ||
         (b.why !== undefined && !optText(b.why, 300)) ||

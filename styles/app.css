@@ -1053,3 +1053,14 @@ details.focus-strip > summary { min-height: 48px; font-size: .9rem; }
   .detail-sheet .sheet-foot { padding-inline: 16px; }
   .detail-sheet .detail-grid { gap: 16px; }
   }
+
+/* Super-Übungen (21.28) */
+.tag.super { background: var(--signal); color: var(--hero); }
+.super-section .chips { margin-top: 4px; }
+.super-section .chip { min-height: 44px; white-space: nowrap; }
+.super-section .seg { max-width: 100%; }
+.super-section .seg button { min-height: 44px; text-align: left; }
+.super-section .disclosure { margin-top: 2px; }
+.detail-content, .super-section, .super-section .chips, .super-section .field { min-width: 0; max-width: 100%; }
+.super-section .seg { display: flex; }
+.super-section .seg button { flex: 1 1 auto; }

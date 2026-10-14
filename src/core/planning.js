@@ -6,6 +6,7 @@ import { flowOf } from '../data/flow.js';
 import { coachRole } from '../data/coach-roles.js';
 export { coachRole } from '../data/coach-roles.js';
 import { localizeExercise } from '../i18n/catalog.js';
+import { buildVariant, isVariantId } from '../data/variants.js';
 import { time, fmtTime, sum, DAYS } from './util.js';
 
 export { AGES, TAGS, SEED };
@@ -18,7 +19,9 @@ const seedById = new Map(SEED.map(e => [e.id, { ...e, ...META[e.id], flow: flowO
 /** Übung inkl. redaktioneller Ergänzungen und Schwerpunkte. */
 export function exercise(s, id) {
   const seed = seedById.get(id);
-  return seed ? localizeExercise(seed) : s.custom.find(e => e.id === id) || null;
+  if (seed) return localizeExercise(seed);
+  if (isVariantId(id)) { const b = seedById.get(id.split('~')[0]); return b ? buildVariant(id, localizeExercise(b)) : null; }
+  return s.custom.find(e => e.id === id) || null;
 }
 
 // ---------- Schwerpunkte ----------

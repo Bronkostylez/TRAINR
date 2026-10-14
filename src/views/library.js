@@ -18,6 +18,8 @@ const DEFAULT = () => ({ q: '', scope: 'all', tags: [], foci: [], type: 'team', 
 let F = DEFAULT();
 let animator = null;
 /** Neu im Katalog seit V21.5 (eigene Spielzug-Animationen). */
+import { familyOf as _fam } from '../data/variants.js';
+export const isVariable = e => !e.custom && !!_fam(e.id);
 export const isNew = e => !e.custom && (e.id.startsWith('v22-') || e.id.startsWith('gk-'));
 // Kartenansicht nur auf diesem Gerät merken (reine Bequemlichkeit).
 const VIEW_KEY = 'trainr-lib-view';
@@ -68,7 +70,7 @@ export function card(s, p, e) {
     <button class="fav" type="button" data-fav="${esc(e.id)}" aria-pressed="${!!m.favorite}" aria-label="${esc(e.name)} ${m.favorite ? 'von der Merkliste entfernen' : 'merken'}">${icon('heart')}</button>
     ${drillPitch(e)}
     <div class="drill-body">
-      <div class="row" style="gap:6px"><span class="tag">${esc(e.tag)}</span>${e.type !== 'field' ? `<span class="tag ${e.type === 'keeper' ? 'keeper' : 'both'}">${esc(TYPE_SHORT[e.type])}</span>` : ''}${e.custom ? '<span class="tag custom">Eigene</span>' : ''}${isNew(e) ? '<span class="tag new">Neu</span>' : ''}${m.rating ? `<span class="stars-inline" aria-label="${m.rating} Sterne">${'★'.repeat(m.rating)}</span>` : ''}</div>
+      <div class="row" style="gap:6px"><span class="tag">${esc(e.tag)}</span>${e.type !== 'field' ? `<span class="tag ${e.type === 'keeper' ? 'keeper' : 'both'}">${esc(TYPE_SHORT[e.type])}</span>` : ''}${e.custom ? '<span class="tag custom">Eigene</span>' : ''}${isNew(e) ? '<span class="tag new">Neu</span>' : ''}${isVariable(e) ? '<span class="tag super">Varianten</span>' : ''}${m.rating ? `<span class="stars-inline" aria-label="${m.rating} Sterne">${'★'.repeat(m.rating)}</span>` : ''}</div>
       <h3 id="dn-${esc(e.id)}"><button class="drill-title" type="button" data-open="${esc(e.id)}">${esc(e.name)}</button></h3>
       ${focusChips(foci(e), { max: 2, link: true, mark: F.foci.length === 1 ? F.foci[0] : p?.focus })}
       <div class="drill-meta"><span>${icon('clock')} ${x.minutes} Min</span><span>${icon('users')} ${x.min === x.max ? x.min : `${x.min}–${x.max}`} / Gruppe</span></div>
@@ -85,7 +87,7 @@ export function row(s, p, e) {
     ${drillPitch(e)}
     <div class="drill-body">
       <h3 id="dn-${esc(e.id)}"><button class="drill-title" type="button" data-open="${esc(e.id)}">${esc(e.name)}</button>${m.favorite ? ' <span class="row-fav" aria-label="gemerkt">♥</span>' : ''}</h3>
-      <div class="drill-meta"><span class="row-tag">${esc(e.tag)}</span>${e.type !== 'field' ? `<span>${esc(TYPE_SHORT[e.type])}</span>` : ''}${isNew(e) ? '<span class="tag new">Neu</span>' : ''}<span>${icon('clock')} ${x.minutes} Min</span><span>${icon('users')} ${x.min === x.max ? x.min : `${x.min}–${x.max}`}</span><span class="${g ? '' : 'warn'}">${g ? (flow === 'group' ? plural(L.groups, 'Gruppe', 'Gruppen') : esc(FLOW_LABEL[flow])) : 'passt nicht'}</span></div>
+      <div class="drill-meta"><span class="row-tag">${esc(e.tag)}</span>${e.type !== 'field' ? `<span>${esc(TYPE_SHORT[e.type])}</span>` : ''}${isNew(e) ? '<span class="tag new">Neu</span>' : ''}${isVariable(e) ? '<span class="tag super">Varianten</span>' : ''}<span>${icon('clock')} ${x.minutes} Min</span><span>${icon('users')} ${x.min === x.max ? x.min : `${x.min}–${x.max}`}</span><span class="${g ? '' : 'warn'}">${g ? (flow === 'group' ? plural(L.groups, 'Gruppe', 'Gruppen') : esc(FLOW_LABEL[flow])) : 'passt nicht'}</span></div>
     </div>
     <button class="btn primary sm row-add" type="button" data-add="${esc(e.id)}" aria-label="${esc(e.name)} in den Plan">${icon('plus')}</button>
   </article>`;
