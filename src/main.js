@@ -161,5 +161,4 @@ window.__trainr = { store, timer, version: '21.27.0' }; // für Tests und Fehler
     const i = TAB_ORDER.indexOf(currentView()?.tab), next = TAB_ORDER[i + (dx < 0 ? 1 : -1)];
     if (i >= 0 && next) { haptic('tap'); go(next); }
   }, { passive: true });
-  
   }
