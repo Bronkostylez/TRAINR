@@ -21,12 +21,18 @@ const V1_ITEMS = [{ k: 'a' }, { k: 'a' }, { k: 'k' }, { k: 'ball' }];
 const frameOk = (f, n, [x0, x1, y0, y1]) => integer(f?.seconds, 1, 15) && text(f.caption, 180) && Array.isArray(f.points) && f.points.length === n &&
   f.points.every(p => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite) && p[0] >= x0 && p[0] <= x1 && p[1] >= y0 && p[1] <= y1);
 
+// Kamera (21.27): `camera` = 'auto' (folgt dem Ball wie bei den eingebauten Übungen), 'manual' (Fokus je Schritt in `cam`) oder 'off'.
+// Je Schritt optional: `cam` { x, y, s } = Fokuspunkt und Zoom 1–2,5; `loft` = Ball fliegt (Flugball) auf dem Weg in diesen Schritt.
+export const CAMERA_MODES = ['auto', 'manual', 'off'];
+export const ZOOM_MAX = 2.5;
+const camOk = c => c === undefined || (!!c && Number.isFinite(c.x) && Number.isFinite(c.y) && Number.isFinite(c.s) && c.x >= 0 && c.x <= 320 && c.y >= 0 && c.y <= 190 && c.s >= 1 && c.s <= ZOOM_MAX);
+const extraOk = f => camOk(f.cam) && (f.loft === undefined || typeof f.loft === 'boolean');
 export function validAnimation(a) {
   if (!a || !Array.isArray(a.frames) || a.frames.length > 20) return false;
   if (a.version === 1) return a.frames.length >= 2 && a.frames.every(f => frameOk(f, 4, [25, 295, 25, 165]));
   const B = SKETCH_BOX;
-  return a.version === 2 && a.frames.length >= 1 && Array.isArray(a.items) && a.items.length >= 1 && a.items.length <= 30 &&
-    a.items.every(it => SKETCH_KINDS.includes(it?.k)) && a.frames.every(f => frameOk(f, a.items.length, [B.x0, B.x1, B.y0, B.y1]));
+  return a.version === 2 && (a.camera === undefined || CAMERA_MODES.includes(a.camera)) && a.frames.length >= 1 && Array.isArray(a.items) && a.items.length >= 1 && a.items.length <= 30 &&
+    a.items.every(it => SKETCH_KINDS.includes(it?.k)) && a.frames.every(f => frameOk(f, a.items.length, [B.x0, B.x1, B.y0, B.y1]) && extraOk(f));
 }
 /** Liefert jede gültige Skizze im V2-Format (V1 wird umgedeutet, nicht gespeichert), sonst null. */
 export function normAnimation(a) {
