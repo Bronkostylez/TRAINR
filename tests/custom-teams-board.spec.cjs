@@ -1,6 +1,8 @@
 const { test, expect } = require('@playwright/test');
 const { watchErrors, onboard, state, plan, go } = require('./helpers.cjs');
 
+const tab = (page, t) => page.locator(`[data-ed-tab=${t}]`).evaluate(b => b.click());
+
 test('Eigene Übung: Pflichtfelder, Skizze mit Animation, Material-Auswahl, bearbeiten, verwenden, löschen', async ({ page }) => {
   const errors = watchErrors(page);
   await onboard(page);
@@ -16,6 +18,7 @@ test('Eigene Übung: Pflichtfelder, Skizze mit Animation, Material-Auswahl, bear
   // Skizze: Keeper und Ball setzen
   const pitch = page.locator('#ed-pitch');
   const at = async (fx, fy) => { await pitch.scrollIntoViewIfNeeded(); const r = await pitch.boundingBox(); return [r.x + r.width * fx, r.y + r.height * fy]; };
+  await tab(page, 'sketch');
   await page.click('[data-tool="k"]');
   await page.mouse.click(...await at(.8, .5));
   await page.click('[data-tool="ball"]');
@@ -34,6 +37,7 @@ test('Eigene Übung: Pflichtfelder, Skizze mit Animation, Material-Auswahl, bear
   await page.mouse.up();
   await expect(pitch.locator('.sketch-trail.ball')).toHaveCount(1);
   // Material per Auswahl: Minitore an, eins mehr
+  await tab(page, 'details');
   await page.click('.mat[data-mat="Minitore"] .mat-toggle');
   await page.click('.mat[data-mat="Minitore"] [data-mat-d="1"]');
   await page.fill('#ed-mat-new', 'Stoppuhr'); await page.keyboard.press('Enter');
@@ -62,6 +66,7 @@ test('Eigene Übung: Pflichtfelder, Skizze mit Animation, Material-Auswahl, bear
   await page.click('dialog[open] #d-add');
   await page.click('dialog[open] #d-edit');
   await expect(page.locator('#ed-pitch .goalkeeper')).toHaveCount(1);
+  await tab(page, 'details');
   await page.click('#ed-more summary');
   await page.locator('#ed [name=minutes]').fill('11');
   await page.click('dialog[open] button[type=submit]');
@@ -89,6 +94,7 @@ test('Skizzen-Editor: Vorlage, Entfernen, Rückgängig, stehende Skizze', async 
   await go(page, '#uebungen');
   await page.click('#lib-new');
   await page.fill('#ed [name=name]', 'Rondo');
+  await tab(page, 'sketch');
   await page.click('#ed-tpl');
   await page.click('dialog[open] [data-tpl="Rondo 3 gegen 1"]');
   const pitch = page.locator('#ed-pitch');

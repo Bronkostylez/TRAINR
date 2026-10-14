@@ -2,14 +2,15 @@
 // im Mittelpunkt steht die Platzskizze: antippen setzt, ziehen bewegt, weitere Schritte ergeben die Animation.
 import * as store from '../core/store.js';
 import { AGES, TAGS, MAX_FOCI, exercise, flowOf, FLOWS, FLOW_LABEL, FLOW_HELP } from '../core/planning.js';
-import { validAnimation, normAnimation, validCustom, LIMITS, SKETCH_BOX } from '../core/schema.js';
+import { validAnimation, normAnimation, validCustom, LIMITS, SKETCH_BOX, ZOOM_MAX } from '../core/schema.js';
 import { SEED } from '../data/drills.js';
 import { esc, uid, integer, safeURL, deepClone, clamp } from '../core/util.js';
 import { icon, on, $, $$ } from '../ui/dom.js';
 import { openSheet } from '../ui/sheet.js';
 import { undoToast } from '../ui/actions.js';
 import { toast, haptic } from '../ui/feedback.js';
-import { reduced } from '../ui/motion.js';
+import { reduced, full } from '../ui/motion.js';
+import { mountPlayer } from '../scene/player.js';
 import { materialType } from '../ui/material.js';
 import { focusPicker } from '../ui/focus.js';
 import { SKETCH_ITEMS, STATIC_KINDS, SKETCH_DEFS, SKETCH_FIELD, sketchItem, sketchLabels, sketchTrails } from '../scene/pitch.js';
@@ -30,6 +31,7 @@ const MATERIALS = [['Bälle', 2], ['Hütchen', 4], ['Markierungsteller', 8], ['M
 // Was in der Skizze steht, wird als Material mindestens so oft vorgeschlagen.
 const SYNC = [['ball', 'Bälle', /ball|bäll/i], ['cone', 'Hütchen', /hütchen|kegel/i], ['mini', 'Minitore', /minitor/i], ['goal', 'Tore', /^(groß)?tor(e)?$/i], ['b', 'Leibchen', /leibchen/i]];
 const TEMPO = [[3, 'Langsam'], [2, 'Normal'], [1, 'Schnell']];
+const ZOOMS = [[1, 'Weit'], [1.6, 'Mittel'], [2.2, 'Nah']], CAM_MODES = [['auto', 'Auto'], ['manual', 'Fokus'], ['off', 'Aus']];
 const B = { x0: SKETCH_BOX.x0 + 4, x1: SKETCH_BOX.x1 - 4, y0: SKETCH_BOX.y0 + 4, y1: SKETCH_BOX.y1 - 4 };
 
 export function openEditor(id = null, prefill = null) {
@@ -40,8 +42,10 @@ export function openEditor(id = null, prefill = null) {
   const autoText = fresh ? '' : e.description; // erzeugter Ablauf wird beim Speichern neu gebildet
 
   // ---- Zustand
-  let sk = deepClone(normAnimation(e.animation)) || { version: 2, items: [], frames: [{ seconds: 2, caption: '', points: [] }] };
-  let frame = 0, tool = 'a', sel = -1, past = [], drag = null, preview = [], peopleTouched = !fresh;
+  const emptySk = () => ({ version: 2, camera: 'auto', items: [], frames: [{ seconds: 2, caption: '', points: [] }] });
+  let sk = deepClone(normAnimation(e.animation)) || emptySk();
+  let frame = 0, tool = 'a', sel = -1, past = [], drag = null, peopleTouched = !fresh, camPick = false, camOpen = !!(sk.camera && sk.camera !== 'auto');
+  const camMode = () => sk.camera || 'auto';
   const mat = new Map(e.equipment.map(([n, c]) => [n, c]));
   const presets = MATERIALS.map(([n]) => [...mat.keys()].find(k => k.toLowerCase() === n.toLowerCase()) || n);
   const matNames = [...presets, ...[...mat.keys()].filter(k => !presets.includes(k))];
@@ -49,9 +53,10 @@ export function openEditor(id = null, prefill = null) {
   const stepper = (name, v, label) => `<div class="field" style="margin:0"><span>${label}</span><div class="stepper"><button type="button" data-step="${name}" data-d="-1" aria-label="${label} verringern">−</button><input class="input" name="${name}" type="number" inputmode="numeric" min="1" max="100" value="${v}" aria-label="${label}"><button type="button" data-step="${name}" data-d="1" aria-label="${label} erhöhen">+</button></div></div>`;
   const sheet = openSheet({
     title: old ? 'Eigene Übung bearbeiten' : 'Eigene Übung', wide: true,
-    body: `<form id="ed" novalidate>
+    body: `<form id="ed" novalidate data-tab="sketch">
       <label class="field"><span>Name *</span><input class="input" name="name" required maxlength="80" value="${esc(e.name)}" placeholder="z. B. Dreieckspass mit Abschluss" autocomplete="off"></label>
 
+      <div class="ed-tabbar"><div class="seg ed-tabs" role="tablist" aria-label="Bereich"><button type="button" role="tab" data-ed-tab="sketch" aria-selected="true">${icon('layers')} Skizze</button><button type="button" role="tab" data-ed-tab="details" aria-selected="false">${icon('check')} Angaben</button></div></div>
       <div class="ed-layout">
       <section class="ed-section ed-sketch" aria-labelledby="ed-sk-h">
         <div class="row between"><h3 id="ed-sk-h" class="ed-h">Platzskizze <small class="tiny">optional</small></h3><button class="btn sm ghost" type="button" id="ed-tpl">${icon('layers')} Vorlage</button></div>
@@ -60,6 +65,7 @@ export function openEditor(id = null, prefill = null) {
         <div class="ed-selbar" id="ed-selbar" aria-live="polite"></div>
         <div class="ed-steps" id="ed-steps" role="tablist" aria-label="Schritte"></div>
         <div class="ed-step-edit" id="ed-step-edit"></div>
+        <div id="ed-cam"></div>
       </section>
 
       <div class="ed-side">
@@ -98,7 +104,7 @@ export function openEditor(id = null, prefill = null) {
       <p class="tiny muted" style="margin-top:12px">Keine Namen oder personenbezogenen Notizen eintragen. Eigene Übungen bleiben auf diesem Gerät und im Backup.</p>
       <p class="error" id="ed-err" role="alert"></p></form>`,
     foot: `<button class="btn" type="button" data-close>Abbrechen</button><button class="btn primary" type="submit" form="ed">${icon('check')} Speichern</button>`,
-    onClose: () => preview.forEach(a => a.cancel()),
+    
   });
   const b = sheet.body, f = $('#ed', b), err = $('#ed-err', b), svg = $('#ed-pitch', b);
 
@@ -126,7 +132,7 @@ export function openEditor(id = null, prefill = null) {
     const t = TEMPLATES[name]; snapshot();
     const pts = t.items.map(([, x, y]) => [x, y]), frames = [{ seconds: 2, caption: t.captions?.[0] || '', points: pts }];
     (t.moves || []).forEach((mv, k) => { const p = frames.at(-1).points.map(q => [...q]); Object.entries(mv).forEach(([i, q]) => { p[i] = [...q]; }); frames.push({ seconds: 2, caption: t.captions?.[k + 1] || '', points: p }); });
-    sk = { version: 2, items: t.items.map(([k]) => ({ k })), frames }; frame = 0; sel = -1; changed();
+    sk = { version: 2, camera: camMode(), items: t.items.map(([k]) => ({ k })), frames }; frame = 0; sel = -1; changed();
     toast(`Vorlage „${name}“ gesetzt.`, { action: 'Rückgängig', onAction: undoSketch });
   }
   const pt = ev => { const p = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(svg.getScreenCTM().inverse()); return [p.x, p.y]; };
@@ -138,11 +144,11 @@ export function openEditor(id = null, prefill = null) {
     const ghosts = prev ? sk.items.map(({ k }, i) => { const [x, y] = prev.points[i], [cx, cy] = fr.points[i]; return STATIC_KINDS.has(k) || (x === cx && y === cy) ? '' : `<circle class="sk-ghost" cx="${x}" cy="${y}" r="${k === 'ball' ? 5 : 10}"/>`; }).join('') : '';
     svg.innerHTML = SKETCH_DEFS + SKETCH_FIELD + ghosts + sketchTrails(sk.items, prev?.points, fr.points) +
       order.map(i => { const { k } = sk.items[i], [x, y] = fr.points[i]; return `<g class="sk-token ${i === sel ? 'selected' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${SKETCH_ITEMS[k]} ${labels[i]}, Pfeiltasten bewegen, Entf entfernt"><circle class="sk-hit" cx="${x}" cy="${y}" r="17"/>${i === sel ? `<circle class="sk-sel" cx="${x}" cy="${y}" r="${k === 'goal' ? 20 : 15}"/>` : ''}${sketchItem(k, x, y, labels[i])}</g>`; }).join('') +
-      (sk.items.length ? '' : `<text class="sk-empty" x="160" y="99">Tippe auf den Platz, um ${SKETCH_ITEMS[tool]} zu setzen</text>`);
+      camOverlay(fr) + (sk.items.length ? '' : `<text class="sk-empty" x="160" y="99">Tippe auf den Platz, um ${SKETCH_ITEMS[tool]} zu setzen</text>`);
     // Auswahl- bzw. Hinweiszeile
     const it = sk.items[sel];
     $('#ed-selbar', b).innerHTML = it
-      ? `<span class="grow"><strong>${SKETCH_ITEMS[it.k]} ${labels[sel]}</strong> · ziehen zum Bewegen</span><button class="btn sm ghost" type="button" id="ed-del">${icon('trash')} Entfernen</button>`
+      ? `<span class="grow"><strong>${SKETCH_ITEMS[it.k]} ${labels[sel]}</strong> · ziehen zum Bewegen</span><button class="btn sm ghost" type="button" id="ed-dup">${icon('plus')} Kopie</button><button class="btn sm ghost" type="button" id="ed-del">${icon('trash')} Entfernen</button>`
       : `<span class="grow">${!sk.items.length ? 'Element oben wählen und auf den Platz tippen – oder mit einer Vorlage starten.' : frame ? `<strong>Schritt ${frame + 1}:</strong> Spieler und Ball an ihre neue Position ziehen. Pfeile zeigen den Weg.` : many ? 'Aufbau. Änderungen hier gelten auch für die folgenden Schritte.' : 'Fertig für ein Aufbaubild. Für Bewegung: <strong>+ Schritt</strong>.'}</span>`;
     // Schritte
     $('#ed-steps', b).innerHTML = sk.frames.map((x, i) => `<button type="button" role="tab" class="ed-stepbtn" data-frame="${i}" aria-selected="${i === frame}">${i === 0 ? 'Aufbau' : `Schritt ${i + 1}`}</button>`).join('') +
@@ -154,12 +160,76 @@ export function openEditor(id = null, prefill = null) {
         ${many ? `<button class="btn sm" type="button" id="ed-fplay">${icon('start')} Abspielen</button><div class="seg" role="radiogroup" aria-label="Tempo">${TEMPO.map(([v, t]) => `<button type="button" role="radio" data-tempo="${v}" aria-checked="${tempo === v}">${t}</button>`).join('')}</div>` : ''}
         <span class="grow"></span><button class="btn sm ghost" type="button" id="ed-undo" ${past.length ? '' : 'disabled'}>${icon('undo')} Rückgängig</button><button class="btn sm ghost" type="button" id="ed-clear">${icon('reset')} Leeren</button>
       </div>`;
-    $$('[data-tool]', b).forEach(x => x.setAttribute('aria-pressed', String(x.dataset.tool === tool)));
+    $$('[data-tool]', b).forEach(x => x.setAttribute('aria-pressed', String(x.dataset.tool === tool && !camPick)));
+    paintCam();
   }
 
+  // ---- Kamera: Auto folgt dem Ball, Fokus legt je Schritt Ausschnitt und Zoom fest
+  function camOverlay(fr) {
+    if (camMode() !== 'manual' || !fr.cam) return '';
+    const { x, y, s: z } = fr.cam, w = 320 / z, h = 190 / z, x0 = clamp(x - w / 2, 0, 320 - w), y0 = clamp(y - h / 2, 0, 190 - h);
+    return `<path class="sk-cam-dim" fill-rule="evenodd" d="M0 0H320V190H0Z M${x0.toFixed(1)} ${y0.toFixed(1)}h${w.toFixed(1)}v${h.toFixed(1)}h${(-w).toFixed(1)}Z"/><rect class="sk-cam" x="${x0.toFixed(1)}" y="${y0.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="4"/><text class="sk-cam-label" x="${(x0 + 6).toFixed(1)}" y="${(y0 + 13).toFixed(1)}" style="text-anchor:start">Kamera</text>`;
+  }
+  function focusGuess() {
+    const fr = sk.frames[frame], ball = sk.items.findIndex(it => it.k === 'ball');
+    if (ball >= 0) return fr.points[ball];
+    const live = sk.items.map((it, i) => i).filter(i => !STATIC_KINDS.has(sk.items[i].k));
+    return live.length ? [live.reduce((a, i) => a + fr.points[i][0], 0) / live.length, live.reduce((a, i) => a + fr.points[i][1], 0) / live.length] : [160, 95];
+  }
+  function setCamCenter(x, y) {
+    const fr = sk.frames[frame], z = fr.cam?.s || ZOOMS[1][0];
+    fr.cam = { x: Math.round(clamp(x, 0, 320)), y: Math.round(clamp(y, 0, 190)), s: z };
+  }
+  function paintCam() {
+    const host = $('#ed-cam', b), many = sk.frames.length > 1, fr = sk.frames[frame], m = camMode();
+    if (!sk.items.length) { host.innerHTML = ''; return; }
+    const z = fr.cam?.s || 1;
+    host.innerHTML = `<details class="disclosure ed-camera" id="ed-cam-d" ${camOpen ? 'open' : ''}><summary><span class="grow">Kamera &amp; Effekte <small class="tiny">${m === 'auto' ? 'Auto-Zoom auf den Ball' : m === 'manual' ? 'Fokus je Schritt' : 'ohne Zoom'}</small></span></summary><div class="body">
+      <div class="field" style="margin:0"><span>Kamera in der Animation</span><div class="seg" role="radiogroup" aria-label="Kamera">${CAM_MODES.map(([v, t]) => `<button type="button" role="radio" data-cam-mode="${v}" aria-checked="${m === v}">${t}</button>`).join('')}</div></div>
+      <p class="tiny" style="margin:8px 0 0">${m === 'auto' ? 'Die Kamera zoomt automatisch auf Ball und Aktion, wie bei den eingebauten Übungen.' : m === 'manual' ? 'Du bestimmst den Ausschnitt für den gewählten Schritt. Der Zoom gleitet von Schritt zu Schritt.' : 'Der ganze Platz bleibt die ganze Zeit im Bild.'}</p>
+      ${m === 'manual' ? `<div class="row" style="margin-top:8px"><div class="seg" role="radiogroup" aria-label="Zoom">${ZOOMS.map(([v, t]) => `<button type="button" role="radio" data-cam-zoom="${v}" aria-checked="${v === 1 ? !fr.cam : fr.cam?.s === v}">${t}</button>`).join('')}</div>${fr.cam ? `<button class="btn sm ${camPick ? 'primary' : ''}" type="button" id="ed-cam-pick" aria-pressed="${camPick}">${camPick ? 'Antippen auf dem Platz …' : 'Fokus verschieben'}</button>` : ''}</div>` : ''}
+      ${many && frame ? `<label class="coach-toggle" style="margin-top:10px"><input type="checkbox" id="ed-loft" ${fr.loft ? 'checked' : ''}><span>Flugball <small class="tiny">Der Ball fliegt in diesem Schritt im Bogen.</small></span></label>` : ''}
+    </div></details>`;
+  }
+  b.addEventListener('toggle', ev => { if (ev.target.id === 'ed-cam-d') camOpen = ev.target.open; }, true);
+  on(b, 'click', '[data-cam-mode]', (_, x) => { snapshot(); sk.camera = x.dataset.camMode; camPick = false; haptic('tap'); paint(); });
+  on(b, 'click', '[data-cam-zoom]', (_, x) => {
+    const v = Number(x.dataset.camZoom), fr = sk.frames[frame]; snapshot(); haptic('tap');
+    if (v === 1) { delete fr.cam; camPick = false; }
+    else { const c = fr.cam || { x: Math.round(focusGuess()[0]), y: Math.round(focusGuess()[1]) }; fr.cam = { x: c.x, y: c.y, s: Math.min(v, ZOOM_MAX) }; }
+    paint(); svg.scrollIntoView({ block: 'nearest' });
+  });
+  on(b, 'click', '#ed-cam-pick', () => { camPick = !camPick; paint(); if (camPick) svg.scrollIntoView({ block: 'nearest' }); });
+  on(b, 'change', '#ed-loft', (_, x) => { snapshot(); if (x.checked) sk.frames[frame].loft = true; else delete sk.frames[frame].loft; });
+
+  // ---- Vorschau mit dem echten Player (gleiche Kamera und Spuren wie in der Übungsansicht)
+  function openPreview() {
+    const anim = deepClone(sk); anim.frames.forEach((fr, i) => { fr.caption = fr.caption.trim() || (i ? `Schritt ${i + 1}` : 'Aufbau'); });
+    if (!validAnimation(anim) || anim.frames.length < 2) return toast('Für die Vorschau mindestens zwei Schritte anlegen.');
+    const ex = { id: 'preview-' + e.id, name: f.name.value.trim() || 'Vorschau', custom: true, type: 'field', tag: 'Passspiel', description: 'Vorschau', animation: anim, equipment: [], ages: [], min: 1, max: 1, minutes: 1 };
+    let player = null;
+    const sh = openSheet({
+      title: 'Vorschau', className: 'ed-preview-sheet',
+      body: `<div id="ed-prev" class="detail-scene"></div><ol class="steps ed-prev-steps" id="ed-prev-steps"></ol>`,
+      foot: `<button class="btn" type="button" data-close>Schließen</button><button class="btn primary" type="button" id="ed-prev-play">${icon('start')} Abspielen</button>`,
+      onClose: () => player?.destroy(),
+    });
+    const btn = $('#ed-prev-play', sh.dialog), list = $('#ed-prev-steps', sh.body);
+    const fill = () => { list.innerHTML = player.steps.map((t, i) => `<li class="${i === player.step ? 'current' : ''}">${esc(t)}</li>`).join(''); };
+    player = mountPlayer($('#ed-prev', sh.body), ex, { camera: true, loop: true, onStep: fill, onState: st => { btn.innerHTML = st === 'run' ? `${icon('pause')} Pause` : st === 'static' ? `${icon('next')} Nächster Schritt` : `${icon('start')} Abspielen`; } });
+    fill();
+    btn.onclick = () => { if (player.animated) player.toggle(); else player.goStep((player.step + 1) % player.steps.length); };
+    if (player.animated) setTimeout(() => { if (sh.dialog.isConnected && player.state === 'pause') player.play(); }, 350);
+  }
+
+  // ---- Tabs (Handy): Skizze und Angaben getrennt, Desktop zeigt beides
+  const showTab = t => { f.dataset.tab = t; $$('[data-ed-tab]', b).forEach(x => x.setAttribute('aria-selected', String(x.dataset.edTab === t))); };
+  on(b, 'click', '[data-ed-tab]', (_, x) => { showTab(x.dataset.edTab); haptic('tap'); b.scrollTo?.({ top: 0 }); });
+
   svg.addEventListener('pointerdown', ev => {
-    if (preview.length || ev.button > 0) return;
+    if (ev.button > 0) return;
     const g = ev.target.closest('[data-i]'), [x, y] = pt(ev);
+    if (camPick) { snapshot(); setCamCenter(x, y); drag = { cam: true, saved: true }; svg.setPointerCapture(ev.pointerId); paint(); return; }
     let i = g ? Number(g.dataset.i) : -1, added = false;
     if (i < 0) { i = addItem(tool, Math.round(clamp(x, B.x0, B.x1)), Math.round(clamp(y, B.y0, B.y1))); added = true; if (i < 0) return; }
     const [px, py] = sk.frames[frame].points[i];
@@ -170,6 +240,7 @@ export function openEditor(id = null, prefill = null) {
   svg.addEventListener('pointermove', ev => {
     if (!drag) return;
     const [x, y] = pt(ev);
+    if (drag.cam) { setCamCenter(x, y); paint(); return; }
     if (!drag.saved) { snapshot(); drag.saved = true; }
     moveItem(drag.i, x + drag.dx, y + drag.dy); paint();
   });
@@ -181,8 +252,12 @@ export function openEditor(id = null, prefill = null) {
     if (d) { ev.preventDefault(); snapshot(); const [x, y] = sk.frames[frame].points[i]; moveItem(i, x + d[0], y + d[1]); sel = i; paint(); $(`[data-i="${i}"]`, svg)?.focus(); }
     else if (ev.key === 'Delete' || ev.key === 'Backspace') { ev.preventDefault(); removeItem(i); svg.focus(); }
   });
-  on(b, 'click', '[data-tool]', (_, x) => { tool = x.dataset.tool; sel = -1; haptic('tap'); paint(); });
+  on(b, 'click', '[data-tool]', (_, x) => { tool = x.dataset.tool; sel = -1; camPick = false; haptic('tap'); paint(); });
   on(b, 'click', '#ed-del', () => { if (sel >= 0) removeItem(sel); });
+  on(b, 'click', '#ed-dup', () => {
+    if (sel < 0) return; const { k } = sk.items[sel], [x, y] = sk.frames[frame].points[sel];
+    const i = addItem(k, Math.round(clamp(x + 16, B.x0, B.x1)), Math.round(clamp(y + 12, B.y0, B.y1))); if (i < 0) return; sel = i; changed();
+  });
   on(b, 'click', '[data-frame]', (_, x) => { frame = Number(x.dataset.frame); sel = -1; paint(); });
   on(b, 'click', '#ed-fadd', () => {
     if (sk.frames.length >= 20) return toast('Maximal 20 Schritte.');
@@ -192,21 +267,9 @@ export function openEditor(id = null, prefill = null) {
   on(b, 'click', '#ed-fdel', () => { if (!frame) return; snapshot(); sk.frames.splice(frame, 1); frame = Math.min(frame, sk.frames.length - 1); paint(); });
   on(b, 'click', '[data-tempo]', (_, x) => { sk.frames.forEach(fr => { fr.seconds = Number(x.dataset.tempo); }); paint(); });
   on(b, 'click', '#ed-undo', undoSketch);
-  on(b, 'click', '#ed-clear', () => { snapshot(); sk = { version: 2, items: [], frames: [{ seconds: 2, caption: '', points: [] }] }; frame = 0; sel = -1; changed(); toast('Skizze geleert.', { action: 'Rückgängig', onAction: undoSketch }); });
+  on(b, 'click', '#ed-clear', () => { snapshot(); sk = emptySk(); frame = 0; sel = -1; changed(); toast('Skizze geleert.', { action: 'Rückgängig', onAction: undoSketch }); });
   on(b, 'input', '#ed-cap', (_, x) => { sk.frames[frame].caption = x.value; });
-  on(b, 'click', '#ed-fplay', () => {
-    if (reduced()) return toast('Animationen sind reduziert. Schritte einzeln antippen.');
-    preview.forEach(a => a.cancel()); frame = 0; sel = -1; paint(); svg.classList.add('previewing');
-    const fr = sk.frames, total = fr.reduce((a, x) => a + x.seconds, 0) * 1000;
-    preview = $$('[data-i]', svg).filter(g => !STATIC_KINDS.has(sk.items[g.dataset.i].k)).map(g => {
-      const i = Number(g.dataset.i), [sx, sy] = fr[0].points[i]; let t = 0;
-      const kf = fr.map(x => { const k = { offset: t / total, transform: `translate(${x.points[i][0] - sx}px,${x.points[i][1] - sy}px)` }; t += x.seconds * 1000; return k; });
-      kf.push({ ...kf.at(-1), offset: 1 });
-      return g.animate(kf, { duration: total, easing: 'ease-in-out' });
-    });
-    $$('.sketch-trail, .sk-ghost', svg).forEach(x => x.remove());
-    Promise.all(preview.map(a => a.finished)).then(() => { preview = []; svg.classList.remove('previewing'); paint(); }, () => {});
-  });
+  on(b, 'click', '#ed-fplay', () => openPreview());
   $('#ed-tpl', b).onclick = () => openSheet({
     title: 'Vorlage wählen',
     body: `<p class="small muted">Setzt einen fertigen Aufbau. Danach frei anpassen. Rückgängig möglich.</p><div class="tpl-grid">${Object.keys(TEMPLATES).map(n => {
@@ -284,7 +347,7 @@ export function openEditor(id = null, prefill = null) {
   // ---- Speichern
   f.onsubmit = ev => {
     ev.preventDefault(); err.textContent = '';
-    const more = $('#ed-more', b), fail = (msg, field, open = false) => { err.textContent = msg; haptic('warn'); if (open) more.open = true; field?.focus?.(); };
+    const more = $('#ed-more', b), fail = (msg, field, open = false) => { err.textContent = msg; haptic('warn'); if (open) more.open = true; if (field && field !== f.name) showTab('details'); else if (!field && !open) showTab('sketch'); field?.focus?.(); err.scrollIntoView?.({ block: 'nearest' }); };
     const name = f.name.value.trim(), min = num('min'), max = num('max'), minutes = Number(f.minutes.value), url = f.url.value.trim();
     const eq = [...mat].filter(([, c]) => c > 0);
     if (!name) return fail('Bitte einen Namen eingeben.', f.name);
@@ -295,7 +358,7 @@ export function openEditor(id = null, prefill = null) {
     if (!safeURL(url)) return fail('Quelle muss mit https:// beginnen.', f.url, true);
     let animation;
     if (sk.items.length) {
-      animation = deepClone(sk);
+      animation = deepClone(sk); animation.camera = sk.camera || 'auto';
       animation.frames.forEach((fr, i) => { fr.caption = fr.caption.trim() || (i ? `Schritt ${i + 1}` : 'Aufbau'); });
       if (!validAnimation(animation)) return fail('Platzskizze prüfen: höchstens 30 Elemente und 20 Schritte.');
     }
@@ -317,5 +380,5 @@ export function openEditor(id = null, prefill = null) {
   };
 
   paintMat(); paint(); paintPeopleHint(); paintFoci();
-  if (!exercise(store.get(), e.id) && !old) f.name.focus();
+  if (!exercise(store.get(), e.id) && !old && !matchMedia('(pointer: coarse)').matches) f.name.focus();
 }

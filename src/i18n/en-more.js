@@ -74,5 +74,11 @@ export const MORE = {
   'Platzskizze prüfen: höchstens 30 Elemente und 20 Schritte.': 'Check the pitch sketch: at most 30 elements and 20 steps.', 'Aufbau und Ablauf siehe Platzskizze.': 'See the pitch sketch for setup and sequence.',
   'Eigene Übung geändert': 'Custom exercise changed', 'Eigene Übung angelegt': 'Custom exercise created', 'Eigene Übung aktualisiert. Bestehende Blöcke bleiben erhalten.': 'Custom exercise updated. Existing blocks are kept.',
   '„{}“ gespeichert.': '“{}” saved.',
+  'Skizze': 'Sketch', 'Angaben': 'Details', 'Kopie': 'Copy', 'Kamera & Effekte': 'Camera & effects', 'Auto-Zoom auf den Ball': 'Auto zoom on the ball', 'Fokus je Schritt': 'Focus per step', 'ohne Zoom': 'no zoom',
+  'Kamera in der Animation': 'Camera in the animation', 'Auto': 'Auto', 'Fokus': 'Focus', 'Aus': 'Off', 'Weit': 'Wide', 'Mittel': 'Medium', 'Nah': 'Close', 'Fokus verschieben': 'Move focus', 'Antippen auf dem Platz …': 'Tap on the pitch …',
+  'Die Kamera zoomt automatisch auf Ball und Aktion, wie bei den eingebauten Übungen.': 'The camera zooms automatically onto the ball and the action, like in the built-in exercises.',
+  'Du bestimmst den Ausschnitt für den gewählten Schritt. Der Zoom gleitet von Schritt zu Schritt.': 'You choose the frame for the selected step. The zoom glides from step to step.',
+  'Der ganze Platz bleibt die ganze Zeit im Bild.': 'The whole pitch stays in view the whole time.', 'Flugball': 'Lofted ball', 'Der Ball fliegt in diesem Schritt im Bogen.': 'The ball flies in an arc in this step.',
+  'Vorschau': 'Preview', 'Kamera': 'Camera', 'Für die Vorschau mindestens zwei Schritte anlegen.': 'Add at least two steps for the preview.', 'Nächster Schritt': 'Next step', 'Bereich': 'Section',
   'Spieler': 'Player', 'Keeper': 'Keeper', 'Ball': 'Ball', 'Minitor': 'Mini goal', 'Tor': 'Goal',
 };

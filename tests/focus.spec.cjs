@@ -13,6 +13,7 @@ test('Schwerpunkte: Detail, Chips führen in die gefilterte Bibliothek, Filter-S
   await expect(page.locator('.drill .fchip')).toHaveText(['Wahrnehmung', 'Ballannahme']);
   await page.locator('.drill h3').click();
   const sec = page.locator('dialog[open] .detail-foci');
+  await sec.locator('summary').click(); // seit 21.26 eingeklappt
   await expect(sec).toContainText('Hauptschwerpunkt');
   await expect(sec.locator('li')).toHaveCount(2);
   // Chip antippen: Sheet zu, Bibliothek nach Schwerpunkt gefiltert
@@ -81,6 +82,7 @@ test('Eigene Übung: mehrere Schwerpunkte wählen, Reihenfolge = Gewicht, höchs
   await go(page, '#uebungen');
   await page.click('#lib-new');
   await page.fill('#ed [name=name]', 'Sprint zum Abschluss');
+  await page.locator('[data-ed-tab=details]').evaluate(b => b.click());
   await page.click('.mat[data-mat="Bälle"] .mat-toggle');
   for (const k of ['Torschuss', 'Schnelligkeit', 'Wahrnehmung', 'Koordination']) await page.click(`[data-efocus="${k}"]`);
   await expect(page.locator('[data-efocus="Torschuss"]')).toContainText('★');
