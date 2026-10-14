@@ -141,7 +141,7 @@ export function openDetail(id, order = null) {
     $('#v-reset', b)?.addEventListener('click', () => { store.update('Variante entfernt', d => { delete d.exerciseMeta[e.id]?.variant; }, { reason: 'meta' }); undoToast('Original wiederhergestellt.'); paint(); });
     on(b, 'click', '[data-open]', (_, btn) => { ids = [btn.dataset.open]; idx = 0; paint(); sheet.body.scrollTop = 0; });
     $('#d-edit', b)?.addEventListener('click', () => { sheet.close(); import('./editor.js').then(mm => mm.openEditor(e.id)); });
-    $('#d-copy', b)?.addEventListener('click', () => { sheet.close(); import('./editor.js').then(mm => mm.openEditor(null, copyAsCustom(e))); });
+    $('#d-copy', b)?.addEventListener('click', () => { sheet.close(); import('./editor.js').then(mm => mm.openEditor(null, copyAsCustom(e), copyNotice(e))); });
     $('#d-del', b)?.addEventListener('click', async () => {
       const s = store.get(), uses = s.plans.filter(p => p.blocks.some(x => x.exerciseId === e.id)).length;
       if (!(await confirmSheet({ title: 'Eigene Übung löschen?', text: uses ? `„${e.name}“ wird aus ${uses} ${uses === 1 ? 'Einheit' : 'Einheiten'} entfernt.` : `„${e.name}“ wird gelöscht.`, ok: 'Löschen', danger: true }))) return;
@@ -184,10 +184,18 @@ function lernweg(s, e) {
   return `<details class="disclosure"><summary>Lernweg</summary><div class="body stack">${link(easier, 'Vorstufe')}${link(harder, 'Weiterführung')}</div></details>`;
 }
 
+/** Hinweis im Editor: was beim Kopieren einer Super-Übung als Skizze nicht übernommen oder vereinfacht wurde. */
+function copyNotice(e) {
+  if (!e.script) return '';
+  const r = convertScript(e.script, e.steps);
+  if (!r.animation) return 'Die Animation konnte nicht übernommen werden, nur Text und Material.';
+  return r.notes.length ? `Skizze aus der Variante übernommen. Nicht übernommen oder vereinfacht: ${r.notes.join(', ')}. Bitte prüfen, bevor du speicherst.` : 'Skizze aus der Variante übernommen. Bitte prüfen, bevor du speicherst.';
+}
+
 function copyAsCustom(e) {
   const c = deepClone({ id: 'custom-' + uid(), name: `${e.name} (eigene)`.slice(0, 80), type: e.type, tag: e.tag, ages: e.ages, min: e.min, max: e.max, minutes: e.minutes, description: e.description, coaching: e.coaching, equipment: e.equipment, url: e.url || '', custom: true });
   if (e.goal) c.goal = e.goal;
-  if (e.script) { const r = convertScript(e.script, e.steps); if (r.animation && validAnimation(r.animation)) { c.animation = r.animation; if (r.notes.length) setTimeout(() => toast(`Animation übernommen. Nicht übernommen oder vereinfacht: ${r.notes.join(', ')}.`), 400); } else setTimeout(() => toast('Die Animation konnte nicht übernommen werden, nur Text und Material.'), 400); }
+  if (e.script) { const r = convertScript(e.script, e.steps); if (r.animation && validAnimation(r.animation)) c.animation = r.animation; }
   if (foci(e).length) c.focus = foci(e).slice(0, MAX_FOCI);
   return c;
 }

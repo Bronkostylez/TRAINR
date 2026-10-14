@@ -34,7 +34,7 @@ const TEMPO = [[3, 'Langsam'], [2, 'Normal'], [1, 'Schnell']];
 const ZOOMS = [[1, 'Weit'], [1.6, 'Mittel'], [2.2, 'Nah']], CAM_MODES = [['auto', 'Auto'], ['manual', 'Fokus'], ['off', 'Aus']];
 const B = { x0: SKETCH_BOX.x0 + 4, x1: SKETCH_BOX.x1 - 4, y0: SKETCH_BOX.y0 + 4, y1: SKETCH_BOX.y1 - 4 };
 
-export function openEditor(id = null, prefill = null) {
+export function openEditor(id = null, prefill = null, notice = '') {
   const s = store.get(), old = id ? s.custom.find(e => e.id === id) : null;
   if (!old && s.custom.length >= LIMITS.custom) { toast(`Maximal ${LIMITS.custom} eigene Übungen.`); return; }
   const fresh = !old && !prefill;
@@ -59,7 +59,7 @@ export function openEditor(id = null, prefill = null) {
       <div class="ed-tabbar"><div class="seg ed-tabs" role="tablist" aria-label="Bereich"><button type="button" role="tab" data-ed-tab="sketch" aria-selected="true">${icon('layers')} Skizze</button><button type="button" role="tab" data-ed-tab="details" aria-selected="false">${icon('check')} Angaben</button></div></div>
       <div class="ed-layout">
       <section class="ed-section ed-sketch" aria-labelledby="ed-sk-h">
-        <div class="row between"><h3 id="ed-sk-h" class="ed-h">Platzskizze <small class="tiny">optional</small></h3><button class="btn sm ghost" type="button" id="ed-tpl">${icon('layers')} Vorlage</button></div>
+        <div class="row between"><h3 id="ed-sk-h" class="ed-h">Platzskizze <small class="tiny">optional</small></h3><button class="btn sm ghost" type="button" id="ed-tpl">${icon('layers')} Vorlage</button></div>${notice ? `<p class="small ed-copy-notice" role="note">${esc(notice)}</p>` : ''}
         <div class="board-tools ed-tools" role="toolbar" aria-label="Was setzen?">${TOOLS.map(([k, ic]) => `<button class="tool" type="button" data-tool="${k}" aria-pressed="${tool === k}">${ic}<span>${SKETCH_ITEMS[k]}</span></button>`).join('')}</div>
         <svg id="ed-pitch" class="editor-pitch" viewBox="0 0 320 190" role="application" aria-label="Platz: antippen setzt das gewählte Element, ziehen bewegt" data-nodrag></svg>
         <div class="ed-selbar" id="ed-selbar" aria-live="polite"></div>
