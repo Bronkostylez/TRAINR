@@ -162,6 +162,4 @@ window.__trainr = { store, timer, version: '21.27.0' }; // für Tests und Fehler
     if (i >= 0 && next) { haptic('tap'); go(next); }
   }, { passive: true });
   
-}
-
-
+  }
