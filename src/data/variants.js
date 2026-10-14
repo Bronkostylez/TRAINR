@@ -213,7 +213,101 @@ const SLALOM = {
   },
 };
 
-export const FAMILIES = [PASS, RONDO, SLALOM];
+// ---------------------------------------------------------------- Dribbel-Acht (Grundübung: Acht um zwei Hütchen, je Kind eine Bahn)
+const ACHT = {
+  base: 'v22-achter',
+  title: ['Dribbel-Acht', 'Dribble figure-eight'],
+  params: [
+    { k: 's', label: ['Abstand der Hütchen', 'Cone distance'], def: 2, opts: [[1, '4 m', '4 m'], [2, '6 m', '6 m'], [3, '8 m', '8 m']] },
+    { k: 'k', label: ['Kinder (eigene Bahn)', 'Players (own lane)'], def: 2, opts: [[1, '2', '2'], [2, '4', '4'], [3, '6', '6']] },
+    { k: 'r', label: ['Aufgabe', 'Task'], def: 0, opts: [[0, 'Innen- dann Außenseite', 'Inside then outside'], [1, 'Nur Innenseite', 'Inside only'], [2, 'Nur Außenseite', 'Outside only'], [3, 'Schwacher Fuß', 'Weaker foot']] },
+  ],
+  presets: [
+    { de: 'Enge Acht: 4 m', en: 'Tight eight: 4 m', p: { s: 1 } },
+    { de: 'Weite Acht: 8 m', en: 'Wide eight: 8 m', p: { s: 3 } },
+    { de: 'Nur Innenseite', en: 'Inside only', p: { r: 1 } },
+    { de: 'Schwacher Fuß', en: 'Weaker foot', p: { r: 3 } },
+    { de: 'Sechs Kinder', en: 'Six players', p: { k: 3 } },
+  ],
+  norm: p => p,
+  build(p, base) {
+    const h = [50, 75, 100][p.s - 1], k = [2, 4, 6][p.k - 1], step = k === 2 ? 80 : k === 4 ? 40 : 26, y0 = k === 2 ? 55 : k === 4 ? 35 : 30, amp = Math.min(17, step / 2 - 4);
+    const ys = Array.from({ length: k }, (_, i) => y0 + i * step), cx = 160;
+    const obj = ys.flatMap(y => [['cone', cx - h, y], ['cone', cx + h, y]]);
+    const f = [[.6, -1], [1.03, 0], [.6, 1], [0, 0]], g = [[-.6, -1], [-1.03, 0], [-.6, 1], [0, 0]];
+    const ph = [], mv = (st, hold, fr) => ph.push([st, hold, ys.map((y, i) => `d${i} ${r0(cx + fr[0] * h)} ${r0(y + fr[1] * amp)}`).join('; ')]);
+    f.forEach((x, j) => mv(1, j === 3 ? .1 : 0, x)); g.forEach((x, j) => mv(2, j === 3 ? .1 : 0, x));
+    mv(3, 0, f[2]); mv(3, .1, f[1]); mv(4, .5, [.6, -1]);
+    const NS = getLang() === 'en' ? ' (animation shows the path, not the foot)' : ' (Animation zeigt den Weg, nicht den Fuß)';
+    const task = [null, T('Nur mit der Innenseite dribbeln.', 'Dribble with the inside of the foot only.') + NS, T('Nur mit der Außenseite dribbeln.', 'Dribble with the outside of the foot only.') + NS, T('Alles mit dem schwächeren Fuß, nach drei Runden wechseln.', 'Everything with the weaker foot, switch after three rounds.') + NS][p.r];
+    const steps = [
+      T(`Aufbau: Pro Kind zwei Hütchen im Abstand von ${[4, 6, 8][p.s - 1]} m, ${k} Kinder mit Ball, jedes auf eigener Bahn.`, `Setup: two cones ${[4, 6, 8][p.s - 1]} m apart per player, ${k} players with a ball, each on their own lane.`),
+      T('Das Kind dribbelt in einer Acht um beide Hütchen.', 'Each player dribbles a figure eight around both cones.'),
+      p.r === 0 ? T('Erst nur mit der Innenseite, dann nur mit der Außenseite (Fuß in der Animation nicht sichtbar).', 'First inside of the foot only, then outside only (foot not visible in the animation).') : task,
+      T('Nach drei Runden die Richtung wechseln und mit dem schwächeren Fuß wiederholen.', 'After three rounds switch direction and repeat with the weaker foot.'),
+      T('Zum Schluss Tempo steigern und die Runden zählen.', 'Finally raise the tempo and count the rounds.'),
+    ];
+    return {
+      script: { name: base.name, obj, pl: ys.map((y, i) => [cx, y, String(i + 1)]), balls: ys.map((_, i) => i), ph }, steps,
+      nameParts: [p.s !== 2 ? [`${[4, 6, 8][p.s - 1]} m`, `${[4, 6, 8][p.s - 1]} m`] : null, p.k !== 2 ? [`${k} Kinder`, `${k} players`] : null, p.r ? [['', 'Innenseite', 'Außenseite', 'Schwacher Fuß'][p.r], ['', 'Inside', 'Outside', 'Weaker foot'][p.r]] : null].filter(Boolean),
+      min: k, max: k, minutes: base.minutes + (p.s === 3 ? 1 : 0),
+      equipment: [['Bälle', k], ['Hütchen', k * 2]], ages: base.ages,
+      extraCoaching: p.r ? task : '',
+    };
+  },
+};
+
+// ---------------------------------------------------------------- Eins gegen eins mit Keeper (Grundübung: Angreifer, Verteidiger, Keeper)
+const EINS = {
+  base: 'v22-1v1keeper',
+  title: ['Eins gegen eins mit Keeper', '1 v 1 with keeper'],
+  params: [
+    { k: 's', label: ['Anlaufstrecke', 'Run-up'], def: 2, opts: [[1, 'kurz', 'short'], [2, 'mittel', 'medium'], [3, 'lang', 'long']] },
+    { k: 'l', label: ['Startseite', 'Start side'], def: 0, opts: [[0, 'Mitte', 'Centre'], [1, 'Von links', 'From the left'], [2, 'Von rechts', 'From the right']] },
+    { k: 'v', label: ['Verteidiger', 'Defender'], def: 0, opts: [[0, 'Läuft sofort an', 'Starts at once'], [1, 'Startet 1 m hinter dem Angreifer', 'Starts 1 m behind the attacker']] },
+    { k: 'r', label: ['Abschluss', 'Finish'], def: 0, opts: [[0, 'Frei', 'Free'], [1, 'Erst im Strafraum', 'Only inside the box'], [2, 'Schwacher Fuß', 'Weaker foot']] },
+  ],
+  presets: [
+    { de: 'Kurzer Anlauf', en: 'Short run-up', p: { s: 1 } },
+    { de: 'Von links', en: 'From the left', p: { l: 1 } },
+    { de: 'Von rechts', en: 'From the right', p: { l: 2 } },
+    { de: 'Verteidiger mit Rückstand', en: 'Defender behind', p: { v: 1 } },
+    { de: 'Schwacher Fuß', en: 'Weaker foot', p: { r: 2 } },
+  ],
+  norm: p => p,
+  build(p, base) {
+    const x0 = [110, 60, 30][p.s - 1], dy = [0, -35, 35][p.l], fx = x => (x <= 235 ? x0 + (x - 60) * (235 - x0) / 175 : x), prog = x => Math.max(0, Math.min(1, (x - 60) / 175));
+    const fy = (x, y, side) => r0(y + dy * (1 - prog(x)) * (side ? 1 : 1)), back = p.v ? 25 : 0;
+    const A = (x, y) => `${r0(fx(x))} ${fy(x, y)}`, D = (x, y) => `${Math.max(10, r0(fx(x) - back * (1 - prog(x))))} ${fy(x, y)}`;
+    const ph = [
+      [1, .1, `p1>0; r1 ${D(95, 112)} sprint`],
+      [2, 0, `d0 ${A(150, 80)}; r1 ${D(140, 102)} sprint; r2 276 94 shuffle`],
+      [2, .1, `d0 ${A(198, 72)}; r1 ${D(184, 88)} sprint; r2 268 91 shuffle`],
+      [3, .2, `d0 ${A(232, 82)}; r1 ${D(220, 94)} sprint; r2 260 92 shuffle`],
+      [3, .9, 's0 297 106; r2 262 99 sprint'],
+    ];
+    const NS = getLang() === 'en' ? ' (animation shows the run, not the foot)' : ' (Animation zeigt den Lauf, nicht den Fuß)';
+    const task = [null, T('Abschluss nur aus dem Strafraum.', 'Finish only from inside the box.'), T('Abschluss nur mit dem schwächeren Fuß.', 'Finish with the weaker foot only.') + NS][p.r];
+    const side = [null, T('von links', 'from the left'), T('von rechts', 'from the right')][p.l];
+    const dist = [T('kurzer', 'short'), T('mittlerer', 'medium'), T('langer', 'long')][p.s - 1];
+    const steps = [
+      T(`Aufbau: Jugendtor mit Keeper, Strafraum markiert, ${dist} Anlaufstrecke${side ? ', Start ' + side : ''}.`, `Setup: youth goal with keeper, box marked, ${['short', 'medium', 'long'][p.s - 1]} run-up${side ? ', starting ' + side : ''}.`),
+      p.v ? T('Der Verteidiger passt zum Angreifer und startet etwa 1 m hinter ihm.', 'The defender passes to the attacker and starts about 1 m behind.') : T('Der Verteidiger passt zum Angreifer und läuft sofort an.', 'The defender passes to the attacker and sprints straight after.'),
+      T('Der Angreifer dribbelt Richtung Tor, der Keeper verschiebt mit.', 'The attacker dribbles toward goal while the keeper shifts across.'),
+      task ? T('Abschluss, sobald der Weg frei ist. ', 'Finish as soon as the way is clear. ') + task : T('Abschluss, sobald der Weg frei ist; danach Rollen tauschen.', 'Finish as soon as the way is clear; then swap roles.'),
+    ];
+    const hard = p.s === 3 || p.v === 1 || p.r === 2;
+    return {
+      script: { name: base.name, obj: [['goal', 293, 95], ['box', 235, 45, 65, 100]], pl: [[r0(x0), r0(fy(60, 70)), '1'], [Math.max(10, r0(x0 - back)), r0(fy(60, 125)), 'V', 1], [282, 95, 'K', 1]], balls: [1], ph }, steps,
+      nameParts: [p.s !== 2 ? [['Kurzer Anlauf', '', 'Langer Anlauf'][p.s - 1], ['Short run-up', '', 'Long run-up'][p.s - 1]] : null, p.l ? [['', 'Von links', 'Von rechts'][p.l], ['', 'From the left', 'From the right'][p.l]] : null, p.v ? ['Verteidiger hinten', 'Defender behind'] : null, p.r ? [['', 'Strafraum', 'Schwacher Fuß'][p.r], ['', 'Inside the box', 'Weaker foot'][p.r]] : null].filter(Boolean),
+      min: 3, max: 3, minutes: base.minutes + (p.s === 3 ? 1 : 0),
+      equipment: base.equipment, ages: base.ages,
+      extraCoaching: [task || '', hard ? T('Anspruchsvoller als die Grundübung (TRAINR-Einschätzung): bei Unsicherheit mit kürzerem Anlauf und sofort anlaufendem Verteidiger beginnen.', 'More demanding than the base drill (TRAINR estimate): if players struggle, start with a shorter run-up and a defender who starts at once.') : ''].filter(Boolean).join(' '),
+    };
+  },
+};
+
+export const FAMILIES = [PASS, RONDO, SLALOM, ACHT, EINS];
 const byBase = new Map(FAMILIES.map(f => [f.base, f]));
 export const familyOf = id => byBase.get(String(id).split(SEP)[0]) || null;
 export const isVariantId = id => typeof id === 'string' && id.includes(SEP);

@@ -187,8 +187,9 @@ function lernweg(s, e) {
 /** Hinweis im Editor: was beim Kopieren einer Super-Übung als Skizze nicht übernommen oder vereinfacht wurde. */
 function copyNotice(e) {
   if (!e.script) return '';
-  const r = convertScript(e.script, e.steps);
-  if (!r.animation) return 'Die Animation konnte nicht übernommen werden, nur Text und Material.';
+  const en = getLang() === 'en', r = convertScript(e.script, e.steps);
+  if (!r.animation) return en ? 'The animation could not be copied, only text and equipment.' : 'Die Animation konnte nicht übernommen werden, nur Text und Material.';
+  if (en) return r.notes.length ? `Sketch copied from the variant. Not copied or simplified: ${r.notes.join(', ')}. Please check before you save.` : 'Sketch copied from the variant. Please check before you save.';
   return r.notes.length ? `Skizze aus der Variante übernommen. Nicht übernommen oder vereinfacht: ${r.notes.join(', ')}. Bitte prüfen, bevor du speicherst.` : 'Skizze aus der Variante übernommen. Bitte prüfen, bevor du speicherst.';
 }
 

@@ -37,9 +37,10 @@ test('Passformen: Fünfeck ändert Aufbau, Spielerzahl, Material und Animation; 
 });
 
 test('Alle Familien: jede Vorgabe und jede Stellschraube liefert eine abspielbare Variante', async ({ page }) => {
+  test.setTimeout(240000);
   const errors = watchErrors(page);
   await onboard(page);
-  for (const id of ['v22-quadrat', 'v5-rondo', 'v22-slalom']) {
+  for (const id of ['v22-quadrat', 'v5-rondo', 'v22-slalom', 'v22-achter', 'v22-1v1keeper']) {
     await open(page, id);
     const n = await page.locator('dialog[open] #d-super .chip').count();
     expect(n).toBeGreaterThan(3);
@@ -88,7 +89,7 @@ test('Variante im Plan: Training, Export, Backup und Zurückspielen funktioniere
   const { createSession } = require('./helpers.cjs');
   await createSession(page);
   await page.evaluate(() => window.__trainr.store.update('Varianten', d => {
-    const p = d.plans.find(x => x.id === d.selectedPlanId), ids = ['v22-quadrat~f6.b2.r2', 'v5-rondo~o4.v2.r3', 'v22-slalom~n3.m1'];
+    const p = d.plans.find(x => x.id === d.selectedPlanId), ids = ['v22-quadrat~f6.b2.r2', 'v5-rondo~o4.v2.r3', 'v22-slalom~n3.m1', 'v22-achter~k3.r3', 'v22-1v1keeper~s3.l1.v1'];
     p.blocks.slice(0, 3).forEach((b, i) => { b.exerciseId = ids[i]; });
   }));
   await go(page, '#planen');
@@ -123,5 +124,16 @@ test('Als eigene Übung: generierte Animation wird in die Skizze übernommen und
   expect(c.animation.frames.length).toBeGreaterThan(3);
   expect(c.animation.items.filter(i => i.k === 'b').length).toBe(2);
   await page.click('dialog[open] #d-play'); await page.waitForTimeout(500);
+  expect(errors).toEqual([]);
+});
+
+test('Als eigene Übung auf Englisch: Hinweis im Editor ist englisch', async ({ page }) => {
+  const errors = watchErrors(page);
+  await onboard(page);
+  await page.evaluate(() => window.__trainr.store.update('Sprache', d => { d.settings.lang = 'en'; }));
+  await open(page, 'v5-rondo~o4.v2');
+  await page.click('dialog[open] #d-copy');
+  await expect(page.locator('.ed-copy-notice')).toContainText('Not copied or simplified: field frame');
+  await expect(page.locator('.ed-copy-notice')).toContainText('Please check before you save');
   expect(errors).toEqual([]);
 });
