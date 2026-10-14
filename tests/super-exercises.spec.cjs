@@ -131,7 +131,7 @@ test('Als eigene Übung auf Englisch: Hinweis im Editor ist englisch', async ({ 
   const errors = watchErrors(page);
   await onboard(page);
   await page.evaluate(() => window.__trainr.store.update('Sprache', d => { d.settings.lang = 'en'; }));
-  await open(page, 'v5-rondo~o4.v2');
+  await page.reload(); await open(page, 'v5-rondo~o4.v2');
   await page.click('dialog[open] #d-copy');
   await expect(page.locator('.ed-copy-notice')).toContainText('Not copied or simplified: field frame');
   await expect(page.locator('.ed-copy-notice')).toContainText('Please check before you save');
