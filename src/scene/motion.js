@@ -141,27 +141,87 @@ function compileSeed(scene,steps,{camera=false}={}){
   destroy(){anims.forEach(a=>a.cancel());trailG.remove();scene.classList.remove('motion-on');}};
 }
 export function compile(scene, steps, opts = {}) {
-  if (scene?.dataset.setup === 'customAnimation') return compileCustom(scene);
+  if (scene?.dataset.setup === 'customAnimation') return compileCustom(scene, opts);
   return compileSeed(scene, steps, opts);
 }
-/** Eigene Keyframe-Animation (Editor) als Zeitleiste. */
-function compileCustom(scene) {
-  const e = resolveExercise(scene.dataset.exercise), a = normAnimation(e?.animation);
+/** Eigene Skizze (Editor) als Zeitleiste: gleiche Laufkurven, Spuren, Flugbälle und Kamera wie die eingebauten Übungen. */
+function compileCustom(scene, opts = {}) {
+  const e = opts.exercise || resolveExercise(scene.dataset.exercise), a = normAnimation(e?.animation);
   if (!a || a.frames.length < 2) return null; // Ein Schritt = stehende Skizze
-  const f = a.frames, anims = [], total = f.reduce((s, x) => s + x.seconds * 1000, 0), starts = [];
-  let t = 0; f.forEach(x => { starts.push(t); t += x.seconds * 1000; });
-  scene.querySelectorAll('[data-actor]').forEach(g => {
-    const ix = +g.dataset.actor.slice(1), x = +g.dataset.x, y = +g.dataset.y;
-    const ks = f.map((v, k) => ({ offset: starts[k] / total, transform: `translate(${v.points[ix][0] - x}px,${v.points[ix][1] - y}px)` }));
-    ks.push({ ...ks.at(-1), offset: 1 });
-    const a = g.animate(ks, { duration: total, fill: 'both', easing: 'ease-in-out' }); a.pause(); anims.push(a);
-  });
+  const f = a.frames, n = f.length, INTRO = .6, OUTRO = opts.camera ? 1.2 : .8, mode = a.camera || 'auto', useCam = !!opts.camera && mode !== 'off';
+  const starts = []; let tt = INTRO; f.forEach(x => { starts.push(tt); tt += x.seconds; });
+  const total = tt + OUTRO, STATIC = ['cone', 'mini', 'goal'], isStatic = i => STATIC.includes(a.items[i].k), isBall = i => a.items[i].k === 'ball';
+  const dist = (p, q) => Math.hypot(q[0] - p[0], q[1] - p[1]);
+  const trails = [], keys = {}, camKeys = [];
+  const live = a.items.map((_, i) => i).filter(i => !isStatic(i));
+  const actorEl = {}; scene.querySelectorAll('[data-actor]').forEach(g => { actorEl[+g.dataset.actor.slice(1)] = g; });
+  for (const i of live) { const p = f[0].points[i]; keys[i] = [{ t: 0, x: p[0], y: p[1], e: 'linear' }, { t: INTRO, x: p[0], y: p[1], e: 'linear' }]; }
+  camKeys.push({ t: 0, x: 160, y: 95, s: 1, e: ease.snap });
+  if (useCam && mode === 'manual') { const c = f[0].cam || { x: 160, y: 95, s: 1 }; camKeys[0] = { t: 0, ...c, e: ease.snap }; camKeys.push({ t: INTRO, ...c, e: ease.snap }); }
+  else camKeys.push({ t: INTRO, x: 160, y: 95, s: 1, e: ease.snap });
+  for (let k = 0; k < n - 1; k++) {
+    const seg = f[k].seconds, t0 = starts[k] + Math.min(.15, seg * .12), t1 = starts[k + 1] - Math.min(.12, seg * .1);
+    const moved = live.filter(i => dist(f[k].points[i], f[k + 1].points[i]) > .5);
+    const carrier = {};
+    for (const b of moved.filter(isBall)) {
+      const d = [f[k + 1].points[b][0] - f[k].points[b][0], f[k + 1].points[b][1] - f[k].points[b][1]];
+      const c = moved.find(j => !isBall(j) && dist(f[k].points[j], f[k].points[b]) < 28 && Math.hypot(f[k + 1].points[j][0] - f[k].points[j][0] - d[0], f[k + 1].points[j][1] - f[k].points[j][1] - d[1]) < 7);
+      if (c !== undefined) carrier[b] = c;
+    }
+    for (const i of live) {
+      const p = f[k].points[i], q = f[k + 1].points[i], ks = keys[i], len = dist(p, q), ball = isBall(i);
+      if (len <= .5) { ks.push({ t: starts[k + 1], x: q[0], y: q[1], e: 'linear' }); continue; }
+      const loft = ball && carrier[i] === undefined && !!f[k + 1].loft && len > 20, lift = loft ? Math.min(26, len * .18) : 0;
+      if (loft) { const mt = (t0 + t1) / 2; ks.push({ t: t0, x: p[0], y: p[1], s: 1, e: 'cubic-bezier(.3,.6,.5,1)' }, { t: mt, x: (p[0] + q[0]) / 2, y: (p[1] + q[1]) / 2 - lift, s: 1.5, e: 'cubic-bezier(.5,0,.7,.4)' }, { t: t1, x: q[0], y: q[1], s: 1, e: 'linear' }); }
+      else ks.push({ t: t0, x: p[0], y: p[1], e: ball && carrier[i] === undefined ? ease.ball : ease.run }, { t: t1, x: q[0], y: q[1], e: 'linear' });
+      const carries = Object.values(carrier).includes(i);
+      const type = carrier[i] !== undefined ? null : ball ? 'pass' : carries ? 'dribble' : len > 24 ? 'run' : null;
+      if (type && len > 8) trails.push({ type, x1: p[0], y1: p[1], x2: q[0], y2: q[1], lift, t0, t1 });
+    }
+    if (useCam && mode === 'auto' && moved.length) {
+      const ball = live.find(isBall), ref = ball !== undefined && moved.includes(ball) ? f[k + 1].points[ball] : [moved.reduce((s2, i) => s2 + f[k + 1].points[i][0], 0) / moved.length, moved.reduce((s2, i) => s2 + f[k + 1].points[i][1], 0) / moved.length];
+      const bx = ref[0] * .6 + 160 * .4, by = ref[1] * .6 + 95 * .4;
+      camKeys.push({ t: t0 + (t1 - t0) * .15, x: bx, y: by, s: 1.3, e: ease.snap }, { t: starts[k + 1] - .05, x: bx, y: by, s: 1.3, e: ease.snap });
+    } else if (useCam && mode === 'manual') {
+      const c = f[k + 1].cam || { x: 160, y: 95, s: 1 };
+      camKeys.push({ t: starts[k + 1], ...c, e: ease.snap });
+    }
+  }
+  for (const i of live) { const q = f[n - 1].points[i]; keys[i].push({ t: total, x: q[0], y: q[1], e: 'linear' }); }
+  camKeys.push({ t: total, x: 160, y: 95, s: 1, e: ease.snap });
+  const anims = [];
+  const mk = (el, list, fn) => {
+    const frames = []; let last = -1;
+    for (const k of list) { if (k.t <= last) k.t = last + .0001; last = k.t; frames.push({ offset: Math.min(1, k.t / total), transform: fn(k), easing: k.e }); }
+    frames[frames.length - 1].offset = 1; frames[0].offset = 0;
+    const an = el.animate(frames, { duration: total * 1000, fill: 'both', easing: 'linear' }); an.pause(); anims.push(an);
+  };
+  for (const i of live) { const g = actorEl[i]; if (!g) continue; const x0 = +g.dataset.x, y0 = +g.dataset.y, ball = isBall(i); mk(g, keys[i], k => `translate(${(k.x - x0).toFixed(2)}px,${(k.y - y0).toFixed(2)}px)${ball ? ` scale(${k.s || 1})` : ''}`); }
+  // Spuren: Ballwege zeichnen sich mit dem Ball, Lauf- und Dribbelwege blenden ein und verblassen danach.
+  const host = scene.querySelector('.cam'), trailG = document.createElementNS(NS, 'g'); trailG.setAttribute('class', 'mv-trails');
+  if (host) host.insertBefore(trailG, host.querySelector('[data-actor]'));
+  const at = x => clamp(x / total, 0, 1);
+  for (const tr of trails) {
+    const path = document.createElementNS(NS, 'path'), mx = (tr.x1 + tr.x2) / 2, my = (tr.y1 + tr.y2) / 2 - tr.lift * 2;
+    path.setAttribute('d', tr.lift ? `M${tr.x1} ${tr.y1}Q${mx.toFixed(1)} ${my.toFixed(1)} ${tr.x2} ${tr.y2}` : `M${tr.x1} ${tr.y1}L${tr.x2} ${tr.y2}`);
+    path.setAttribute('class', 'mv-trail ' + tr.type); trailG.appendChild(path);
+    const op = TRAIL_OP[tr.type], draw = tr.type === 'pass', fade = tr.t1 + .6;
+    if (draw) { path.setAttribute('pathLength', '1'); path.style.strokeDasharray = '1 1'; }
+    const o0 = at(tr.t0), o1 = Math.max(o0 + .0005, at(tr.t1)), o2 = Math.max(o1 + .0005, at(fade)), o3 = Math.min(1, Math.max(o2 + .0005, at(fade + .5)));
+    const fr = draw ? [{ offset: 0, opacity: 0, strokeDashoffset: 1 }, { offset: o0, opacity: 0, strokeDashoffset: 1 }, { offset: Math.min(o1, o0 + .0004), opacity: op, strokeDashoffset: 1 }, { offset: o1, opacity: op, strokeDashoffset: 0 }, { offset: o2, opacity: op, strokeDashoffset: 0 }, { offset: o3, opacity: 0, strokeDashoffset: 0 }, { offset: 1, opacity: 0, strokeDashoffset: 0 }]
+      : [{ offset: 0, opacity: 0 }, { offset: o0, opacity: 0 }, { offset: o1, opacity: op }, { offset: o2, opacity: op }, { offset: o3, opacity: 0 }, { offset: 1, opacity: 0 }];
+    const an = path.animate(fr, { duration: total * 1000, fill: 'both', easing: 'linear' }); an.pause(); anims.push(an);
+  }
+  if (useCam && host) mk(host, camKeys, k => { const s2 = k.s, cx = clamp(k.x, 160 / s2, 320 - 160 / s2), cy = clamp(k.y, 95 / s2, 190 - 95 / s2); return `translate(160px,95px) scale(${s2}) translate(${-cx.toFixed(2)}px,${-cy.toFixed(2)}px)`; });
   scene.classList.add('motion-on');
+  const first = anims[0], ms = Math.round(total * 1000);
   return {
-    total, anims, stepAt: ms => Math.max(0, starts.findLastIndex(s => s <= ms)), stepStart: i => starts[i] ?? 0,
-    get time() { return anims[0].currentTime || 0; }, get playing() { return anims[0].playState === 'running'; }, get finished() { return this.time >= total - 1; },
-    play: (r = 1) => anims.forEach(a => { a.playbackRate = r; a.play(); }), pause: () => anims.forEach(a => a.pause()),
-    seek: ms => anims.forEach(a => { a.currentTime = Math.max(0, Math.min(total, ms)); }), rate: r => anims.forEach(a => a.updatePlaybackRate(r)),
-    moving: () => [], destroy: () => { anims.forEach(a => a.cancel()); scene.classList.remove('motion-on'); },
+    total: ms, anims, intro: INTRO,
+    stepAt: m => { const s2 = m / 1000 + .02; let c = 0; starts.forEach((v, i) => { if (s2 >= v) c = i; }); return c; },
+    stepStart: i => i ? Math.round(starts[Math.min(i, n - 1)] * 1000) + 30 : 0,
+    get time() { return first.currentTime || 0; }, get playing() { return first.playState === 'running'; }, get finished() { return (first.currentTime || 0) >= ms - 1; },
+    play: (r = 1) => anims.forEach(x => { x.playbackRate = r; x.play(); }), pause: () => anims.forEach(x => x.pause()),
+    seek: v => anims.forEach(x => { x.currentTime = Math.max(0, Math.min(ms, v)); }), rate: r => anims.forEach(x => x.updatePlaybackRate(r)),
+    moving: () => [], destroy: () => { anims.forEach(x => x.cancel()); trailG.remove(); scene.classList.remove('motion-on'); },
   };
 }
