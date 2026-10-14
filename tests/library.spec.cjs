@@ -52,6 +52,7 @@ test('Bibliothek: Suche, Filter, Merkliste, Detail, Bewertung, Notiz, Variante, 
   await expect(dlg).toContainText('Quellen');
   await expect(dlg.locator('a.source').first()).toHaveAttribute('href', /^https:\/\//);
   await expect(dlg.locator('a.source').first()).toHaveAttribute('rel', /noopener/);
+  await dlg.locator('#d-feedback > summary').click();
   await dlg.locator('[data-rate-star="5"]').click();
   await dlg.locator('#d-note').fill('Hat super geklappt');
   await dlg.locator('#d-note').blur();

@@ -981,3 +981,53 @@ details.focus-strip > summary { min-height: 48px; font-size: .9rem; }
 .coach-toggle small{display:block;font-weight:400;color:var(--ink-3);margin-top:4px}
 .coach-toggle:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:3px}
 .coach-toggle:active{transform:scale(.99)}
+
+/* 21.26: exercise cards and detail. Core instructions first, extras on demand. */
+.drill-title { display: block; width: 100%; border: 0; padding: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; text-transform: none; line-height: 1.2; overflow-wrap: anywhere; }
+.drill-title:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 2px; }
+.lib-grid:not(.compact) .drill-body { gap: 9px; padding: 16px 16px 8px; }
+.lib-grid:not(.compact) .drill-body h3 { font-size: 1.22rem; }
+.lib-grid:not(.compact) .drill-meta { font-size: .88rem; }
+.lib-grid:not(.compact) .drill-why { font-weight: 600; color: var(--ink-2); }
+.lib-grid:not(.compact) .drill-why.bad { color: var(--warn); }
+.lib-grid:not(.compact) .drill-foot { padding: 4px 16px 14px; }
+.detail-sheet .sheet-head h2 { text-transform: none; line-height: 1.15; font-size: clamp(1.35rem, 4.8vw, 1.7rem); }
+.detail-sheet .detail-tags { gap: 6px; margin-bottom: 12px; }
+.detail-content { gap: 16px; min-width: 0; }
+.detail-content > section > h3 { margin-bottom: 8px; font-size: 1.1rem; }
+.detail-content > section > p { line-height: 1.55; }
+.detail-content .facts { gap: 6px; }
+.detail-content .facts span { border: 0; background: var(--surface-3); font-size: .86rem; }
+.detail-content .facts span:last-child { flex-basis: 100%; border-left: 3px solid var(--ok); border-radius: 0; }
+.detail-content .facts span.warn { border-color: var(--warn); }
+.detail-section { padding-top: 16px; border-top: 1px solid var(--line-2); }
+.detail-steps .steps li { line-height: 1.5; padding: 12px 10px 12px 6px; border-radius: var(--r-xs); }
+.detail-context { margin-top: 8px; }
+.detail-context > summary { cursor: pointer; font-size: .86rem; color: var(--ink-2); min-height: 44px; display: flex; align-items: center; gap: 8px; }
+.detail-context > summary::before { content: '+'; font-size: 1.2rem; }
+.detail-context[open] > summary::before { content: '-'; }
+.detail-context > p { margin-top: 8px; }
+.detail-content .disclosure > summary { font-size: 1rem; }
+.detail-content .disclosure > .body { padding-top: 8px; display: grid; gap: 10px; }
+.detail-content .source { min-width: 0; }
+.detail-sheet .player-bar { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.detail-sheet #d-play { justify-self: start; }
+.detail-sheet #d-scrub { width: 100%; min-width: 0; }
+.detail-sheet #d-time { text-align: right; font-variant-numeric: tabular-nums; }
+.detail-sheet #d-disclaimer { font-size: .78rem; line-height: 1.45; color: var(--ink-2); }
+@media (max-width: 599px) {
+  .lib-grid:not(.compact) .drill { grid-template-columns: 108px minmax(0, 1fr); }
+  .lib-grid:not(.compact) .drill-body { grid-column: 2; grid-row: 1; min-width: 0; padding: 14px 12px 8px; gap: 8px; }
+  .lib-grid:not(.compact) .drill-body h3 { font-size: 1.12rem; padding-right: 28px; }
+  .lib-grid:not(.compact) .drill .pitch-scene { grid-column: 1; width: calc(100% - 10px); min-width: 0; aspect-ratio: auto; height: auto; min-height: 0; align-self: start; margin: 12px 0 0 10px; padding: 0; background: var(--pitch-2); display: flex; box-sizing: border-box; }
+  .lib-grid:not(.compact) .drill .fchip { font-size: .78rem; }
+  .lib-grid:not(.compact) .drill-foot { grid-column: 2; grid-row: 2; padding: 0 12px 12px; }
+  .lib-grid:not(.compact) .drill-why { display: block; overflow: visible; line-height: 1.4; }
+}
+@media (max-width: 759px) {
+  dialog.detail-sheet { height: 94dvh; max-height: 94dvh; }
+  .detail-sheet .sheet-head { padding-bottom: 12px; }
+  .detail-sheet .sheet-body { padding-inline: 16px; }
+  .detail-sheet .sheet-foot { padding-inline: 16px; }
+  .detail-sheet .detail-grid { gap: 16px; }
+  }

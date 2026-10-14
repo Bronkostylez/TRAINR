@@ -144,7 +144,7 @@ fillSeries();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) fillSeries(); });
 initReminders(id => (id ? go('kalender', 'termin', id) : go('kalender')));
 if (info.problem === 'invalid-v3') toast('Gespeicherte Daten waren ungültig und wurden gesichert, nicht überschrieben. Details unter „Mehr“.', { ms: 8000 });
-window.__trainr = { store, timer, version: '21.25.0' }; // für Tests und Fehlersuche
+window.__trainr = { store, timer, version: '21.26.0' }; // für Tests und Fehlersuche
 
 // ---------- Wischen zwischen den Haupt-Tabs (nur Touch, nur schmale Bildschirme) ----------
 {
@@ -161,4 +161,4 @@ window.__trainr = { store, timer, version: '21.25.0' }; // für Tests und Fehler
     const i = TAB_ORDER.indexOf(currentView()?.tab), next = TAB_ORDER[i + (dx < 0 ? 1 : -1)];
     if (i >= 0 && next) { haptic('tap'); go(next); }
   }, { passive: true });
-}
+  }

@@ -1,5 +1,6 @@
 // Englisch: Übungsdetails, Block-Werkzeuge, Pausen.
 export const DETAIL = {
+  'Deine Bewertung & Notiz': 'Your rating & note', 'gespeichert': 'saved', 'Quellen & Hinweise': 'Sources & notes', 'Hinweise zur Trainerrolle': 'Coach role notes',
   'Übungsdetails': 'Exercise details', 'Eigene Übung': 'Custom exercise', 'Archiviert': 'Archived', 'Nicht für {} vorgesehen': 'Not intended for {}',
   'Abspielen': 'Play', 'Pause': 'Pause', 'Nochmal': 'Replay', 'Nächster Schritt': 'Next step', 'Tempo': 'Speed', 'Tempo {}': 'Speed {}', 'Zeitleiste der Animation': 'Animation timeline',
   'Schematische Darstellung: keine maßstabsgetreuen Positionen oder exakten Laufwege': 'Schematic view: no true-to-scale positions or exact running paths',
