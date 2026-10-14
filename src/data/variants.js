@@ -231,7 +231,7 @@ const ACHT = {
   ],
   norm: p => p,
   build(p, base) {
-    const h = [50, 75, 100][p.s - 1], k = [2, 4, 6][p.k - 1], step = k === 2 ? 80 : k === 4 ? 40 : 26, y0 = k === 2 ? 55 : k === 4 ? 35 : 30, amp = Math.min(17, step / 2 - 4);
+    const h = [50, 75, 100][p.s - 1], k = [2, 4, 6][p.k - 1], step = k === 2 ? 80 : k === 4 ? 36 : 22, y0 = k === 2 ? 55 : k === 4 ? 42 : 42, amp = Math.min(17, step / 2 - 4);
     const ys = Array.from({ length: k }, (_, i) => y0 + i * step), cx = 160;
     const obj = ys.flatMap(y => [['cone', cx - h, y], ['cone', cx + h, y]]);
     const f = [[.6, -1], [1.03, 0], [.6, 1], [0, 0]], g = [[-.6, -1], [-1.03, 0], [-.6, 1], [0, 0]];
@@ -264,7 +264,7 @@ const EINS = {
   params: [
     { k: 's', label: ['Anlaufstrecke', 'Run-up'], def: 2, opts: [[1, 'kurz', 'short'], [2, 'mittel', 'medium'], [3, 'lang', 'long']] },
     { k: 'l', label: ['Startseite', 'Start side'], def: 0, opts: [[0, 'Mitte', 'Centre'], [1, 'Von links', 'From the left'], [2, 'Von rechts', 'From the right']] },
-    { k: 'v', label: ['Verteidiger', 'Defender'], def: 0, opts: [[0, 'Läuft sofort an', 'Starts at once'], [1, 'Startet 1 m hinter dem Angreifer', 'Starts 1 m behind the attacker']] },
+    { k: 'v', label: ['Verteidiger', 'Defender'], def: 0, opts: [[0, 'Läuft sofort an', 'Starts at once'], [1, 'Angreifer mit 1 m Vorsprung', 'Attacker with a 1 m head start']] },
     { k: 'r', label: ['Abschluss', 'Finish'], def: 0, opts: [[0, 'Frei', 'Free'], [1, 'Erst im Strafraum', 'Only inside the box'], [2, 'Schwacher Fuß', 'Weaker foot']] },
   ],
   presets: [
@@ -276,9 +276,9 @@ const EINS = {
   ],
   norm: p => p,
   build(p, base) {
-    const x0 = [110, 60, 30][p.s - 1], dy = [0, -35, 35][p.l], fx = x => (x <= 235 ? x0 + (x - 60) * (235 - x0) / 175 : x), prog = x => Math.max(0, Math.min(1, (x - 60) / 175));
+    const x0 = [110, 70, 45][p.s - 1], dy = [0, -25, 25][p.l], fx = x => (x <= 235 ? x0 + (x - 60) * (235 - x0) / 175 : x), prog = x => Math.max(0, Math.min(1, (x - 60) / 175));
     const fy = (x, y, side) => r0(y + dy * (1 - prog(x)) * (side ? 1 : 1)), back = p.v ? 25 : 0;
-    const A = (x, y) => `${r0(fx(x))} ${fy(x, y)}`, D = (x, y) => `${Math.max(10, r0(fx(x) - back * (1 - prog(x))))} ${fy(x, y)}`;
+    const A = (x, y) => `${r0(fx(x))} ${fy(x, y)}`, D = (x, y) => `${r0(fx(x))} ${fy(x, y)}`;
     const ph = [
       [1, .1, `p1>0; r1 ${D(95, 112)} sprint`],
       [2, 0, `d0 ${A(150, 80)}; r1 ${D(140, 102)} sprint; r2 276 94 shuffle`],
@@ -292,14 +292,14 @@ const EINS = {
     const dist = [T('kurzer', 'short'), T('mittlerer', 'medium'), T('langer', 'long')][p.s - 1];
     const steps = [
       T(`Aufbau: Jugendtor mit Keeper, Strafraum markiert, ${dist} Anlaufstrecke${side ? ', Start ' + side : ''}.`, `Setup: youth goal with keeper, box marked, ${['short', 'medium', 'long'][p.s - 1]} run-up${side ? ', starting ' + side : ''}.`),
-      p.v ? T('Der Verteidiger passt zum Angreifer und startet etwa 1 m hinter ihm.', 'The defender passes to the attacker and starts about 1 m behind.') : T('Der Verteidiger passt zum Angreifer und läuft sofort an.', 'The defender passes to the attacker and sprints straight after.'),
+      p.v ? T('Der Verteidiger (er hat zuerst den Ball) passt zum Angreifer. Der Angreifer steht dabei etwa 1 m vor ihm und hat so einen kleinen Vorsprung; der Verteidiger läuft nach dem Pass an.', 'The defender (who starts with the ball) passes to the attacker. The attacker stands about 1 m ahead for a small head start; the defender runs after the pass.') : T('Der Verteidiger (er hat zuerst den Ball) passt zum Angreifer und läuft sofort an.', 'The defender (who starts with the ball) passes to the attacker and sprints straight after.'),
       T('Der Angreifer dribbelt Richtung Tor, der Keeper verschiebt mit.', 'The attacker dribbles toward goal while the keeper shifts across.'),
       task ? T('Abschluss, sobald der Weg frei ist. ', 'Finish as soon as the way is clear. ') + task : T('Abschluss, sobald der Weg frei ist; danach Rollen tauschen.', 'Finish as soon as the way is clear; then swap roles.'),
     ];
     const hard = p.s === 3 || p.v === 1 || p.r === 2;
     return {
-      script: { name: base.name, obj: [['goal', 293, 95], ['box', 235, 45, 65, 100]], pl: [[r0(x0), r0(fy(60, 70)), '1'], [Math.max(10, r0(x0 - back)), r0(fy(60, 125)), 'V', 1], [282, 95, 'K', 1]], balls: [1], ph }, steps,
-      nameParts: [p.s !== 2 ? [['Kurzer Anlauf', '', 'Langer Anlauf'][p.s - 1], ['Short run-up', '', 'Long run-up'][p.s - 1]] : null, p.l ? [['', 'Von links', 'Von rechts'][p.l], ['', 'From the left', 'From the right'][p.l]] : null, p.v ? ['Verteidiger hinten', 'Defender behind'] : null, p.r ? [['', 'Strafraum', 'Schwacher Fuß'][p.r], ['', 'Inside the box', 'Weaker foot'][p.r]] : null].filter(Boolean),
+      script: { name: base.name, obj: [['goal', 293, 95], ['box', 235, 45, 65, 100]], pl: [[r0(x0 + back), r0(fy(60, 70)), '1'], [r0(x0), r0(fy(60, 125)), 'V', 1], [282, 95, 'K', 1]], balls: [1], ph }, steps,
+      nameParts: [p.s !== 2 ? [['Kurzer Anlauf', '', 'Langer Anlauf'][p.s - 1], ['Short run-up', '', 'Long run-up'][p.s - 1]] : null, p.l ? [['', 'Von links', 'Von rechts'][p.l], ['', 'From the left', 'From the right'][p.l]] : null, p.v ? ['Vorsprung', 'Head start'] : null, p.r ? [['', 'Strafraum', 'Schwacher Fuß'][p.r], ['', 'Inside the box', 'Weaker foot'][p.r]] : null].filter(Boolean),
       min: 3, max: 3, minutes: base.minutes + (p.s === 3 ? 1 : 0),
       equipment: base.equipment, ages: base.ages,
       extraCoaching: [task || '', hard ? T('Anspruchsvoller als die Grundübung (TRAINR-Einschätzung): bei Unsicherheit mit kürzerem Anlauf und sofort anlaufendem Verteidiger beginnen.', 'More demanding than the base drill (TRAINR estimate): if players struggle, start with a shorter run-up and a defender who starts at once.') : ''].filter(Boolean).join(' '),
