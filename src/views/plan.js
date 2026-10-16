@@ -271,6 +271,7 @@ export const planView = {
         <button class="list-item" type="button" data-a="tpl">${icon('template')}<span class="grow"><strong>Als Vorlage speichern</strong><small>Wiederverwenden für jede Mannschaft</small></span></button>
         ${others.map(t => `<button class="list-item" type="button" data-a="team" data-team="${t.id}">${icon('team')}<span class="grow"><strong>Kopie für „${esc(t.name)}“</strong><small>${esc(t.age)} · ${esc(TYPE_SHORT[t.type])}</small></span></button>`).join('')}
         <button class="list-item" type="button" data-a="sharefile">${icon('share')}<span class="grow"><strong>Als Datei teilen</strong><small>Andere TRAINR-Nutzer können sie importieren</small></span></button>
+        <button class="list-item" type="button" data-a="sharelink" ${p.blocks.length ? '' : 'disabled'}>${icon('link')}<span class="grow"><strong>Als Link teilen</strong><small>Empfänger öffnen ihn und übernehmen die Einheit</small></span></button>
         <button class="list-item" type="button" data-a="clear" ${p.blocks.length ? '' : 'disabled'}>${icon('reset')}<span class="grow"><strong>Alle Blöcke entfernen</strong><small>Rückgängig möglich</small></span></button>
         <button class="list-item" type="button" data-a="del" style="color:var(--danger)">${icon('trash')}<span class="grow"><strong>Einheit löschen</strong></span></button></div>`,
       onMount: sh => on(sh.body, 'click', '[data-a]', async (_, b) => {
@@ -280,6 +281,7 @@ export const planView = {
         if (a === 'tpl') { if (duplicatePlan(p.id, { asTemplate: true })) undoToast('Als Vorlage gespeichert.'); }
         if (a === 'team') { const t = s.teams.find(x => x.id === b.dataset.team); const ids = new Map(p.blocks.map(x => [x.id, uid()])); const c = { ...structuredClone(p), id: uid(), teamId: t.id, slot: t.slots[0].day, name: p.name, blocks: p.blocks.map(x => ({ ...x, id: ids.get(x.id) })) }; delete c.age; if (c.pauses) c.pauses = remapPauses(c.pauses, ids); store.update('Kopie für andere Mannschaft', d => { d.plans.push(c); }); undoToast(`Kopie liegt bei „${t.name}“.`); }
         if (a === 'sharefile') import('../exports/share.js').then(m => m.sharePlanFile(p.id));
+        if (a === 'sharelink') import('../exports/share.js').then(m => m.sharePlanLink(p.id));
         if (a === 'clear') { updatePlan('Blöcke entfernt', x => { x.blocks = []; }); undoToast('Alle Blöcke entfernt.'); }
         if (a === 'del') {
           if (!(await confirmSheet({ title: 'Einheit löschen?', text: `„${p.name}“ wird gelöscht. Rückgängig ist direkt danach möglich.`, ok: 'Löschen', danger: true }))) return;

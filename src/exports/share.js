@@ -79,3 +79,35 @@ export function importSharedPlan(obj) {
   undoToast(`„${plan.name}“ importiert${addCustom.length ? ` (mit ${addCustom.length} eigenen Übungen)` : ''}.`);
   import('../ui/router.js').then(r => r.go('planen'));
 }
+
+// ---------- Teilen per Link (ohne Server: die Daten stecken in der Adresse) ----------
+const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+const unb64url = s => Uint8Array.from(atob(s.replaceAll('-', '+').replaceAll('_', '/')), c => c.charCodeAt(0));
+export const LINK_LIMIT = 6000; // darüber wird die Adresse in Messengern und Browsern unhandlich
+
+async function packPlan(data) {
+  const json = JSON.stringify({ kind: data.kind, version: data.version, plan: data.plan, custom: data.custom });
+  const buf = await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer();
+  return b64url(buf);
+}
+/** Adresse der App mit gepackter Einheit im Fragment. Fragmente bleiben lokal, kein Server sieht die Daten. */
+export async function planLink(planId) {
+  if (!('CompressionStream' in window)) throw new Error('Dieser Browser kann keine Links erstellen. Als Datei teilen funktioniert.');
+  const url = `${location.origin}${location.pathname}#plan=${await packPlan(planFile(planId))}`;
+  if (url.length > LINK_LIMIT) throw new Error('Diese Einheit ist zu groß für einen Link. Als Datei teilen funktioniert.');
+  return url;
+}
+export async function unpackPlan(payload) {
+  const json = await new Response(new Blob([unb64url(payload)]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  return JSON.parse(json);
+}
+/** Link teilen: System-Teilen, sonst Zwischenablage, sonst zum Kopieren anzeigen. */
+export async function sharePlanLink(planId) {
+  let url;
+  try { url = await planLink(planId); } catch (err) { toast(err.message); return; }
+  const name = store.get().plans.find(x => x.id === planId)?.name || 'Einheit';
+  try { if (navigator.share) { await navigator.share({ title: `TRAINR · ${name}`, url }); return; } } catch (err) { if (err?.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(url); toast('Link kopiert. Empfänger öffnen ihn und bestätigen den Import.'); return; } catch { /* zeigen */ }
+  const { openSheet } = await import('../ui/sheet.js');
+  openSheet({ title: 'Einheit als Link', body: `<p class="small muted">Link kopieren und teilen. Empfänger öffnen ihn und bestätigen den Import.</p><textarea class="input" rows="5" readonly onclick="this.select()">${url}</textarea>` });
+}
