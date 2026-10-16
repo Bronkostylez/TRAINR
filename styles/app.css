@@ -300,6 +300,8 @@ details.disclosure > .body { padding: 0 var(--s-4) var(--s-4); }
 .pitch-player.opponent circle { fill: var(--opponent); stroke: #14130e; }
 .pitch-player.opponent text { fill: var(--opponent-ink); }
 .pitch-player.goalkeeper circle { fill: var(--keeper) !important; stroke: #faf4ff !important; stroke-width: 2; }
+.pitch-player.coach circle { fill: #14130e; stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 3 2; }
+.pitch-player.coach text { fill: var(--accent); }
 .pitch-player.goalkeeper text { fill: #fff !important; }
 .pitch-ball-static, .actor-ball, .sketch-ball { fill: #fff; stroke: #14130e; stroke-width: 2; }
 .actor-ball { display: none; }

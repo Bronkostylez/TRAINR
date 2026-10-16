@@ -1,5 +1,5 @@
 // Kleine, reine Hilfsfunktionen ohne DOM-Abhängigkeit.
-export const APP_VERSION = '21.28.0';
+export const APP_VERSION = '21.29.0';
 export const BRAND = 'TRAINR';
 export const DAYS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 export const DAYS_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];

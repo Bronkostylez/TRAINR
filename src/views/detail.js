@@ -63,7 +63,7 @@ export function openDetail(id, order = null) {
           ${e.goal ? `<section><h3>Ziel</h3><p>${esc(e.goal)}</p></section>` : ''}
           <section class="detail-section"><h3>Aufbau & Material <small class="tiny">je Gruppe</small></h3><div>${materialChips(e.equipment)}</div>${e.type === 'keeper' && e.min <= 2 ? '<p class="tiny">Kinder und Trainer werden getrennt gezählt. Eine belegte Helferrolle ersetzt einen Partnerplatz, nicht die Übungsrolle.</p>' : ''}</section>
           <section class="detail-section detail-steps"><h3>Ablauf</h3><ol class="steps" id="d-steps"></ol></section>
-          ${coachRole(e) ? `<section class="coach-role detail-section"><h3>Trainerrolle</h3><p>${esc(coachRole(e).role)}</p><details class="detail-context"><summary>Hinweise zur Trainerrolle</summary><p class="small muted">TRAINR-Anpassung: Trainer übernimmt nur die Helferrolle, nicht Torwart, Gegner oder Spieler im Wettkampf. Kinder wechseln die Übungsrolle; Trainer bleibt Helfer. Im Block abschaltbar, Pflicht-Zuwurf bleibt nötig.</p></details><p class="tiny">Animation zeigt den Originalablauf, nicht die Trainerbesetzung.</p></section>` : ''}
+          ${coachRole(e) ? `<section class="coach-role detail-section"><h3>Trainerrolle</h3><p>${esc(coachRole(e).role)}</p><details class="detail-context"><summary>Hinweise zur Trainerrolle</summary><p class="small muted">TRAINR-Anpassung: Trainer übernimmt nur die Helferrolle, nicht Torwart, Gegner oder Spieler im Wettkampf. Kinder wechseln die Übungsrolle; Trainer bleibt Helfer. Im Block abschaltbar, Pflicht-Zuwurf bleibt nötig.</p></details><p class="tiny">${store.get().settings.coachScene === false ? 'Trainer in der Szene ausgeblendet. Einschalten unter Mehr → Bedienung & Training.' : 'In der Szene trägt die Trainerrolle die Markierung T.'}</p></section>` : ''}
           <section class="detail-section"><h3>Coaching</h3>${Array.isArray(e.points) && e.points.length ? `<ul class="points">${e.points.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : `<p>${esc(e.coaching)}</p>`}
             ${Array.isArray(e.points) && e.points.length && e.safety ? `<p class="small muted">${esc(e.safety)}</p>` : ''}</section>
 
@@ -106,6 +106,7 @@ export function openDetail(id, order = null) {
     const playBtn = $('#d-play', b), scrub = $('#d-scrub', b), timeEl = $('#d-time', b);
     player = mountPlayer($('#d-scene', b), e, {
       camera: true,
+      coach: store.get().settings.coachScene !== false,
       onStep: i => stepsEl.querySelectorAll('li').forEach((li, k) => li.classList.toggle('current', k === i)),
       onTime: (t, total) => { if (document.activeElement !== scrub) { scrub.max = total; scrub.value = t; } timeEl.textContent = `${fmt(t)} / ${fmt(total)}`; },
       onState: st => {

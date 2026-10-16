@@ -5,12 +5,13 @@ import { full, onChange } from '../ui/motion.js';
 
 /**
  * Setzt die Skizze von `e` in `host` und liefert einen Player.
- * opts: { camera, loop, onStep(i), onState(state) }  state: 'run' | 'pause' | 'done' | 'static'
+ * opts: { camera, loop, coach, onStep(i), onState(state) }  state: 'run' | 'pause' | 'done' | 'static'
+ * coach: Helferposition als Trainer (T) zeichnen (Übungen mit Trainerrolle).
  */
 export function mountPlayer(host, e, opts = {}) {
   const steps = stepsFor(e);
   let tl = null, step = 0, raf = 0, rate = 1, destroyed = false;
-  const paintStatic = i => { host.innerHTML = drillPitch(e, true, i); };
+  const paintStatic = i => { host.innerHTML = drillPitch(e, true, i, { coach: !!opts.coach }); };
   const emitStep = i => { if (i !== step) { step = i; const l = host.querySelector('.scene-step-label'); if (l) l.textContent = 'SCHRITT ' + (i + 1); opts.onStep?.(i); } };
   const loopFrame = () => {
     raf = 0; if (!tl || destroyed) return;
@@ -22,7 +23,7 @@ export function mountPlayer(host, e, opts = {}) {
   const kick = () => { if (!raf) raf = requestAnimationFrame(loopFrame); };
   function build() {
     tl?.destroy(); tl = null;
-    host.innerHTML = drillPitch(e, true, 0);
+    host.innerHTML = drillPitch(e, true, 0, { coach: !!opts.coach });
     if (full()) tl = compile(host.querySelector('.pitch-scene'), steps.length, { camera: !!opts.camera, exercise: e });
     if (!tl) paintStatic(step);
     opts.onState?.(api.state);

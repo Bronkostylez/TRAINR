@@ -147,6 +147,7 @@ export const moreView = {
         ${sw('haptics', 'Vibration bei Aktionen', 'Nur auf unterstützten Geräten')}
         ${sw('sound', 'Signaltöne', 'Vorwarnung und Blockende')}
         <label class="switch-row"><span>Sprachansagen<small>${speechOK() ? 'Sagt Übung, Vorwarnung und Blockende an' : 'Auf diesem Gerät nicht verfügbar'}</small></span><input class="switch" type="checkbox" data-toggle="speech" ${st.speech ? 'checked' : ''} ${speechOK() ? '' : 'disabled'}></label>
+        <label class="switch-row"><span>Trainer in der Animation<small>Zeigt die Helferrolle als „T“ in der Übungsszene</small></span><input class="switch" type="checkbox" data-toggle="coachScene" ${st.coachScene !== false ? 'checked' : ''}></label>
         ${sw('autoAdvance', 'Automatisch zum nächsten Block', 'Startet 2,5 s nach Blockende den nächsten Block')}
         ${sw('wakeLock', 'Bildschirm anlassen', 'Während der Timer läuft, falls der Browser es erlaubt')}
         <div class="field"><span>Vorwarnung vor Blockende</span>${seg('warnSeconds', [[0, 'Aus'], [10, '10 s'], [30, '30 s'], [60, '60 s']])}</div>

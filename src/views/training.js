@@ -166,7 +166,9 @@ export const trainingView = {
     player?.destroy();
     let manual = this.manual && playerKey === key;
     playerKey = key;
-    player = mountPlayer(host, e, { loop: true, onStep: i => { cap.textContent = `${i + 1}. ${player?.steps[i] || ''}`; } });
+    const s0 = store.get(), p0 = currentPlan(s0);
+    const coachOn = s0.settings.coachScene !== false && !!(p0 && blockLayout(s0, p0, b)?.coachFill);
+    player = mountPlayer(host, e, { loop: true, coach: coachOn, onStep: i => { cap.textContent = `${i + 1}. ${player?.steps[i] || ''}`; } });
     cap.textContent = `1. ${player.steps[0]}`;
     const btn = $('#lv-spause', this.root);
     const sync = () => {
