@@ -82,7 +82,7 @@ export function openDetail(id, order = null) {
             <p class="tiny">Eigene Kurzfassung bzw. Variante, keine offizielle Übung des Verbands. Maße, Minuten, Altersgrenzen und Mengen sind redaktionelle Vorschläge, keine Normen. Belastung an Können, Platz und Gruppe anpassen.</p></div></details>
           <details class="disclosure"><summary>Ähnliche Übungen</summary><div class="body"><div class="stack">${similar(s, e, 3).map(o => `<button class="mini-drill" type="button" data-open="${esc(o.id)}">${drillPitch(o)}<span><strong>${esc(o.name)}</strong><br><small>${esc(foci(o).slice(0, 2).join(' · ') || o.tag)} · ${effective(s, o).minutes} Min</small></span></button>`).join('')}</div></div></details>
           <div class="row">
-            ${e.custom ? `<button class="btn sm" type="button" id="d-edit">${icon('edit')} Bearbeiten</button><button class="btn sm danger" type="button" id="d-del">${icon('trash')} Löschen</button>` : `<button class="btn sm" type="button" id="d-copy">${icon('copy')} Als eigene Übung anpassen</button>`}
+            ${e.custom ? `<button class="btn sm" type="button" id="d-edit">${icon('edit')} Bearbeiten</button><button class="btn sm" type="button" id="d-share">${icon('share')} Teilen</button><button class="btn sm danger" type="button" id="d-del">${icon('trash')} Löschen</button>` : `<button class="btn sm" type="button" id="d-copy">${icon('copy')} Als eigene Übung anpassen</button>`}
           </div>
         </div>
       </div>`);
@@ -142,6 +142,17 @@ export function openDetail(id, order = null) {
     $('#v-reset', b)?.addEventListener('click', () => { store.update('Variante entfernt', d => { delete d.exerciseMeta[e.id]?.variant; }, { reason: 'meta' }); undoToast('Original wiederhergestellt.'); paint(); });
     on(b, 'click', '[data-open]', (_, btn) => { ids = [btn.dataset.open]; idx = 0; paint(); sheet.body.scrollTop = 0; });
     $('#d-edit', b)?.addEventListener('click', () => { sheet.close(); import('./editor.js').then(mm => mm.openEditor(e.id)); });
+    $('#d-share', b)?.addEventListener('click', () => {
+      openSheet({ title: `„${e.name}“ teilen`, label: 'Übung teilen',
+        body: `<div class="list">
+          <button class="list-item" type="button" data-a="sharefile">${icon('share')}<span class="grow"><strong>Als Datei teilen</strong><small>Andere TRAINR-Nutzer können sie importieren</small></span></button>
+          <button class="list-item" type="button" data-a="sharelink">${icon('link')}<span class="grow"><strong>Als Link teilen</strong><small>Empfänger öffnen ihn und übernehmen die Übung</small></span></button>
+        </div>`,
+        onMount: sh => {
+          sh.body.querySelector('[data-a=sharefile]').onclick = () => { sh.close(); import('../exports/share.js').then(m => m.shareExerciseFile(e.id)); };
+          sh.body.querySelector('[data-a=sharelink]').onclick = () => { sh.close(); import('../exports/share.js').then(m => m.shareExerciseLink(e.id)); };
+        } });
+    });
     $('#d-copy', b)?.addEventListener('click', () => { sheet.close(); import('./editor.js').then(mm => mm.openEditor(null, copyAsCustom(e), copyNotice(e))); });
     $('#d-del', b)?.addEventListener('click', async () => {
       const s = store.get(), uses = s.plans.filter(p => p.blocks.some(x => x.exerciseId === e.id)).length;

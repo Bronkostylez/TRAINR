@@ -39,6 +39,13 @@ export const EXPORT = {
   'Eine eigene Übung in der Datei ist ungültig.': 'A custom exercise in the file is invalid.', 'Geteilte Einheit': 'Shared session', 'Die Einheit enthält eine unbekannte Übung.': 'The session contains an unknown exercise.',
   'Einheit importiert': 'Session imported', '(mit {} eigenen Übungen)': '(with {} custom exercises)', '„{}“ importiert{}.': '“{1}” imported{2}.',
 
+  // Einzelne Übung teilen
+  'Übung nicht gefunden.': 'Exercise not found.', 'Keine gültige TRAINR-Übung.': 'Not a valid TRAINR exercise.', 'Die Übung in der Datei ist ungültig.': 'The exercise in the file is invalid.',
+  'Geteilte Übung': 'Shared exercise', 'Übung importiert': 'Exercise imported', '„{}“ ist bereits vorhanden.': '“{}” is already there.', 'Übung „{}“ importiert.': 'Exercise “{}” imported.',
+  'Übung erhalten': 'Exercise received', '„{}“ per Link erhalten. Importieren? Bestehende Daten bleiben unverändert.': '“{}” received via link. Import? Existing data stays unchanged.',
+  'Teilen': 'Share', '„{}“ teilen': 'Share “{}”', 'Übung teilen': 'Share exercise', 'Empfänger öffnen ihn und übernehmen die Übung': 'Recipients open it and take over the exercise',
+  'Übung als Link': 'Exercise as a link', 'Diese Übung ist zu groß für einen Link. Als Datei teilen funktioniert.': 'This exercise is too large for a link. Sharing as a file works.',
+
   // Skizzen
   'Gegner': 'Opponent', 'Keeper': 'Keeper', 'Minitor': 'Mini goal', 'Tor': 'Goal', 'Freie Inseln': 'Free islands', 'SIGNAL': 'SIGNAL', 'Grün · Gelb · Rot': 'Green · Yellow · Red',
   'Bewegen · Signal · Stopp': 'Move · Signal · Stop', 'START': 'START', 'ZIEL A': 'TARGET A', 'ZIEL B': 'TARGET B', 'Start- und Zielzonen': 'Start and target zones', 'Freie Hütchentore': 'Free cone gates',

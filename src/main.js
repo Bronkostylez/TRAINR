@@ -135,11 +135,11 @@ addEventListener('online', () => toast('Wieder online. Deine Daten bleiben lokal
 addEventListener('offline', () => toast('Offline. TRAINR funktioniert weiter.', { ms: 2500 }));
 onMotion(() => syncChrome());
 
-// Einheit per Link erhalten (#plan=…): Adresse säubern, bevor der Router startet.
+// Einheit oder Übung per Link erhalten (#plan=… / #exercise=…): Adresse säubern, bevor der Router startet.
 let pendingPlanLink = null;
 {
-  const hit = location.hash.match(/^#plan=([A-Za-z0-9_-]+)$/);
-  if (hit) { pendingPlanLink = hit[1]; history.replaceState(history.state, '', location.pathname); }
+  const hit = location.hash.match(/^#(plan|exercise)=([A-Za-z0-9_-]+)$/);
+  if (hit) { pendingPlanLink = { kind: hit[1], payload: hit[2] }; history.replaceState(history.state, '', location.pathname); }
 }
 
 syncChrome();
@@ -150,13 +150,19 @@ const fillSeries = () => { if (store.get().teams.length) store.update('Trainings
 fillSeries();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) fillSeries(); });
 initReminders(id => (id ? go('kalender', 'termin', id) : go('kalender')));
-// Erhaltene Einheit: erst bestätigen, dann importieren. Nichts wird ohne Ja geschrieben.
+// Erhaltene Einheit oder Übung: erst bestätigen, dann importieren. Nichts wird ohne Ja geschrieben.
 if (pendingPlanLink) {
   const offerPlanLink = async () => {
     try {
-      const { unpackPlan, importSharedPlan } = await import('./exports/share.js');
+      const { unpackPlan, importSharedPlan, importSharedExercise } = await import('./exports/share.js');
       const { confirmSheet } = await import('./ui/sheet.js');
-      const obj = await unpackPlan(pendingPlanLink);
+      const obj = await unpackPlan(pendingPlanLink.payload);
+      if (pendingPlanLink.kind === 'exercise') {
+        const name = typeof obj?.exercise?.name === 'string' && obj.exercise.name ? obj.exercise.name : 'Geteilte Übung';
+        const ok = await confirmSheet({ title: 'Übung erhalten', text: `„${name}“ per Link erhalten. Importieren? Bestehende Daten bleiben unverändert.`, ok: 'Importieren' });
+        if (ok) importSharedExercise(obj);
+        return;
+      }
       const n = obj?.plan?.blocks?.length ?? 0, name = typeof obj?.plan?.name === 'string' && obj.plan.name ? obj.plan.name : 'Geteilte Einheit';
       if (!n) throw new Error('leer');
       const ok = await confirmSheet({ title: 'Einheit erhalten', text: `„${name}“ (${n} ${n === 1 ? 'Übung' : 'Übungen'}) per Link erhalten. Importieren? Bestehende Daten bleiben unverändert.`, ok: 'Importieren' });
@@ -168,7 +174,7 @@ if (pendingPlanLink) {
   else { const un = store.subscribe(() => { if (store.get().teams.length) { un(); offerPlanLink(); } }); }
 }
 if (info.problem === 'invalid-v3') toast('Gespeicherte Daten waren ungültig und wurden gesichert, nicht überschrieben. Details unter „Mehr“.', { ms: 8000 });
-window.__trainr = { store, timer, version: '21.36.0' }; // für Tests und Fehlersuche
+window.__trainr = { store, timer, version: '21.37.0' }; // für Tests und Fehlersuche
 
 // ---------- Wischen zwischen den Haupt-Tabs (nur Touch, nur schmale Bildschirme) ----------
 {

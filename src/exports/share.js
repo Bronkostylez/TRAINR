@@ -80,6 +80,34 @@ export function importSharedPlan(obj) {
   import('../ui/router.js').then(r => r.go('planen'));
 }
 
+// ---------- Einzelne eigene Übung teilen (Datei oder Link) ----------
+export function exerciseFile(exerciseId) {
+  const e = store.get().custom.find(x => x.id === exerciseId);
+  if (!e) throw new Error('Übung nicht gefunden.');
+  return { kind: 'trainr-exercise', version: 1, app: 'TRAINR', appVersion: APP_VERSION, exportedAt: new Date().toISOString(), exercise: deepClone(e) };
+}
+
+export async function shareExerciseFile(exerciseId) {
+  const data = exerciseFile(exerciseId), name = `${slug(data.exercise.name)}-${fileDate()}.trainr.json`;
+  const file = new File([JSON.stringify(data, null, 2)], name, { type: 'application/json' });
+  const r = await shareFiles([file], { title: `TRAINR · ${data.exercise.name}` });
+  if (r !== 'cancelled') toast('Andere können die Datei unter „Mehr → Backup / Datei importieren“ öffnen.');
+}
+
+/** Geteilte Übung importieren – ergänzt, ersetzt nie bestehende Daten. */
+export function importSharedExercise(obj) {
+  if (obj?.kind !== 'trainr-exercise' || obj.version !== 1 || !obj.exercise || typeof obj.exercise !== 'object') throw new Error('Keine gültige TRAINR-Übung.');
+  const s = store.get(), seedIds = new Set(SEED.map(e => e.id));
+  const mine = s.custom.find(e => e.id === obj.exercise.id);
+  if (mine && JSON.stringify(mine) === JSON.stringify(obj.exercise)) { undoToast(`„${mine.name}“ ist bereits vorhanden.`); return; }
+  const copy = deepClone(obj.exercise); copy.id = 'custom-' + uid(); copy.custom = true;
+  if (!isText(copy.name, 80)) copy.name = 'Geteilte Übung';
+  const known = new Set([...seedIds, ...s.custom.map(e => e.id)]);
+  if (!validCustom(copy, known)) throw new Error('Die Übung in der Datei ist ungültig.');
+  store.update('Übung importiert', d => { d.custom.push(copy); });
+  undoToast(`Übung „${copy.name}“ importiert.`);
+}
+
 // ---------- Teilen per Link (ohne Server: die Daten stecken in der Adresse) ----------
 const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
 const unb64url = s => Uint8Array.from(atob(s.replaceAll('-', '+').replaceAll('_', '/')), c => c.charCodeAt(0));
@@ -100,6 +128,26 @@ export async function planLink(planId) {
 export async function unpackPlan(payload) {
   const json = await new Response(new Blob([unb64url(payload)]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
   return JSON.parse(json);
+}
+/** Adresse der App mit gepackter Übung im Fragment. */
+export async function exerciseLink(exerciseId) {
+  if (!('CompressionStream' in window)) throw new Error('Dieser Browser kann keine Links erstellen. Als Datei teilen funktioniert.');
+  const data = exerciseFile(exerciseId);
+  const json = JSON.stringify({ kind: data.kind, version: data.version, exercise: data.exercise });
+  const buf = await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer();
+  const url = `${location.origin}${location.pathname}#exercise=${b64url(buf)}`;
+  if (url.length > LINK_LIMIT) throw new Error('Diese Übung ist zu groß für einen Link. Als Datei teilen funktioniert.');
+  return url;
+}
+/** Übungs-Link teilen: System-Teilen, sonst Zwischenablage, sonst zum Kopieren anzeigen. */
+export async function shareExerciseLink(exerciseId) {
+  let url;
+  try { url = await exerciseLink(exerciseId); } catch (err) { toast(err.message); return; }
+  const name = store.get().custom.find(x => x.id === exerciseId)?.name || 'Übung';
+  try { if (navigator.share) { await navigator.share({ title: `TRAINR · ${name}`, url }); return; } } catch (err) { if (err?.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(url); toast('Link kopiert. Empfänger öffnen ihn und bestätigen den Import.'); return; } catch { /* zeigen */ }
+  const { openSheet } = await import('../ui/sheet.js');
+  openSheet({ title: 'Übung als Link', body: `<p class="small muted">Link kopieren und teilen. Empfänger öffnen ihn und bestätigen den Import.</p><textarea class="input" rows="5" readonly onclick="this.select()">${url}</textarea>` });
 }
 /** Link teilen: System-Teilen, sonst Zwischenablage, sonst zum Kopieren anzeigen. */
 export async function sharePlanLink(planId) {

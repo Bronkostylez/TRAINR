@@ -37,6 +37,7 @@ export function pickBackup() {
       if (file.size > LIMITS.backupBytes) throw new Error('Datei zu groß (max. 5 MB).');
       const obj = JSON.parse(await file.text());
       if (obj?.kind === 'trainr-plan') { const m = await import('../exports/share.js'); m.importSharedPlan(obj); return; }
+      if (obj?.kind === 'trainr-exercise') { const m = await import('../exports/share.js'); m.importSharedExercise(obj); return; }
       const next = importBackup(obj);
       const teams = next.teams.length, plans = next.plans.filter(p => !p.template).length;
       const ok = await confirmSheet({ title: 'Backup wiederherstellen?', text: `${plural(teams, 'Mannschaft', 'Mannschaften')}, ${plural(plans, 'Einheit', 'Einheiten')} und ${plural(next.custom.length, 'eigene Übung', 'eigene Übungen')}. Deine aktuellen Daten werden ersetzt – direkt danach ist Rückgängig möglich.`, ok: 'Wiederherstellen', danger: true });
