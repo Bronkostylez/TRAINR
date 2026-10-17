@@ -15,16 +15,16 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <title>TRAINR</title>
   <link rel="preload" href="styles/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles/tokens.css?v=21.32.0">
-  <link rel="stylesheet" href="styles/app.css?v=21.32.0">
-  <link rel="stylesheet" href="styles/print.css?v=21.32.0" media="print">
+  <link rel="stylesheet" href="styles/tokens.css?v=21.33.0">
+  <link rel="stylesheet" href="styles/app.css?v=21.33.0">
+  <link rel="stylesheet" href="styles/print.css?v=21.33.0" media="print">
   <script>
     // Theme vor dem ersten Zeichnen setzen, damit es nicht flackert.
     try { const s = JSON.parse(localStorage.getItem('trainr-v21') || 'null')?.settings; const t = s?.theme || 'system';
       document.documentElement.dataset.theme = t === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : t;
       if (s?.fontScale) document.documentElement.style.setProperty('--font-scale', s.fontScale / 100); } catch {}
   </script>
-  <script type="module" src="src/main.js?v=21.32.0"></script>
+  <script type="module" src="src/main.js?v=21.33.0"></script>
 </head>
 <body>
   <a class="sr-only" href="#main">Zum Inhalt springen</a>

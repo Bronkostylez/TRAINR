@@ -29,7 +29,15 @@ export function sketchTrails(items, from, to) {
     return `<path class="sketch-trail ${k === 'ball' ? 'ball' : ''}" d="M${x1} ${y1}L${ex.toFixed(1)} ${ey.toFixed(1)}" marker-end="url(#sk-arrow-${k === 'ball' ? 'ball' : 'run'})"/>`;
   }).join('');
 }
-export const SKETCH_DEFS = '<defs><marker id="sk-arrow-run" viewBox="0 0 6 6" refX="4" refY="3" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L6 3 0 6z" fill="#ffffff"/></marker><marker id="sk-arrow-ball" viewBox="0 0 6 6" refX="4" refY="3" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L6 3 0 6z" fill="#ffe58a"/></marker></defs>';
+export const SKETCH_DEFS = '<defs><marker id="sk-arrow-run" viewBox="0 0 6 6" refX="4" refY="3" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L6 3 0 6z" fill="#ffffff"/></marker><marker id="sk-arrow-ball" viewBox="0 0 6 6" refX="4" refY="3" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L6 3 0 6z" fill="#ffe58a"/></marker><marker id="sk-arrow-dribble" viewBox="0 0 6 6" refX="4" refY="3" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L6 3 0 6z" fill="#ffd400"/></marker></defs>';
+/** Frei gezeichnete Pfeile eines Schritts (Ersteller): Lauf = weiß, Pass = hellgelb, Dribbling = gold. */
+export const SKETCH_ARROW_KINDS = { run: ['Lauf', 'sk-arrow-run', ''], pass: ['Pass', 'sk-arrow-ball', 'pass'], dribble: ['Dribbling', 'sk-arrow-dribble', 'dribble'] };
+export function sketchArrows(frame) {
+  return (frame?.arrows || []).map((a, i) => {
+    const [x1, y1, x2, y2] = a.p, [, marker, cls] = SKETCH_ARROW_KINDS[a.k] || SKETCH_ARROW_KINDS.run;
+    return `<path class="sketch-trail free ${cls}" data-free-arrow="${i}" d="M${x1} ${y1}L${x2} ${y2}" marker-end="url(#${marker})"/>`;
+  }).join('');
+}
 export const SKETCH_FIELD = '<rect class="pitch-turf" x="1" y="1" width="318" height="188" rx="18"/><g class="pitch-stripes"><rect x="20" y="18" width="35" height="154"/><rect x="90" y="18" width="35" height="154"/><rect x="160" y="18" width="35" height="154"/><rect x="230" y="18" width="35" height="154"/></g><rect class="setup-boundary" x="20" y="18" width="280" height="154" rx="3"/><path class="setup-boundary" d="M160 18v154" opacity=".5"/>';
 
 /** Ablaufschritte: Bildunterschriften der eigenen Animation oder Sätze der Beschreibung. */
@@ -133,5 +141,5 @@ function customPitch(e, large, step) {
   // Statische Elemente zuerst, damit Spieler und Ball darüber liegen.
   const order = a.items.map((it, i) => i).sort((x, y) => STATIC_KINDS.has(a.items[y].k) - STATIC_KINDS.has(a.items[x].k));
   const items = order.map(i => { const [x, y] = f.points[i], st = STATIC_KINDS.has(a.items[i].k); return st ? sketchItem(a.items[i].k, x, y, labels[i], a.items[i]) : `<g data-actor="i${i}" data-x="${x}" data-y="${y}">${sketchItem(a.items[i].k, x, y, labels[i], a.items[i])}</g>`; }).join('');
-  return `<div class="pitch-scene scene-custom ${large ? 'pitch-large' : ''}" data-exercise="${esc(e.id)}" data-setup="customAnimation" data-scene-step="${step}"><svg viewBox="0 0 320 190" role="img" aria-label="${esc(e.name)}: eigene schematische ${moving ? 'Animation' : 'Aufbauskizze'}">${SKETCH_DEFS}<g class="cam">${SKETCH_FIELD}<g class="sketch-trails">${sketchTrails(a.items, f.points, a.frames[i0 + 1]?.points)}</g>${items}</g>${moving ? `<text class="scene-step-label" x="28" y="31">${large ? 'SCHRITT ' + (i0 + 1) : 'AUFBAU'}</text>` : ''}</svg><span class="scene-label">${esc(e.name)} · eigene ${moving ? 'Animation' : 'Skizze'}</span></div>`;
+  return `<div class="pitch-scene scene-custom ${large ? 'pitch-large' : ''}" data-exercise="${esc(e.id)}" data-setup="customAnimation" data-scene-step="${step}"><svg viewBox="0 0 320 190" role="img" aria-label="${esc(e.name)}: eigene schematische ${moving ? 'Animation' : 'Aufbauskizze'}">${SKETCH_DEFS}<g class="cam">${SKETCH_FIELD}<g class="sketch-trails">${sketchTrails(a.items, f.points, a.frames[i0 + 1]?.points)}${sketchArrows(f)}</g>${items}</g>${moving ? `<text class="scene-step-label" x="28" y="31">${large ? 'SCHRITT ' + (i0 + 1) : 'AUFBAU'}</text>` : ''}</svg><span class="scene-label">${esc(e.name)} · eigene ${moving ? 'Animation' : 'Skizze'}</span></div>`;
 }

@@ -524,6 +524,9 @@ body.live-focus main { padding-top: max(16px, env(safe-area-inset-top)); padding
 .sk-empty { font: 700 11px var(--font); fill: #ffffffb0; text-anchor: middle; pointer-events: none; }
 .sketch-trail { fill: none; stroke: #ffffffd0; stroke-width: 2; stroke-dasharray: 6 4; stroke-linecap: round; pointer-events: none; }
 .sketch-trail.ball { stroke: #ffe58a; stroke-dasharray: 2 3; }
+.sketch-trail.free { stroke-width: 2.5; pointer-events: stroke; }
+.sketch-trail.free.pass { stroke: #ffe58a; stroke-dasharray: 2 3; }
+.sketch-trail.free.dribble { stroke: #ffd400; stroke-dasharray: 1 4; }
 .motion-on .sketch-trails { display: none; }
 .ed-selbar { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: .86rem; color: var(--ink-2); }
 .ed-steps { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 6px; scrollbar-width: none; }

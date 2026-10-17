@@ -29,7 +29,9 @@ const frameOk = (f, n, [x0, x1, y0, y1]) => integer(f?.seconds, 1, 15) && text(f
 export const CAMERA_MODES = ['auto', 'manual', 'off'];
 export const ZOOM_MAX = 2.5;
 const camOk = c => c === undefined || (!!c && Number.isFinite(c.x) && Number.isFinite(c.y) && Number.isFinite(c.s) && c.x >= 0 && c.x <= 320 && c.y >= 0 && c.y <= 190 && c.s >= 1 && c.s <= ZOOM_MAX);
-const extraOk = f => camOk(f.cam) && (f.loft === undefined || typeof f.loft === 'boolean');
+const arrowsOk = a => a === undefined || (Array.isArray(a) && a.length <= 12 &&
+  a.every(x => ['run', 'pass', 'dribble'].includes(x?.k) && Array.isArray(x.p) && x.p.length === 4 && x.p.every(v => Number.isFinite(v) && v >= 0 && v <= 320)));
+const extraOk = f => camOk(f.cam) && (f.loft === undefined || typeof f.loft === 'boolean') && arrowsOk(f.arrows);
 export function validAnimation(a) {
   if (!a || !Array.isArray(a.frames) || a.frames.length > 20) return false;
   if (a.version === 1) return a.frames.length >= 2 && a.frames.every(f => frameOk(f, 4, [25, 295, 25, 165]));

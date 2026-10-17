@@ -168,7 +168,7 @@ if (pendingPlanLink) {
   else { const un = store.subscribe(() => { if (store.get().teams.length) { un(); offerPlanLink(); } }); }
 }
 if (info.problem === 'invalid-v3') toast('Gespeicherte Daten waren ungültig und wurden gesichert, nicht überschrieben. Details unter „Mehr“.', { ms: 8000 });
-window.__trainr = { store, timer, version: '21.32.0' }; // für Tests und Fehlersuche
+window.__trainr = { store, timer, version: '21.33.0' }; // für Tests und Fehlersuche
 
 // ---------- Wischen zwischen den Haupt-Tabs (nur Touch, nur schmale Bildschirme) ----------
 {

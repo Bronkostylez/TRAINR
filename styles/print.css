@@ -32,7 +32,8 @@ html, body { background: #fff !important; color: #111 !important; font-size: 10.
 .print-doc .coach h2 { font-size: 20pt; } .print-doc .coach li { font-size: 14pt; } .print-doc .coach { break-inside: avoid; margin-bottom: 10px; }
 .print-doc section { break-inside: avoid; margin-top: 12px; } .print-doc h3 { font-size: 11pt; margin: 8px 0 2px; }
 .print-doc .foot { font-size: 8pt; color: #555; margin-top: 12px; }
-.print-doc .psketch .sketch-trail { fill: none; stroke: #ffffff; stroke-width: 2; stroke-dasharray: 6 4; } .print-doc .psketch .sketch-trail.ball { stroke: #ffe58a; stroke-dasharray: 2 3; }
+.print-doc .psketch .sketch-trail { fill: none; stroke: #ffffff; stroke-width: 2; stroke-dasharray: 6 4; } .print-doc .psketch .sketch-trail.ball, .print-doc .psketch .sketch-trail.pass { stroke: #ffe58a; stroke-dasharray: 2 3; }
+.print-doc .psketch .sketch-trail.dribble { stroke: #ffd400; stroke-dasharray: 1 4; }
 .print-doc .ppause { margin: 4px 0 8px; font-weight: 700; color: #5a574d; text-align: center; letter-spacing: .02em; }
 .print-doc tr.pause td { color: #5a574d; font-style: italic; border-top: 1px dashed #cfc9b9; }
 

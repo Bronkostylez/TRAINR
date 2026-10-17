@@ -13,11 +13,12 @@ import { reduced, full } from '../ui/motion.js';
 import { mountPlayer } from '../scene/player.js';
 import { materialType } from '../ui/material.js';
 import { focusPicker } from '../ui/focus.js';
-import { SKETCH_ITEMS, STATIC_KINDS, SKETCH_DEFS, SKETCH_FIELD, sketchItem, sketchLabels, sketchTrails } from '../scene/pitch.js';
+import { SKETCH_ITEMS, STATIC_KINDS, SKETCH_DEFS, SKETCH_FIELD, SKETCH_ARROW_KINDS, sketchItem, sketchLabels, sketchTrails, sketchArrows } from '../scene/pitch.js';
 
 const DEFAULT_COACHING = 'Eigene Übung. Altersklasse, Aufbau und Belastung selbst prüfen.';
 const TOOLS = [['a', '<i style="background:var(--player)"></i>'], ['b', '<i style="background:var(--opponent)"></i>'], ['k', '<i style="background:var(--keeper)"></i>'], ['ball', '<i style="background:#fff;width:14px;height:14px"></i>'],
-  ['zone', '<i style="border:2px dashed currentColor;width:16px;height:12px;background:transparent"></i>'], ['cone', '<i style="background:var(--cone);border-radius:3px;width:14px;height:14px;transform:rotate(45deg)"></i>'], ['mini', '<i style="border-radius:3px;width:12px;height:20px;background:transparent;border:2px solid currentColor"></i>'], ['goal', '<i style="border-radius:3px;width:14px;height:24px;background:transparent;border:3px solid currentColor"></i>']];
+  ['zone', '<i style="border:2px dashed currentColor;width:16px;height:12px;background:transparent"></i>'], ['cone', '<i style="background:var(--cone);border-radius:3px;width:14px;height:14px;transform:rotate(45deg)"></i>'], ['mini', '<i style="border-radius:3px;width:12px;height:20px;background:transparent;border:2px solid currentColor"></i>'], ['goal', '<i style="border-radius:3px;width:14px;height:24px;background:transparent;border:3px solid currentColor"></i>'], ['arrow', '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M5 19 19 5M10 5h9v9"/></svg>']];
+const TOOL_LABELS = { arrow: 'Pfeil' }; // Pfeile sind Werkzeuge, keine Skizzen-Elemente
 // Vorlagen: [Art, x, y] und optional Bewegungen für Schritt 2 ({ Index: [x, y] }).
 const TEMPLATES = {
   'Passen zu zweit': { items: [['a', 70, 95], ['a', 250, 95], ['ball', 86, 95], ['cone', 160, 78], ['cone', 160, 112]], moves: [{ 2: [234, 95] }, { 2: [86, 95] }], captions: ['Aufstellen, 1 hat den Ball.', 'Pass durch das Hütchentor zu 2.', '2 spielt zurück.'] },
@@ -44,7 +45,7 @@ export function openEditor(id = null, prefill = null, notice = '') {
   // ---- Zustand
   const emptySk = () => ({ version: 2, camera: 'auto', items: [], frames: [{ seconds: 2, caption: '', points: [] }] });
   let sk = deepClone(normAnimation(e.animation)) || emptySk();
-  let frame = 0, tool = 'a', sel = -1, past = [], drag = null, peopleTouched = !fresh, camPick = false, camOpen = !!(sk.camera && sk.camera !== 'auto');
+  let frame = 0, tool = 'a', arrowKind = 'run', sel = -1, past = [], drag = null, peopleTouched = !fresh, camPick = false, camOpen = !!(sk.camera && sk.camera !== 'auto');
   const camMode = () => sk.camera || 'auto';
   const mat = new Map(e.equipment.map(([n, c]) => [n, c]));
   const presets = MATERIALS.map(([n]) => [...mat.keys()].find(k => k.toLowerCase() === n.toLowerCase()) || n);
@@ -60,7 +61,7 @@ export function openEditor(id = null, prefill = null, notice = '') {
       <div class="ed-layout">
       <section class="ed-section ed-sketch" aria-labelledby="ed-sk-h">
         <div class="row between"><h3 id="ed-sk-h" class="ed-h">Platzskizze <small class="tiny">optional</small></h3><button class="btn sm ghost" type="button" id="ed-tpl">${icon('layers')} Vorlage</button></div>${notice ? `<p class="small ed-copy-notice" role="note">${esc(notice)}</p>` : ''}
-        <div class="board-tools ed-tools" role="toolbar" aria-label="Was setzen?">${TOOLS.map(([k, ic]) => `<button class="tool" type="button" data-tool="${k}" aria-pressed="${tool === k}">${ic}<span>${SKETCH_ITEMS[k]}</span></button>`).join('')}</div>
+        <div class="board-tools ed-tools" role="toolbar" aria-label="Was setzen?">${TOOLS.map(([k, ic]) => `<button class="tool" type="button" data-tool="${k}" aria-pressed="${tool === k}">${ic}<span>${SKETCH_ITEMS[k] || TOOL_LABELS[k]}</span></button>`).join('')}</div><div id="ed-arrow-kinds"></div>
         <svg id="ed-pitch" class="editor-pitch" viewBox="0 0 320 190" role="application" aria-label="Platz: antippen setzt das gewählte Element, ziehen bewegt" data-nodrag></svg>
         <div class="ed-selbar" id="ed-selbar" aria-live="polite"></div>
         <div class="ed-steps" id="ed-steps" role="tablist" aria-label="Schritte"></div>
@@ -142,7 +143,8 @@ export function openEditor(id = null, prefill = null, notice = '') {
     const fr = sk.frames[frame], prev = sk.frames[frame - 1], labels = sketchLabels(sk.items), many = sk.frames.length > 1;
     const order = sk.items.map((_, i) => i).sort((x, y) => STATIC_KINDS.has(sk.items[y].k) - STATIC_KINDS.has(sk.items[x].k));
     const ghosts = prev ? sk.items.map(({ k }, i) => { const [x, y] = prev.points[i], [cx, cy] = fr.points[i]; return STATIC_KINDS.has(k) || (x === cx && y === cy) ? '' : `<circle class="sk-ghost" cx="${x}" cy="${y}" r="${k === 'ball' ? 5 : 10}"/>`; }).join('') : '';
-    svg.innerHTML = SKETCH_DEFS + SKETCH_FIELD + ghosts + sketchTrails(sk.items, prev?.points, fr.points) +
+    svg.innerHTML = SKETCH_DEFS + SKETCH_FIELD + ghosts + sketchTrails(sk.items, prev?.points, fr.points) + sketchArrows(fr) +
+      (drag?.arrow ? `<path class="sketch-trail free ${SKETCH_ARROW_KINDS[arrowKind][2]}" d="M${drag.x0} ${drag.y0}L${drag.x1} ${drag.y1}" marker-end="url(#${SKETCH_ARROW_KINDS[arrowKind][1]})"/>` : '') +
       order.map(i => { const { k } = sk.items[i], [x, y] = fr.points[i]; return `<g class="sk-token ${i === sel ? 'selected' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${SKETCH_ITEMS[k]} ${labels[i]}, Pfeiltasten bewegen, Entf entfernt"><circle class="sk-hit" cx="${x}" cy="${y}" r="17"/>${i === sel ? `<circle class="sk-sel" cx="${x}" cy="${y}" r="${k === 'goal' ? 20 : 15}"/>` : ''}${sketchItem(k, x, y, labels[i], sk.items[i])}</g>`; }).join('') +
       (drag?.zone ? `<rect class="sk-draft" x="${Math.min(drag.x0, drag.x1)}" y="${Math.min(drag.y0, drag.y1)}" width="${Math.abs(drag.x1 - drag.x0)}" height="${Math.abs(drag.y1 - drag.y0)}" rx="4"/>` : '') +
       camOverlay(fr) + (sk.items.length ? '' : `<text class="sk-empty" x="160" y="99">${tool === 'zone' ? 'Ziehe auf dem Platz, um eine Zone zu markieren' : `Tippe auf den Platz, um ${SKETCH_ITEMS[tool]} zu setzen`}</text>`);
@@ -162,6 +164,7 @@ export function openEditor(id = null, prefill = null, notice = '') {
         <span class="grow"></span><button class="btn sm ghost" type="button" id="ed-undo" ${past.length ? '' : 'disabled'}>${icon('undo')} Rückgängig</button><button class="btn sm ghost" type="button" id="ed-clear">${icon('reset')} Leeren</button>
       </div>`;
     $$('[data-tool]', b).forEach(x => x.setAttribute('aria-pressed', String(x.dataset.tool === tool && !camPick)));
+    $('#ed-arrow-kinds', b).innerHTML = tool !== 'arrow' ? '' : `<div class="seg" role="radiogroup" aria-label="Pfeilart">${Object.entries(SKETCH_ARROW_KINDS).map(([k, [label]]) => `<button type="button" role="radio" data-arrow-kind="${k}" aria-checked="${arrowKind === k}">${label}</button>`).join('')}</div><p class="tiny" style="margin:4px 0 0">Ziehen zeichnet einen Pfeil – einen Pfeil antippen entfernt ihn.</p>`;
     paintCam();
   }
 
@@ -194,6 +197,7 @@ export function openEditor(id = null, prefill = null, notice = '') {
   }
   b.addEventListener('toggle', ev => { if (ev.target.id === 'ed-cam-d') camOpen = ev.target.open; }, true);
   on(b, 'click', '[data-cam-mode]', (_, x) => { snapshot(); sk.camera = x.dataset.camMode; camPick = false; haptic('tap'); paint(); });
+  on(b, 'click', '[data-arrow-kind]', (_, x) => { arrowKind = x.dataset.arrowKind; haptic('tap'); paint(); });
   on(b, 'click', '[data-cam-zoom]', (_, x) => {
     const v = Number(x.dataset.camZoom), fr = sk.frames[frame]; snapshot(); haptic('tap');
     if (v === 1) { delete fr.cam; camPick = false; }
@@ -231,6 +235,13 @@ export function openEditor(id = null, prefill = null, notice = '') {
     if (ev.button > 0) return;
     const g = ev.target.closest('[data-i]'), [x, y] = pt(ev);
     if (camPick) { snapshot(); setCamCenter(x, y); drag = { cam: true, saved: true }; svg.setPointerCapture(ev.pointerId); paint(); return; }
+    if (tool === 'arrow') {
+      // Wie auf dem Taktikboard: aktives Pfeil-Werkzeug zeichnet immer, auch ab einem Spieler.
+      const hit = ev.target.closest('[data-free-arrow]');
+      if (hit) { snapshot(); sk.frames[frame].arrows.splice(Number(hit.dataset.freeArrow), 1); haptic('tap'); changed(); return; }
+      drag = { arrow: true, x0: clamp(x, B.x0, B.x1), y0: clamp(y, B.y0, B.y1), x1: clamp(x, B.x0, B.x1), y1: clamp(y, B.y0, B.y1) };
+      svg.setPointerCapture(ev.pointerId); paint(); return;
+    }
     let i = g ? Number(g.dataset.i) : -1, added = false;
     if (i < 0 && tool === 'zone') { drag = { zone: true, x0: x, y0: y, x1: x, y1: y }; svg.setPointerCapture(ev.pointerId); paint(); return; }
     if (i < 0) { i = addItem(tool, Math.round(clamp(x, B.x0, B.x1)), Math.round(clamp(y, B.y0, B.y1))); added = true; if (i < 0) return; }
@@ -243,12 +254,22 @@ export function openEditor(id = null, prefill = null, notice = '') {
     if (!drag) return;
     const [x, y] = pt(ev);
     if (drag.zone) { drag.x1 = clamp(x, B.x0, B.x1); drag.y1 = clamp(y, B.y0, B.y1); paint(); return; }
+    if (drag.arrow) { drag.x1 = clamp(x, B.x0, B.x1); drag.y1 = clamp(y, B.y0, B.y1); paint(); return; }
     if (drag.cam) { setCamCenter(x, y); paint(); return; }
     if (!drag.saved) { snapshot(); drag.saved = true; }
     moveItem(drag.i, x + drag.dx, y + drag.dy); paint();
   });
   const endDrag = ev => {
     if (!drag) return;
+    if (drag.arrow) {
+      const { x0, y0, x1, y1 } = drag; drag = null;
+      if (Math.hypot(x1 - x0, y1 - y0) >= 12) {
+        const fr = sk.frames[frame]; fr.arrows = fr.arrows || [];
+        if (fr.arrows.length >= 12) toast('Maximal 12 Pfeile pro Schritt.');
+        else { snapshot(); fr.arrows.push({ k: arrowKind, p: [x0, y0, x1, y1].map(Math.round) }); haptic('tap'); changed(); return; }
+      }
+      paint(); return;
+    }
     if (drag.zone) {
       const w = Math.round(Math.abs(drag.x1 - drag.x0)), h = Math.round(Math.abs(drag.y1 - drag.y0));
       const cx = Math.round(clamp((drag.x0 + drag.x1) / 2, B.x0, B.x1)), cy = Math.round(clamp((drag.y0 + drag.y1) / 2, B.y0, B.y1));
