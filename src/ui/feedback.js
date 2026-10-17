@@ -3,8 +3,20 @@ import { esc } from '../core/util.js';
 import * as store from '../core/store.js';
 
 let root;
+/** Toasts gehören über das oberste offene Sheet: ein <dialog> liegt in der Top-Layer-Ebene
+ *  über jedem z-index. Der Toast-Container wird deshalb in das oberste offene Sheet
+ *  umgehängt (position:fixed bleibt viewport- relativ, solange das Sheet keinen
+ *  Transform trägt) und landet zurück am <body>, wenn kein Sheet offen ist. */
+function park() {
+  if (!root) return;
+  const sheets = [...document.querySelectorAll('dialog.sheet[open]:not(.closing)')];
+  const host = sheets.at(-1) || document.body;
+  if (root.parentElement !== host) host.append(root);
+}
+document.addEventListener('trainr:sheet', park);
 function container() {
   if (!root) { root = document.createElement('div'); root.className = 'toasts'; root.setAttribute('role', 'status'); root.setAttribute('aria-live', 'polite'); document.body.append(root); }
+  park();
   return root;
 }
 
