@@ -6,6 +6,7 @@ import { full, level } from './motion.js';
 import { haptic } from './feedback.js';
 
 const stack = [];
+const closing = []; // Sheets in der Schließ-Animation: ein neues Sheet beendet sie sofort, damit sich keine Dialoge stapeln.
 let ignorePop = 0;
 
 addEventListener('popstate', () => {
@@ -22,6 +23,7 @@ export function closeAll() { const n = stack.length; while (stack.length) stack.
  * body/foot sind HTML-Strings. Rückgabe: { dialog, body, foot, close(), setBody(html), setFoot(html) }
  */
 export function openSheet({ title = '', body = '', foot = '', wide = false, label, onMount, onClose, className = '' } = {}) {
+  while (closing.length) closing.pop()();
   const d = document.createElement('dialog');
   d.className = `sheet ${wide ? 'wide' : ''} ${className}`;
   d.setAttribute('aria-label', label || title);
@@ -37,8 +39,14 @@ export function openSheet({ title = '', body = '', foot = '', wide = false, labe
       if (closed) return; closed = true;
       const i = stack.indexOf(api); if (i >= 0) stack.splice(i, 1);
       if (!fromHistory) { ignorePop++; history.back(); }
-      const finish = () => { if (d.open) d.close(); d.remove(); onClose?.(); document.dispatchEvent(new CustomEvent('trainr:sheet', { detail: { open: stack.length > 0 } })); };
-      if (full()) { d.classList.add('closing'); setTimeout(finish, 200); } else finish();
+      let finished = false;
+      const finish = () => {
+        if (finished) return; finished = true;
+        const ci = closing.indexOf(finish); if (ci >= 0) closing.splice(ci, 1);
+        if (d.open) d.close(); d.remove(); onClose?.();
+        document.dispatchEvent(new CustomEvent('trainr:sheet', { detail: { open: stack.length > 0 } }));
+      };
+      if (full()) { d.classList.add('closing'); closing.push(finish); setTimeout(finish, 200); } else finish();
     },
   };
   d.addEventListener('cancel', ev => { ev.preventDefault(); api.close(); });

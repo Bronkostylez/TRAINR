@@ -126,13 +126,13 @@ test.describe('Englisch', () => {
     await page.click('#pl-squad');
     await expect(page.locator('dialog[open]')).toContainText('Who is here?');
     const sheet = await page.locator('dialog[open]').innerText();
-    require('fs').writeFileSync(process.env.TEMP + '/sheet.txt', sheet);
+    require('fs').writeFileSync(require('os').tmpdir() + '/sheet.txt', sheet);
     expect(sheet).toContain('Queue');
     expect(sheet).not.toMatch(/\b(Wer|Spieler|Torwart|Trainer|Gruppe|Schlange|Block)\b/);
     await page.click('#sq-ok');
     await page.locator('[data-key=q1] [data-edit]').click();
     const be = await page.locator('dialog[open]').innerText();
-    require('fs').writeFileSync(process.env.TEMP + '/be.txt', be);
+    require('fs').writeFileSync(require('os').tmpdir() + '/be.txt', be);
     expect(be.toLowerCase()).toContain('queues (stations)');
     expect(be).not.toMatch(/\b(Schlange|Schlangen|Spieler|aktiv|Reihe|Einheit)\b/);
     await page.keyboard.press('Escape');
