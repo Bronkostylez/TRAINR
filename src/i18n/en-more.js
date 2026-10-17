@@ -57,7 +57,7 @@ export const MORE = {
   'Jeder Satz wird ein Schritt. Leer = aus der Skizze.': 'Each sentence becomes a step. Empty = from the sketch.', 'Coaching-Hinweise': 'Coaching hints', 'Art der Übung': 'Type of exercise',
   'Geeignet ab': 'Suitable from', 'Vorgeschlagene Minuten': 'Suggested minutes', 'Quellenlink (https://)': 'Source link (https://)',
   'Keine Namen oder personenbezogenen Notizen eintragen. Eigene Übungen bleiben auf diesem Gerät und im Backup.': 'Do not enter names or personal notes. Custom exercises stay on this device and in the backup.',
-  'Maximal 30 Elemente.': 'At most 30 elements.', 'Vorlage „{}“ gesetzt.': 'Template “{}” applied.', '{}, Pfeiltasten bewegen, Entf entfernt': '{}, arrow keys move, Del removes',
+  'Maximal 30 Elemente.': 'At most 30 elements.', 'Ziehe auf dem Platz, um eine Zone zu markieren': 'Drag on the pitch to mark a zone', 'Vorlage „{}“ gesetzt.': 'Template “{}” applied.', '{}, Pfeiltasten bewegen, Entf entfernt': '{}, arrow keys move, Del removes',
   'Tippe auf den Platz, um {} zu setzen': 'Tap the pitch to place {}', '· ziehen zum Bewegen': '· drag to move',
   'Element oben wählen und auf den Platz tippen – oder mit einer Vorlage starten.': 'Choose an element above and tap the pitch – or start with a template.',
   'Schritt {}:': 'Step {}:', 'Spieler und Ball an ihre neue Position ziehen. Pfeile zeigen den Weg.': 'Drag players and ball to their new position. Arrows show the path.',
@@ -80,5 +80,5 @@ export const MORE = {
   'Du bestimmst den Ausschnitt für den gewählten Schritt. Der Zoom gleitet von Schritt zu Schritt.': 'You choose the frame for the selected step. The zoom glides from step to step.',
   'Der ganze Platz bleibt die ganze Zeit im Bild.': 'The whole pitch stays in view the whole time.', 'Flugball': 'Lofted ball', 'Der Ball fliegt in diesem Schritt im Bogen.': 'The ball flies in an arc in this step.',
   'Vorschau': 'Preview', 'Kamera': 'Camera', 'Für die Vorschau mindestens zwei Schritte anlegen.': 'Add at least two steps for the preview.', 'Nächster Schritt': 'Next step', 'Bereich': 'Section',
-  'Spieler': 'Player', 'Keeper': 'Keeper', 'Ball': 'Ball', 'Minitor': 'Mini goal', 'Tor': 'Goal',
+  'Spieler': 'Player', 'Keeper': 'Keeper', 'Ball': 'Ball', 'Minitor': 'Mini goal', 'Tor': 'Goal', 'Zone': 'Zone',
 };

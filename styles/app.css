@@ -317,6 +317,7 @@ details.disclosure > .body { padding: 0 var(--s-4) var(--s-4); }
 .setup-cone { fill: var(--cone); stroke: #6b2e05; stroke-width: 1; }
 .setup-goal { fill: none; stroke: #fff; stroke-width: 2.2; }
 .setup-zone rect { fill: rgba(255, 212, 0, .12); stroke: var(--signal); stroke-dasharray: 4 3; }
+.sk-draft { fill: rgba(255, 212, 0, .12); stroke: var(--signal); stroke-dasharray: 4 3; pointer-events: none; }
 .setup-zone text { font: 800 8px var(--font); fill: #fff; text-anchor: middle; }
 .setup-line { stroke: #fff; stroke-width: 2.5; fill: none; }
 .scene-step-label { font: 800 8px var(--font); fill: #fff; letter-spacing: 1px; }

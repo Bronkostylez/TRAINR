@@ -18,7 +18,7 @@ const fail = msg => { throw new Error(msg); };
 
 // Platzskizze eigener Übungen. V1 (bis 21.0): genau Spieler 1, Spieler 2, Keeper, Ball und mindestens 2 Schritte.
 // V2: frei wählbare Elemente (`items`), 1 Schritt = stehende Aufbauskizze, ab 2 Schritten Animation.
-export const SKETCH_KINDS = ['a', 'b', 'k', 'ball', 'cone', 'mini', 'goal'];
+export const SKETCH_KINDS = ['a', 'b', 'k', 'ball', 'cone', 'mini', 'goal', 'zone'];
 export const SKETCH_BOX = { x0: 10, x1: 310, y0: 10, y1: 180 };
 const V1_ITEMS = [{ k: 'a' }, { k: 'a' }, { k: 'k' }, { k: 'ball' }];
 const frameOk = (f, n, [x0, x1, y0, y1]) => integer(f?.seconds, 1, 15) && text(f.caption, 180) && Array.isArray(f.points) && f.points.length === n &&
@@ -35,7 +35,7 @@ export function validAnimation(a) {
   if (a.version === 1) return a.frames.length >= 2 && a.frames.every(f => frameOk(f, 4, [25, 295, 25, 165]));
   const B = SKETCH_BOX;
   return a.version === 2 && (a.camera === undefined || CAMERA_MODES.includes(a.camera)) && a.frames.length >= 1 && Array.isArray(a.items) && a.items.length >= 1 && a.items.length <= 30 &&
-    a.items.every(it => SKETCH_KINDS.includes(it?.k)) && a.frames.every(f => frameOk(f, a.items.length, [B.x0, B.x1, B.y0, B.y1]) && extraOk(f));
+    a.items.every(it => SKETCH_KINDS.includes(it?.k) && (it.k !== 'zone' || (Number.isFinite(it.w) && Number.isFinite(it.h) && it.w >= 8 && it.w <= 320 && it.h >= 8 && it.h <= 190))) && a.frames.every(f => frameOk(f, a.items.length, [B.x0, B.x1, B.y0, B.y1]) && extraOk(f));
 }
 /** Liefert jede gültige Skizze im V2-Format (V1 wird umgedeutet, nicht gespeichert), sonst null. */
 export function normAnimation(a) {

@@ -17,7 +17,7 @@ import { SKETCH_ITEMS, STATIC_KINDS, SKETCH_DEFS, SKETCH_FIELD, sketchItem, sket
 
 const DEFAULT_COACHING = 'Eigene Übung. Altersklasse, Aufbau und Belastung selbst prüfen.';
 const TOOLS = [['a', '<i style="background:var(--player)"></i>'], ['b', '<i style="background:var(--opponent)"></i>'], ['k', '<i style="background:var(--keeper)"></i>'], ['ball', '<i style="background:#fff;width:14px;height:14px"></i>'],
-  ['cone', '<i style="background:var(--cone);border-radius:3px;width:14px;height:14px;transform:rotate(45deg)"></i>'], ['mini', '<i style="border-radius:3px;width:12px;height:20px;background:transparent;border:2px solid currentColor"></i>'], ['goal', '<i style="border-radius:3px;width:14px;height:24px;background:transparent;border:3px solid currentColor"></i>']];
+  ['zone', '<i style="border:2px dashed currentColor;width:16px;height:12px;background:transparent"></i>'], ['cone', '<i style="background:var(--cone);border-radius:3px;width:14px;height:14px;transform:rotate(45deg)"></i>'], ['mini', '<i style="border-radius:3px;width:12px;height:20px;background:transparent;border:2px solid currentColor"></i>'], ['goal', '<i style="border-radius:3px;width:14px;height:24px;background:transparent;border:3px solid currentColor"></i>']];
 // Vorlagen: [Art, x, y] und optional Bewegungen für Schritt 2 ({ Index: [x, y] }).
 const TEMPLATES = {
   'Passen zu zweit': { items: [['a', 70, 95], ['a', 250, 95], ['ball', 86, 95], ['cone', 160, 78], ['cone', 160, 112]], moves: [{ 2: [234, 95] }, { 2: [86, 95] }], captions: ['Aufstellen, 1 hat den Ball.', 'Pass durch das Hütchentor zu 2.', '2 spielt zurück.'] },
@@ -114,9 +114,9 @@ export function openEditor(id = null, prefill = null, notice = '') {
   const snapshot = () => { past.push(deepClone({ sk, frame })); if (past.length > 60) past.shift(); };
   function undoSketch() { const p = past.pop(); if (!p) return; sk = p.sk; frame = Math.min(p.frame, sk.frames.length - 1); sel = -1; changed(); }
   function changed() { syncFromSketch(); paint(); }
-  function addItem(k, x, y) {
+  function addItem(k, x, y, dims = null) {
     if (sk.items.length >= 30) { toast('Maximal 30 Elemente.'); return -1; }
-    snapshot(); sk.items.push({ k }); sk.frames.forEach(fr => fr.points.push([x, y])); haptic('tap');
+    snapshot(); sk.items.push(k === 'zone' ? { k, w: dims?.w || 60, h: dims?.h || 40 } : { k }); sk.frames.forEach(fr => fr.points.push([x, y])); haptic('tap');
     return sk.items.length - 1;
   }
   function moveItem(i, x, y) {
@@ -143,8 +143,9 @@ export function openEditor(id = null, prefill = null, notice = '') {
     const order = sk.items.map((_, i) => i).sort((x, y) => STATIC_KINDS.has(sk.items[y].k) - STATIC_KINDS.has(sk.items[x].k));
     const ghosts = prev ? sk.items.map(({ k }, i) => { const [x, y] = prev.points[i], [cx, cy] = fr.points[i]; return STATIC_KINDS.has(k) || (x === cx && y === cy) ? '' : `<circle class="sk-ghost" cx="${x}" cy="${y}" r="${k === 'ball' ? 5 : 10}"/>`; }).join('') : '';
     svg.innerHTML = SKETCH_DEFS + SKETCH_FIELD + ghosts + sketchTrails(sk.items, prev?.points, fr.points) +
-      order.map(i => { const { k } = sk.items[i], [x, y] = fr.points[i]; return `<g class="sk-token ${i === sel ? 'selected' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${SKETCH_ITEMS[k]} ${labels[i]}, Pfeiltasten bewegen, Entf entfernt"><circle class="sk-hit" cx="${x}" cy="${y}" r="17"/>${i === sel ? `<circle class="sk-sel" cx="${x}" cy="${y}" r="${k === 'goal' ? 20 : 15}"/>` : ''}${sketchItem(k, x, y, labels[i])}</g>`; }).join('') +
-      camOverlay(fr) + (sk.items.length ? '' : `<text class="sk-empty" x="160" y="99">Tippe auf den Platz, um ${SKETCH_ITEMS[tool]} zu setzen</text>`);
+      order.map(i => { const { k } = sk.items[i], [x, y] = fr.points[i]; return `<g class="sk-token ${i === sel ? 'selected' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${SKETCH_ITEMS[k]} ${labels[i]}, Pfeiltasten bewegen, Entf entfernt"><circle class="sk-hit" cx="${x}" cy="${y}" r="17"/>${i === sel ? `<circle class="sk-sel" cx="${x}" cy="${y}" r="${k === 'goal' ? 20 : 15}"/>` : ''}${sketchItem(k, x, y, labels[i], sk.items[i])}</g>`; }).join('') +
+      (drag?.zone ? `<rect class="sk-draft" x="${Math.min(drag.x0, drag.x1)}" y="${Math.min(drag.y0, drag.y1)}" width="${Math.abs(drag.x1 - drag.x0)}" height="${Math.abs(drag.y1 - drag.y0)}" rx="4"/>` : '') +
+      camOverlay(fr) + (sk.items.length ? '' : `<text class="sk-empty" x="160" y="99">${tool === 'zone' ? 'Ziehe auf dem Platz, um eine Zone zu markieren' : `Tippe auf den Platz, um ${SKETCH_ITEMS[tool]} zu setzen`}</text>`);
     // Auswahl- bzw. Hinweiszeile
     const it = sk.items[sel];
     $('#ed-selbar', b).innerHTML = it
@@ -231,6 +232,7 @@ export function openEditor(id = null, prefill = null, notice = '') {
     const g = ev.target.closest('[data-i]'), [x, y] = pt(ev);
     if (camPick) { snapshot(); setCamCenter(x, y); drag = { cam: true, saved: true }; svg.setPointerCapture(ev.pointerId); paint(); return; }
     let i = g ? Number(g.dataset.i) : -1, added = false;
+    if (i < 0 && tool === 'zone') { drag = { zone: true, x0: x, y0: y, x1: x, y1: y }; svg.setPointerCapture(ev.pointerId); paint(); return; }
     if (i < 0) { i = addItem(tool, Math.round(clamp(x, B.x0, B.x1)), Math.round(clamp(y, B.y0, B.y1))); added = true; if (i < 0) return; }
     const [px, py] = sk.frames[frame].points[i];
     sel = i; drag = { i, dx: px - x, dy: py - y, saved: added };
@@ -240,11 +242,23 @@ export function openEditor(id = null, prefill = null, notice = '') {
   svg.addEventListener('pointermove', ev => {
     if (!drag) return;
     const [x, y] = pt(ev);
+    if (drag.zone) { drag.x1 = clamp(x, B.x0, B.x1); drag.y1 = clamp(y, B.y0, B.y1); paint(); return; }
     if (drag.cam) { setCamCenter(x, y); paint(); return; }
     if (!drag.saved) { snapshot(); drag.saved = true; }
     moveItem(drag.i, x + drag.dx, y + drag.dy); paint();
   });
-  const endDrag = () => { if (!drag) return; drag = null; paint(); };
+  const endDrag = ev => {
+    if (!drag) return;
+    if (drag.zone) {
+      const w = Math.round(Math.abs(drag.x1 - drag.x0)), h = Math.round(Math.abs(drag.y1 - drag.y0));
+      const cx = Math.round(clamp((drag.x0 + drag.x1) / 2, B.x0, B.x1)), cy = Math.round(clamp((drag.y0 + drag.y1) / 2, B.y0, B.y1));
+      drag = null;
+      if (w >= 12 && h >= 12) { const i = addItem('zone', cx, cy, { w, h }); if (i >= 0) sel = i; }
+      else { const i = addItem('zone', cx, cy); if (i >= 0) sel = i; } // Tippen setzt eine Standard-Zone
+      changed(); return;
+    }
+    drag = null; paint();
+  };
   svg.addEventListener('pointerup', endDrag); svg.addEventListener('pointercancel', endDrag);
   svg.addEventListener('keydown', ev => {
     const g = ev.target.closest('[data-i]'); if (!g) return;
@@ -255,8 +269,8 @@ export function openEditor(id = null, prefill = null, notice = '') {
   on(b, 'click', '[data-tool]', (_, x) => { tool = x.dataset.tool; sel = -1; camPick = false; haptic('tap'); paint(); });
   on(b, 'click', '#ed-del', () => { if (sel >= 0) removeItem(sel); });
   on(b, 'click', '#ed-dup', () => {
-    if (sel < 0) return; const { k } = sk.items[sel], [x, y] = sk.frames[frame].points[sel];
-    const i = addItem(k, Math.round(clamp(x + 16, B.x0, B.x1)), Math.round(clamp(y + 12, B.y0, B.y1))); if (i < 0) return; sel = i; changed();
+    if (sel < 0) return; const src = sk.items[sel], [x, y] = sk.frames[frame].points[sel];
+    const i = addItem(src.k, Math.round(clamp(x + 16, B.x0, B.x1)), Math.round(clamp(y + 12, B.y0, B.y1)), src); if (i < 0) return; sel = i; changed();
   });
   on(b, 'click', '[data-frame]', (_, x) => { frame = Number(x.dataset.frame); sel = -1; paint(); });
   on(b, 'click', '#ed-fadd', () => {

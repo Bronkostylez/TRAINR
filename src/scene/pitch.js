@@ -7,11 +7,12 @@ import { plan as motionPlan } from './motion.js';
 import { SCRIPTS, scriptRoute } from './scripts.js';
 
 // ---- Elemente eigener Skizzen (Detail, Training, Druck und Editor zeichnen gleich)
-export const SKETCH_ITEMS = { a: 'Spieler', b: 'Gegner', k: 'Keeper', ball: 'Ball', cone: 'Hütchen', mini: 'Minitor', goal: 'Tor' };
-export const STATIC_KINDS = new Set(['cone', 'mini', 'goal']);
+export const SKETCH_ITEMS = { a: 'Spieler', b: 'Gegner', k: 'Keeper', ball: 'Ball', cone: 'Hütchen', mini: 'Minitor', goal: 'Tor', zone: 'Zone' };
+export const STATIC_KINDS = new Set(['cone', 'mini', 'goal', 'zone']);
 /** Spieler und Gegner werden je Art durchnummeriert, Keeper heißen K. */
 export const sketchLabels = items => { const n = {}; return items.map(({ k }) => k === 'a' || k === 'b' ? String(n[k] = (n[k] || 0) + 1) : k === 'k' ? 'K' : ''); };
-export function sketchItem(k, x, y, label = '') {
+export function sketchItem(k, x, y, label = '', it = null) {
+  if (k === 'zone') { const w = it?.w || 60, h = it?.h || 40; return `<g class="setup-zone"><rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="4"/></g>`; }
   if (k === 'cone') return `<path class="setup-cone" d="M${x - 5} ${y + 5}l5-11 5 11z"/>`;
   if (k === 'goal') return `<rect class="setup-goal" x="${x - 5}" y="${y - 16}" width="10" height="32" rx="2"/>`;
   if (k === 'mini') return `<rect class="setup-goal" x="${x - 4}" y="${y - 9}" width="8" height="18" rx="2"/>`;
@@ -131,6 +132,6 @@ function customPitch(e, large, step) {
   const a = normAnimation(e.animation), i0 = Math.min(step, a.frames.length - 1), f = a.frames[i0], labels = sketchLabels(a.items), moving = a.frames.length > 1;
   // Statische Elemente zuerst, damit Spieler und Ball darüber liegen.
   const order = a.items.map((it, i) => i).sort((x, y) => STATIC_KINDS.has(a.items[y].k) - STATIC_KINDS.has(a.items[x].k));
-  const items = order.map(i => { const [x, y] = f.points[i], st = STATIC_KINDS.has(a.items[i].k); return st ? sketchItem(a.items[i].k, x, y) : `<g data-actor="i${i}" data-x="${x}" data-y="${y}">${sketchItem(a.items[i].k, x, y, labels[i])}</g>`; }).join('');
+  const items = order.map(i => { const [x, y] = f.points[i], st = STATIC_KINDS.has(a.items[i].k); return st ? sketchItem(a.items[i].k, x, y, labels[i], a.items[i]) : `<g data-actor="i${i}" data-x="${x}" data-y="${y}">${sketchItem(a.items[i].k, x, y, labels[i], a.items[i])}</g>`; }).join('');
   return `<div class="pitch-scene scene-custom ${large ? 'pitch-large' : ''}" data-exercise="${esc(e.id)}" data-setup="customAnimation" data-scene-step="${step}"><svg viewBox="0 0 320 190" role="img" aria-label="${esc(e.name)}: eigene schematische ${moving ? 'Animation' : 'Aufbauskizze'}">${SKETCH_DEFS}<g class="cam">${SKETCH_FIELD}<g class="sketch-trails">${sketchTrails(a.items, f.points, a.frames[i0 + 1]?.points)}</g>${items}</g>${moving ? `<text class="scene-step-label" x="28" y="31">${large ? 'SCHRITT ' + (i0 + 1) : 'AUFBAU'}</text>` : ''}</svg><span class="scene-label">${esc(e.name)} · eigene ${moving ? 'Animation' : 'Skizze'}</span></div>`;
 }
