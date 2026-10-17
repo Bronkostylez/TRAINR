@@ -7,17 +7,17 @@ import { plan as motionPlan } from './motion.js';
 import { SCRIPTS, scriptRoute } from './scripts.js';
 
 // ---- Elemente eigener Skizzen (Detail, Training, Druck und Editor zeichnen gleich)
-export const SKETCH_ITEMS = { a: 'Spieler', b: 'Gegner', k: 'Keeper', ball: 'Ball', cone: 'Hütchen', mini: 'Minitor', goal: 'Tor', zone: 'Zone' };
+export const SKETCH_ITEMS = { a: 'Spieler', b: 'Gegner', k: 'Keeper', t: 'Trainer', ball: 'Ball', cone: 'Hütchen', mini: 'Minitor', goal: 'Tor', zone: 'Zone' };
 export const STATIC_KINDS = new Set(['cone', 'mini', 'goal', 'zone']);
-/** Spieler und Gegner werden je Art durchnummeriert, Keeper heißen K. */
-export const sketchLabels = items => { const n = {}; return items.map(({ k }) => k === 'a' || k === 'b' ? String(n[k] = (n[k] || 0) + 1) : k === 'k' ? 'K' : ''); };
+/** Spieler und Gegner werden je Art durchnummeriert, Keeper heißen K, Trainer T. */
+export const sketchLabels = items => { const n = {}; return items.map(({ k }) => k === 'a' || k === 'b' ? String(n[k] = (n[k] || 0) + 1) : k === 'k' ? 'K' : k === 't' ? 'T' : ''); };
 export function sketchItem(k, x, y, label = '', it = null) {
   if (k === 'zone') { const w = it?.w || 60, h = it?.h || 40; return `<g class="setup-zone"><rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="4"/></g>`; }
   if (k === 'cone') return `<path class="setup-cone" d="M${x - 5} ${y + 5}l5-11 5 11z"/>`;
   if (k === 'goal') return `<rect class="setup-goal" x="${x - 5}" y="${y - 16}" width="10" height="32" rx="2"/>`;
   if (k === 'mini') return `<rect class="setup-goal" x="${x - 4}" y="${y - 9}" width="8" height="18" rx="2"/>`;
   if (k === 'ball') return `<circle class="sketch-ball" cx="${x}" cy="${y}" r="5"/>`;
-  return `<g class="pitch-player ${k === 'k' ? 'goalkeeper' : k === 'b' ? 'opponent' : ''}"><circle cx="${x}" cy="${y}" r="10"/><text x="${x}" y="${y + 3}">${esc(label)}</text></g>`;
+  return `<g class="pitch-player ${k === 'k' ? 'goalkeeper' : k === 'b' ? 'opponent' : k === 't' ? 'coach' : ''}"><circle cx="${x}" cy="${y}" r="10"/><text x="${x}" y="${y + 3}">${esc(label)}</text></g>`;
 }
 /** Laufwege (Spieler) und Ballwege von einem Schritt zum nächsten als Pfeile. */
 export function sketchTrails(items, from, to) {

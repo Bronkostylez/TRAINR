@@ -16,7 +16,7 @@ import { focusPicker } from '../ui/focus.js';
 import { SKETCH_ITEMS, STATIC_KINDS, SKETCH_DEFS, SKETCH_FIELD, SKETCH_ARROW_KINDS, sketchItem, sketchLabels, sketchTrails, sketchArrows } from '../scene/pitch.js';
 
 const DEFAULT_COACHING = 'Eigene Übung. Altersklasse, Aufbau und Belastung selbst prüfen.';
-const TOOLS = [['a', '<i style="background:var(--player)"></i>'], ['b', '<i style="background:var(--opponent)"></i>'], ['k', '<i style="background:var(--keeper)"></i>'], ['ball', '<i style="background:#fff;width:14px;height:14px"></i>'],
+const TOOLS = [['a', '<i style="background:var(--player)"></i>'], ['b', '<i style="background:var(--opponent)"></i>'], ['k', '<i style="background:var(--keeper)"></i>'], ['t', '<i style="background:#14130e;border:2.5px dashed var(--accent)"></i>'], ['ball', '<i style="background:#fff;width:14px;height:14px"></i>'],
   ['zone', '<i style="border:2px dashed currentColor;width:16px;height:12px;background:transparent"></i>'], ['cone', '<i style="background:var(--cone);border-radius:3px;width:14px;height:14px;transform:rotate(45deg)"></i>'], ['mini', '<i style="border-radius:3px;width:12px;height:20px;background:transparent;border:2px solid currentColor"></i>'], ['goal', '<i style="border-radius:3px;width:14px;height:24px;background:transparent;border:3px solid currentColor"></i>'], ['arrow', '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M5 19 19 5M10 5h9v9"/></svg>']];
 const TOOL_LABELS = { arrow: 'Pfeil' }; // Pfeile sind Werkzeuge, keine Skizzen-Elemente
 // Vorlagen: [Art, x, y] und optional Bewegungen für Schritt 2 ({ Index: [x, y] }).

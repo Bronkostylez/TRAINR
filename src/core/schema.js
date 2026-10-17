@@ -18,7 +18,7 @@ const fail = msg => { throw new Error(msg); };
 
 // Platzskizze eigener Übungen. V1 (bis 21.0): genau Spieler 1, Spieler 2, Keeper, Ball und mindestens 2 Schritte.
 // V2: frei wählbare Elemente (`items`), 1 Schritt = stehende Aufbauskizze, ab 2 Schritten Animation.
-export const SKETCH_KINDS = ['a', 'b', 'k', 'ball', 'cone', 'mini', 'goal', 'zone'];
+export const SKETCH_KINDS = ['a', 'b', 'k', 't', 'ball', 'cone', 'mini', 'goal', 'zone'];
 export const SKETCH_BOX = { x0: 10, x1: 310, y0: 10, y1: 180 };
 const V1_ITEMS = [{ k: 'a' }, { k: 'a' }, { k: 'k' }, { k: 'ball' }];
 const frameOk = (f, n, [x0, x1, y0, y1]) => integer(f?.seconds, 1, 15) && text(f.caption, 180) && Array.isArray(f.points) && f.points.length === n &&
