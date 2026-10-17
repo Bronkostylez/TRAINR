@@ -61,6 +61,8 @@ export const MORE = {
   'Tippe auf den Platz, um {} zu setzen': 'Tap the pitch to place {}',
   'Pfeil': 'Arrow', 'Pfeilart': 'Arrow type', 'Maximal 12 Pfeile pro Schritt.': 'At most 12 arrows per step.',
   'Ziehen zeichnet einen Pfeil – einen Pfeil antippen entfernt ihn.': 'Drag to draw an arrow – tap an arrow to remove it.', '· ziehen zum Bewegen': '· drag to move',
+  'ziehen zum Bewegen, die Ecke ändert die Größe': 'drag to move, the corner resizes',
+  'Größe der Zone ändern': 'Resize the zone',
   'Element oben wählen und auf den Platz tippen – oder mit einer Vorlage starten.': 'Choose an element above and tap the pitch – or start with a template.',
   'Schritt {}:': 'Step {}:', 'Spieler und Ball an ihre neue Position ziehen. Pfeile zeigen den Weg.': 'Drag players and ball to their new position. Arrows show the path.',
   'Aufbau. Änderungen hier gelten auch für die folgenden Schritte.': 'Setup. Changes here also apply to the following steps.', 'Fertig für ein Aufbaubild. Für Bewegung:': 'Done for a setup picture. For movement:',

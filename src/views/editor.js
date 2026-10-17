@@ -147,11 +147,12 @@ export function openEditor(id = null, prefill = null, notice = '') {
       (drag?.arrow ? `<path class="sketch-trail free ${SKETCH_ARROW_KINDS[arrowKind][2]}" d="M${drag.x0} ${drag.y0}L${drag.x1} ${drag.y1}" marker-end="url(#${SKETCH_ARROW_KINDS[arrowKind][1]})"/>` : '') +
       order.map(i => { const { k } = sk.items[i], [x, y] = fr.points[i]; return `<g class="sk-token ${i === sel ? 'selected' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${SKETCH_ITEMS[k]} ${labels[i]}, Pfeiltasten bewegen, Entf entfernt"><circle class="sk-hit" cx="${x}" cy="${y}" r="17"/>${i === sel ? `<circle class="sk-sel" cx="${x}" cy="${y}" r="${k === 'goal' ? 20 : 15}"/>` : ''}${sketchItem(k, x, y, labels[i], sk.items[i])}</g>`; }).join('') +
       (drag?.zone ? `<rect class="sk-draft" x="${Math.min(drag.x0, drag.x1)}" y="${Math.min(drag.y0, drag.y1)}" width="${Math.abs(drag.x1 - drag.x0)}" height="${Math.abs(drag.y1 - drag.y0)}" rx="4"/>` : '') +
+      (sel >= 0 && sk.items[sel]?.k === 'zone' ? (() => { const [cx, cy] = fr.points[sel], it = sk.items[sel]; return `<g data-resize="${sel}"><circle class="sk-resize-hit" cx="${cx + it.w / 2}" cy="${cy + it.h / 2}" r="16"/><circle class="sk-resize" cx="${cx + it.w / 2}" cy="${cy + it.h / 2}" r="8" role="button" aria-label="Größe der Zone ändern"/></g>`; })() : '') +
       camOverlay(fr) + (sk.items.length ? '' : `<text class="sk-empty" x="160" y="99">${tool === 'zone' ? 'Ziehe auf dem Platz, um eine Zone zu markieren' : `Tippe auf den Platz, um ${SKETCH_ITEMS[tool]} zu setzen`}</text>`);
     // Auswahl- bzw. Hinweiszeile
     const it = sk.items[sel];
     $('#ed-selbar', b).innerHTML = it
-      ? `<span class="grow"><strong>${SKETCH_ITEMS[it.k]} ${labels[sel]}</strong> · ziehen zum Bewegen</span><button class="btn sm ghost" type="button" id="ed-dup">${icon('plus')} Kopie</button><button class="btn sm ghost" type="button" id="ed-del">${icon('trash')} Entfernen</button>`
+      ? `<span class="grow"><strong>${SKETCH_ITEMS[it.k]} ${labels[sel]}</strong> · ${it.k === 'zone' ? 'ziehen zum Bewegen, die Ecke ändert die Größe' : 'ziehen zum Bewegen'}</span><button class="btn sm ghost" type="button" id="ed-dup">${icon('plus')} Kopie</button><button class="btn sm ghost" type="button" id="ed-del">${icon('trash')} Entfernen</button>`
       : `<span class="grow">${!sk.items.length ? 'Element oben wählen und auf den Platz tippen – oder mit einer Vorlage starten.' : frame ? `<strong>Schritt ${frame + 1}:</strong> Spieler und Ball an ihre neue Position ziehen. Pfeile zeigen den Weg.` : many ? 'Aufbau. Änderungen hier gelten auch für die folgenden Schritte.' : 'Fertig für ein Aufbaubild. Für Bewegung: <strong>+ Schritt</strong>.'}</span>`;
     // Schritte
     $('#ed-steps', b).innerHTML = sk.frames.map((x, i) => `<button type="button" role="tab" class="ed-stepbtn" data-frame="${i}" aria-selected="${i === frame}">${i === 0 ? 'Aufbau' : `Schritt ${i + 1}`}</button>`).join('') +
@@ -234,6 +235,8 @@ export function openEditor(id = null, prefill = null, notice = '') {
   svg.addEventListener('pointerdown', ev => {
     if (ev.button > 0) return;
     const g = ev.target.closest('[data-i]'), [x, y] = pt(ev);
+    const rh = ev.target.closest('[data-resize]');
+    if (rh) { drag = { resize: Number(rh.dataset.resize), saved: false }; svg.setPointerCapture(ev.pointerId); return; }
     if (camPick) { snapshot(); setCamCenter(x, y); drag = { cam: true, saved: true }; svg.setPointerCapture(ev.pointerId); paint(); return; }
     if (tool === 'arrow') {
       // Wie auf dem Taktikboard: aktives Pfeil-Werkzeug zeichnet immer, auch ab einem Spieler.
@@ -254,6 +257,13 @@ export function openEditor(id = null, prefill = null, notice = '') {
     if (!drag) return;
     const [x, y] = pt(ev);
     if (drag.zone) { drag.x1 = clamp(x, B.x0, B.x1); drag.y1 = clamp(y, B.y0, B.y1); paint(); return; }
+    if (drag.resize != null) {
+      if (!drag.saved) { snapshot(); drag.saved = true; }
+      const it = sk.items[drag.resize], [cx, cy] = sk.frames[frame].points[drag.resize];
+      it.w = Math.round(clamp(Math.abs(clamp(x, B.x0, B.x1) - cx) * 2, 12, 320));
+      it.h = Math.round(clamp(Math.abs(clamp(y, B.y0, B.y1) - cy) * 2, 12, 190));
+      paint(); return;
+    }
     if (drag.arrow) { drag.x1 = clamp(x, B.x0, B.x1); drag.y1 = clamp(y, B.y0, B.y1); paint(); return; }
     if (drag.cam) { setCamCenter(x, y); paint(); return; }
     if (!drag.saved) { snapshot(); drag.saved = true; }
@@ -261,6 +271,7 @@ export function openEditor(id = null, prefill = null, notice = '') {
   });
   const endDrag = ev => {
     if (!drag) return;
+    if (drag.resize != null) { drag = null; changed(); return; }
     if (drag.arrow) {
       const { x0, y0, x1, y1 } = drag; drag = null;
       if (Math.hypot(x1 - x0, y1 - y0) >= 12) {

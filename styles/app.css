@@ -520,6 +520,8 @@ body.live-focus main { padding-top: max(16px, env(safe-area-inset-top)); padding
 .sk-token:active { cursor: grabbing; }
 .sk-hit { fill: transparent; }
 .sk-sel, .sk-token:focus-visible .sk-hit { fill: #ffffff22; stroke: #fff; stroke-width: 1.5; stroke-dasharray: 4 3; }
+.sk-resize { fill: var(--signal); stroke: #14130e; stroke-width: 2; cursor: nwse-resize; pointer-events: none; }
+.sk-resize-hit { fill: transparent; cursor: nwse-resize; }
 .sk-ghost { fill: none; stroke: #ffffff70; stroke-width: 1.5; stroke-dasharray: 3 3; pointer-events: none; }
 .sk-empty { font: 700 11px var(--font); fill: #ffffffb0; text-anchor: middle; pointer-events: none; }
 .sketch-trail { fill: none; stroke: #ffffffd0; stroke-width: 2; stroke-dasharray: 6 4; stroke-linecap: round; pointer-events: none; }
