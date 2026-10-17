@@ -17,7 +17,7 @@ export const HELP = {
   'Merkliste, Bewertung, Notizen': 'Shortlist, rating, notes',
   'Das Herz merkt eine Übung. In der Detailansicht kannst du Sterne vergeben und eigene Notizen festhalten. Gut bewertete Übungen schlägt der Assistent häufiger vor.': 'The heart bookmarks an exercise. In the detail view you can give stars and keep your own notes. The assistant suggests well-rated exercises more often.',
   'Eigene Übungen': 'Custom exercises',
-  'Mit „Eigene“ legst du Übungen an – inklusive Material, Spielerzahlen und einer eigenen animierten Platzskizze.': 'With “Custom” you create exercises – including equipment, player numbers and your own animated pitch sketch.',
+  'Mit „Eigene“ legst du Übungen an – inklusive Material, Spielerzahlen und einer eigenen animierten Platzskizze. In der Skizze setzt du Spieler, Gegner, Keeper, Trainer, Ball und Material, markierst Zonen und zeichnest Pfeile für Lauf, Pass und Dribbling. Jeder weitere Schritt wird Teil der Animation; Vorlagen geben einen schnellen Start.': 'With “Custom” you create exercises – including equipment, player numbers and your own animated pitch sketch. In the sketch you place players, opponents, keepers, a coach, ball and equipment, mark zones and draw arrows for runs, passes and dribbling. Each further step becomes part of the animation; templates give you a quick start.',
   'Zufall & Ähnliche': 'Random & similar',
   'Der Würfel öffnet eine zufällige passende Übung. Im Detail findest du ähnliche Übungen.': 'The dice opens a random suitable exercise. In the detail view you find similar exercises.',
   'Blöcke ordnen': 'Arrange blocks',

@@ -1,6 +1,6 @@
 {
   "name": "trainr",
-  "version": "21.34.0",
+  "version": "21.35.0",
   "scripts": {
     "start": "node serve.cjs",
     "test": "playwright test",

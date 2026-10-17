@@ -14,7 +14,7 @@ const HELP = {
     ['Suchen und filtern', 'Suche nach Name, Beschreibung oder Material. Filterchips grenzen Kategorie, Alter, Trainerart, Material und Schwierigkeit ein. „Passend zuerst“ sortiert nach Gruppengröße, Schwerpunkt und Restzeit – mit Begründung auf jeder Karte.'],
     ['Schwerpunkte', 'Jede Übung trainiert mehrere Schwerpunkte aus Technik, Spielverständnis, Bewegung und Torwart – der erste ist der Hauptschwerpunkt. Ein Schwerpunkt-Chip zeigt per Antippen alle passenden Übungen. Eigene Übungen bekommen bis zu vier Schwerpunkte.'],
     ['Merkliste, Bewertung, Notizen', 'Das Herz merkt eine Übung. In der Detailansicht kannst du Sterne vergeben und eigene Notizen festhalten. Gut bewertete Übungen schlägt der Assistent häufiger vor.'],
-    ['Eigene Übungen', 'Mit „Eigene“ legst du Übungen an – inklusive Material, Spielerzahlen und einer eigenen animierten Platzskizze.'],
+    ['Eigene Übungen', 'Mit „Eigene“ legst du Übungen an – inklusive Material, Spielerzahlen und einer eigenen animierten Platzskizze. In der Skizze setzt du Spieler, Gegner, Keeper, Trainer, Ball und Material, markierst Zonen und zeichnest Pfeile für Lauf, Pass und Dribbling. Jeder weitere Schritt wird Teil der Animation; Vorlagen geben einen schnellen Start.'],
     ['Zufall & Ähnliche', 'Der Würfel öffnet eine zufällige passende Übung. Im Detail findest du ähnliche Übungen.'],
   ]],
   planen: ['Planen', [
