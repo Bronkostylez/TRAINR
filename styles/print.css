@@ -44,3 +44,21 @@ html, body { background: #fff !important; color: #111 !important; font-size: 10.
 .print-doc.layout-detailed .pblock { break-before:page; }
 .print-doc .psketch .setup-box { fill:none; stroke:white; stroke-width:2; }
 .print-doc.style-ink .psketch svg { filter:grayscale(1); }
+
+/* Kartenset: vier Karten pro A4-Seite zum Ausschneiden */
+@page cardset { size: A4; margin: 10mm; }
+.print-doc.layout-cardset { page: cardset; }
+.print-doc.layout-cardset .a6head h1 { font-size: 15pt; margin: 2px 0; }
+.print-doc.layout-cardset .a6head p { font-size: 8.5pt; }
+.print-doc.layout-cardset .a6page { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 124mm; gap: 6mm; margin-top: 5mm; break-after: page; }
+.print-doc.layout-cardset .a6page:last-of-type { break-after: auto; }
+.print-doc.layout-cardset .a6card { border: 1.2px dashed #8a8577; border-radius: 4mm; padding: 4mm; overflow: hidden; break-inside: avoid; }
+.print-doc.layout-cardset .a6card.keeper { border-left: 4pt solid #9154d9; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.print-doc.layout-cardset .a6card h2 { font-size: 12pt; margin: 0 0 1mm; display: block; }
+.print-doc.layout-cardset .a6card .sub { font-size: 9pt; margin: 0 0 2mm; }
+.print-doc.layout-cardset .a6card .psketch { width: 100%; margin: 0 0 2mm; }
+.print-doc.layout-cardset .a6card ol { font-size: 9pt; margin: 0 0 0 5mm; }
+.print-doc.layout-cardset .a6card li { margin-bottom: 1mm; }
+.print-doc.layout-cardset .a6card.pause { display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f1ede3; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.print-doc.layout-cardset .a6card.pause h2 { font-size: 16pt; }
+.print-doc.layout-cardset.style-ink .a6card.pause { background: #f2f2f2; }

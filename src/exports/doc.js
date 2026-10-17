@@ -8,6 +8,7 @@ export const LAYOUTS = {
   detailed: ['Ausführlich', 'Alle Infos je Übung: Ziel, Ablauf, Coaching, Material, Quelle'],
   compact: ['Kompakt', 'Eine Übersicht – ideal zum Mitnehmen'],
   cards: ['Übungskarten', 'Eine Karte pro Übung mit Bild und Ablauf'],
+  cardset: ['Kartenset', 'Vier handliche Karten pro A4-Seite zum Ausschneiden – nur Druck'],
   coach: ['Trainerkarte', 'Großer Text für den Platz'],
 };
 export const STYLES = { brand: 'Farbig', ink: 'Druckerfreundlich' };

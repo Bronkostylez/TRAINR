@@ -79,7 +79,7 @@ export function validPauses(x) {
 
 function validVariant(a) { return !!a && integer(a.min, 1, 100) && integer(a.max, a.min, 100) && integer(a.minutes, 1, 120); }
 
-const THEMES = ['system', 'light', 'dark'], MOTION = ['full', 'reduced', 'off'], LAYOUTS = ['detailed', 'compact', 'cards', 'coach'];
+const THEMES = ['system', 'light', 'dark'], MOTION = ['full', 'reduced', 'off'], LAYOUTS = ['detailed', 'compact', 'cards', 'coach', 'cardset'];
 export const DEFAULT_SETTINGS = Object.freeze({
   theme: 'system', motion: 'full', haptics: false, sound: true, fontScale: 100, clubColor: null,
   autoAdvance: false, speech: false, coachScene: true, warnSeconds: 30, wakeLock: true, exportLayout: 'detailed', exportStyle: 'brand', lang: 'auto',

@@ -19,11 +19,24 @@ export function openExport() {
   let layout = LAYOUTS[s0.settings.exportLayout] ? s0.settings.exportLayout : 'detailed', style = STYLES[s0.settings.exportStyle] ? s0.settings.exportStyle : 'brand';
   const base = () => `${slug(currentPlan(store.get()).name)}-${fileDate()}`;
   let previewId = 0;
+  // Kartenset ist ein reines Drucklayout: keine Canvas-Vorschau, kein PDF/PNG.
+  const syncCardset = sh => {
+    const is = layout === 'cardset';
+    sh.body.querySelectorAll('[data-do=pdf],[data-do=share],[data-do=png]').forEach(b => { b.disabled = is; });
+    const hint = $('#ex-printonly', sh.body); if (hint) hint.hidden = !is;
+  };
   const preview = async sh => {
     const id = ++previewId;
     $('#ex-prev', sh.body).setAttribute('aria-busy', 'true');
     try {
       const s = store.get(), p = currentPlan(s);
+      if (layout === 'cardset') {
+        if (id !== previewId || !sh.body.isConnected) return;
+        const n = blocksData(s, p).reduce((a, d) => a + 1 + (d.pause ? 1 : 0), 0), pages = Math.ceil(n / 4);
+        $('#ex-prev', sh.body).innerHTML = '<p class="small muted" style="padding:12px">Vier Karten pro Seite – die Druckvorschau des Browsers zeigt das Ergebnis.</p>';
+        $('#ex-pages', sh.body).textContent = `${n} ${n === 1 ? 'Karte' : 'Karten'} · ${pages} ${pages === 1 ? 'Seite' : 'Seiten'} A4`;
+        return;
+      }
       const pages = layoutPages(buildDoc(s, p, layout), style);
       await prepareImages(pages.slice(0, 2));
       if (id !== previewId || !sh.body.isConnected) return;
@@ -51,10 +64,12 @@ export function openExport() {
         <button class="btn" type="button" data-do="csv">${icon('download')} CSV (Tabelle)</button>
         <button class="btn" type="button" data-do="file">${icon('share')} Als TRAINR-Datei teilen</button>
       </div>
+      <p class="tiny" id="ex-printonly" hidden style="margin-top:8px">Kartenset ist nur für den Druck: PDF und Bild gibt es mit den anderen Layouts.</p>
       <p class="tiny" style="margin-top:8px">PDF mit durchsuchbarem Text und Bildern. Ausführlich, Übungskarten und Trainerkarte enthalten Aufbauskizzen. Kompakt bleibt eine kurze Übersicht. TRAINR-Dateien können andere Trainer importieren.</p>`,
     onMount: sh => {
       preview(sh);
-      on(sh.body, 'click', '[data-layout]', (_, b) => { layout = b.dataset.layout; sh.body.querySelectorAll('[data-layout]').forEach(x => x.setAttribute('aria-checked', String(x === b))); $('#ex-ldesc', sh.body).textContent = LAYOUTS[layout][1]; store.setting('exportLayout', layout); preview(sh); });
+      syncCardset(sh);
+      on(sh.body, 'click', '[data-layout]', (_, b) => { layout = b.dataset.layout; sh.body.querySelectorAll('[data-layout]').forEach(x => x.setAttribute('aria-checked', String(x === b))); $('#ex-ldesc', sh.body).textContent = LAYOUTS[layout][1]; store.setting('exportLayout', layout); preview(sh); syncCardset(sh); });
       on(sh.body, 'click', '[data-style]', (_, b) => { style = b.dataset.style; sh.body.querySelectorAll('[data-style]').forEach(x => x.setAttribute('aria-checked', String(x === b))); store.setting('exportStyle', style); preview(sh); });
       on(sh.body, 'click', '[data-do]', async (_, b) => {
         const s = store.get(), p = currentPlan(s), what = b.dataset.do;
@@ -79,6 +94,26 @@ export function openExport() {
 /** Druckansicht als HTML (mit Platzskizzen bei Übungskarten). */
 export function printHtml(s, p, layout = 'detailed', style = 'brand') {
   const h = headerData(s, p), B = blocksData(s, p);
+  // Kartenset: vier handliche Karten pro A4-Seite zum Ausschneiden. Nur Druck,
+  // knapp gehalten: Nummer, Name, Minuten, Besetzung, Skizze, Kernschritte.
+  if (layout === 'cardset') {
+    const cards = [];
+    for (const d of B) {
+      cards.push(`<article class="a6card ${d.keeper ? 'keeper' : ''}">
+        <h2>${d.num} · ${esc(d.e.name)}</h2>
+        <p class="sub">${d.b.minutes} Min · ${esc(d.groups)}</p>
+        <div class="psketch">${drillPitch(d.e)}</div>
+        <ol>${d.steps.slice(0, 4).map(t => `<li>${esc(t)}</li>`).join('')}</ol>
+        ${d.b.note ? `<p class="src">Notiz: ${esc(d.b.note)}</p>` : ''}</article>`);
+      if (d.pause) cards.push(`<article class="a6card pause"><h2>Trinkpause</h2><p class="sub">${d.pause.minutes} Min${d.pause.label ? ` · ${esc(d.pause.label)}` : ''}</p></article>`);
+    }
+    const pages = [];
+    for (let i = 0; i < cards.length; i += 4) pages.push(`<section class="a6page">${cards.slice(i, i + 4).join('')}</section>`);
+    return `<div class="print-doc style-${style} layout-cardset">
+      <header class="a6head"><div class="bar">TRAINR / KARTENSET</div><h1>${esc(h.title)}</h1><p>${esc([h.team, h.age, h.slot, h.squad, `${h.total} Min`].filter(Boolean).join(' · '))}</p></header>
+      ${pages.join('')}
+      <p class="foot">Ausschneiden entlang der gestrichelten Linien. Aufbauskizzen schematisch, Text beachten. Lokal erstellt mit TRAINR.</p></div>`;
+  }
   const pause = d => (!d.pause ? '' : layout === 'compact' ? `<tr class="pause"><td>${esc(d.pause.label || '')}</td><td><em>Trinkpause</em></td><td>${d.pause.minutes} Min</td></tr>` : `<p class="ppause">— ${esc(d.pause.text)} —</p>`);
   const block = d => one(d) + pause(d);
   const one = d => {
