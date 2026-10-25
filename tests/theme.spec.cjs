@@ -23,7 +23,7 @@ for (const theme of ['light', 'dark']) {
     await usesToken(page.locator('.tag.new').first(), 'color', '--signal');
     await page.locator('.tag.new').first().scrollIntoViewIfNeeded();
     await page.screenshot({ path: `/downloads/theme-new-${theme}-390.png` });
-    await go(page, '#planen'); await page.click('#pl-week');
+    await go(page, '#heute'); await page.click('#t-week');
     await expect(page.locator('.week-hero')).toBeVisible();
     await usesToken(page.locator('.week-hero'), 'background-color', '--hero');
     await usesToken(page.locator('.week-hero'), 'color', '--hero-ink');

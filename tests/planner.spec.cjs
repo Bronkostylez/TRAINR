@@ -15,8 +15,9 @@ test('Planer: Einheit erstellen, Minuten, Reihenfolge, Teilnehmer, Undo/Redo, En
   // Minute +1
   await blocks.first().locator('[data-min][data-d="1"]').click();
   await expect.poll(async () => (await plan(page)).blocks[0].minutes).toBe(p0.blocks[0].minutes + 1);
-  // Reihenfolge ↓
-  await blocks.first().locator('[data-move][data-d="1"]').click();
+  // Reihenfolge ↓ (Block-Sheet „Später“)
+  await blocks.first().locator('[data-more]').click();
+  await page.click('#be-down');
   await expect.poll(async () => (await plan(page)).blocks[1].id).toBe(p0.blocks[0].id);
   // Undo über Kopfzeile → Reihenfolge zurück, Redo → wieder getauscht
   await page.click('#btn-undo');
@@ -56,7 +57,8 @@ test('Planer: Einheit erstellen, Minuten, Reihenfolge, Teilnehmer, Undo/Redo, En
   expect((await plan(page)).blocks[0].people).toBeUndefined();
   // Entfernen + Rückgängig im Toast
   const n = (await plan(page)).blocks.length;
-  await blocks.last().locator('[data-del]').click();
+  await blocks.last().locator('[data-more]').click();
+  await page.click('#be-del');
   await expect.poll(async () => (await plan(page)).blocks.length).toBe(n - 1);
   await page.locator('.toast button', { hasText: 'Rückgängig' }).click();
   await expect.poll(async () => (await plan(page)).blocks.length).toBe(n);
@@ -153,10 +155,9 @@ test('Planassistent, Check, Packliste, Notizen, Kopieren, Vorlagen, Löschen', a
   expect((await plan(page)).name).toContain('Kopie');
   // Als Vorlage, aus Vorlage
   await page.click('#pl-more');
-  await page.click('dialog[open] [data-a=tpl]');
+  await page.click('dialog[open] [data-a=templates]');
+  await page.click('#tp-save');
   await expect.poll(async () => (await state(page)).plans.filter(x => x.template).length).toBe(1);
-  await page.click('[data-ptab=ablauf]');
-  await page.click('#pl-templates');
   await page.click('dialog[open] [data-use]');
   await expect.poll(async () => (await state(page)).plans.filter(x => !x.template).length).toBe(4);
   // Einheiten wechseln
@@ -179,8 +180,8 @@ test('Schnell-Hinzufügen-Sheet und Hinzufügen bei laufendem Timer', async ({ p
   await go(page, '#training');
   await page.click('#lv-toggle');
   expect(await page.evaluate(() => window.__trainr.timer.running())).toBe(true);
-  await go(page, '#heute');
-  await page.click('#q-add');
+  await go(page, '#planen');
+  await page.click('#pl-add');
   const n = (await plan(page)).blocks.length;
   await page.locator('dialog[open] [data-add]').first().click();
   await expect.poll(async () => (await plan(page)).blocks.length).toBe(n + 1);

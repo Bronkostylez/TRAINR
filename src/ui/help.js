@@ -18,8 +18,8 @@ const HELP = {
     ['Zufall & Ähnliche', 'Der Würfel öffnet eine zufällige passende Übung. Im Detail findest du ähnliche Übungen.'],
   ]],
   planen: ['Planen', [
-    ['Blöcke ordnen', 'Ziehe Blöcke am Griff (⋮⋮) an eine neue Position oder nutze ↑ ↓. Auf dem Desktop ziehst du Übungen direkt aus der Bibliothek in den Plan.'],
-    ['Zeit und Spieler', 'Minuten mit − / + ändern. Tippe auf den Titel eines Blocks, um die Spielerzahl nur für diesen Block anzupassen.'],
+    ['Blöcke ordnen', 'Ziehe Blöcke am Griff (⋮⋮) an eine neue Position oder tippe auf ⋯ → „Früher“ / „Später“. Auf dem Desktop ziehst du Übungen direkt aus der Bibliothek in den Plan.'],
+    ['Zeit und Spieler', 'Minuten mit − / + ändern. Tippe auf den Titel oder ⋯, um Spielerzahl und Notiz nur für diesen Block anzupassen, die Übung anzusehen oder sie zu entfernen.'],
     ['Pausen', 'Tippe oben auf „Pausen planen“: keine, automatisch (je nach Altersklasse etwa alle 12–30 Min) oder eine feste Anzahl – dazu die Dauer je Pause. TRAINR verteilt sie gleichmäßig, bevorzugt nach Spielformen und zwischen zwei Runden, und rechnet sie in die Gesamtzeit ein. Mit ↑ ↓ an einer Pause legst du sie selbst fest. Passt die Einheit nicht mehr in die Trainingszeit, kann TRAINR die Übungen verhältnisgleich kürzen.'],
     ['Assistent', 'Wähle eine Strategie (Klassisch, Spielintensiv, Technik, Kurz). Jede Wahl wird begründet; für jeden Block gibt es Alternativen.'],
     ['Check & Material', '„Check“ prüft Gruppen, Alter, Zeit und Sicherheit. „Packliste“ zeigt den Materialbedarf: höchster Bedarf pro Block, parallele Gruppen eingerechnet.'],

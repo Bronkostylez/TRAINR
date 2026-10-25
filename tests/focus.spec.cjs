@@ -155,7 +155,7 @@ test('Rückblick: Woche und Monat mit Schwerpunkt-Minuten, Blättern, Vergleich,
   await go(page, '#heute');
   await expect(page.locator('.focus-recap')).toContainText('3 Trainings');
   await expect(page.locator('.focus-recap')).toContainText('Seit 4 Wochen nicht dabei');
-  const d = page.locator('#t-create');
+  const d = page.locator('#t-recap');
   if (!(await d.evaluate(x => x.open))) await d.locator('summary').click();
   const gap = await page.locator('[data-gap]').first().getAttribute('data-gap');
   await page.locator('[data-gap]').first().click();

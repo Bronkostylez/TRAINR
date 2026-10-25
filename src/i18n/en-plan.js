@@ -84,4 +84,11 @@ export const PLAN = {
   'Pause vorbei': 'Break over', 'Block fertig': 'Block done', 'Bereit': 'Ready', 'Pausiert': 'Paused', 'Start': 'Start', '{} übrig': '{} left', '{} vergangen': '{} elapsed',
   'Zur Pause': 'To break', 'Nächster Block': 'Next block', 'Zur Pause ({#} Min)': 'To break ({} min)', 'Zu Block {}: {}': 'To block {1}: {2}', 'Zurücksetzen': 'Reset', '+1 Min': '+1 min',
   'Block {}': 'Block {}', 'Einheit': 'Session',
+  // 21.15
+  'Übungen aus der Bibliothek hierher ziehen': 'Drag exercises here from the library',
+  'Füge Übungen hinzu oder lass dir vom Assistenten eine Einheit vorschlagen.': 'Add exercises or let the assistant suggest a session.',
+  'Gegen passende Übung tauschen': 'Swap for a matching exercise', '{}: mehr Optionen': '{}: more options', 'Spieler, Notiz, Entfernen …': 'Players, note, remove …',
+  'Aus Vorlage starten oder diese Einheit speichern': 'Start from a template or save this session', 'Altersklasse: {}': 'Age group: {}',
+  'Nur für diese Einheit geändert': 'Changed for this session only', 'Wie die Mannschaft – für diese Einheit ändern': 'Same as the team – change for this session',
+  'Wie die Mannschaft': 'Same as the team', 'für diese Einheit ändern': 'change for this session', 'Früher': 'Earlier',
 };

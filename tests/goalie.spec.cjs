@@ -10,7 +10,7 @@ for(const theme of ['dark','light'])for(const width of [360,390,768,1280])test(`
  if(width===390){await page.reload();await expect(page.locator("#pl-name")).toBeVisible();await page.locator('#pl-blocks').scrollIntoViewIfNeeded();await page.screenshot({path:`/downloads/goalie-plan-${theme}-390.png`});}
  await page.reload();await expect(page.locator('#pl-name')).toBeVisible();expect((await plan(page)).sessionType).toBe('keeper');expect(await planTotal(page)).toBe(20);
  await go(page,'#uebungen');await expect(page.locator('.drill').first()).toBeVisible();expect(await noOverflow(page)).toBeTruthy();
- await go(page,'#planen');await page.click('#pl-train');await expect(page.locator('section[data-view=training]')).toBeVisible();expect(errors).toEqual([]);
+ await go(page,'#heute');await page.click('#t-start');await expect(page.locator('section[data-view=training]')).toBeVisible();expect(errors).toEqual([]);
 });
 test('Torwart: Backup, Übersetzung, Quellen und Trainerbesetzung',async({page})=>{
  await keeper(page);await page.click('dialog[open] [data-apply=replace]');

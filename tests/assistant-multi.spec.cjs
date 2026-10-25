@@ -71,8 +71,6 @@ test('Heute: Lange-nicht-trainiert-Chip öffnet den Assistenten mit Vorauswahl',
   const errors = watchErrors(page);
   await onboard(page);
   await go(page, '#heute');
-  const d = page.locator('#t-create');
-  if (!(await d.evaluate(x => x.open))) await d.locator('summary').click();
   await expect(page.locator('#c-go')).toBeVisible();
   await page.click('#c-go');
   const sheet = page.locator('dialog[open].sheet');

@@ -28,4 +28,10 @@ export const TODAY = {
   'Maximal {#} Einheiten. Alte unter „Planen“ löschen.': 'At most {} sessions. Delete old ones under “Plan”.',
   'Einheit erstellt': 'Session created', '„{}“ erstellt. Deine anderen Einheiten bleiben erhalten.': '“{}” created. Your other sessions are kept.',
   'Abwechslungsreich · {}': 'Varied · {}',
+  // 21.15
+  'Noch nichts geplant': 'Nothing planned yet', 'Was trainiert ihr?': 'What are you training?', 'Selbst wählen': 'Choose myself', 'Woche planen': 'Plan the week',
+  'Schwerpunkte antippen – der Assistent stellt eine passende Einheit zusammen, mit Begründung und Plan B je Übung.': 'Tap your focus areas – the assistant builds a fitting session, with reasons and a plan B for every exercise.',
+  'Schwerpunkte antippen': 'Tap your focus areas', 'der Assistent stellt eine passende Einheit zusammen, mit Begründung und Plan B je Übung.': 'the assistant builds a fitting session, with reasons and a plan B for every exercise.',
+  'Seit 4 Wochen nicht dabei – antippen für eine passende Einheit:': 'Not included in the last 4 weeks – tap for a matching session:', 'antippen für eine passende Einheit:': 'tap for a matching session:',
+  'Wer ist da: {}': 'Who is here: {}',
 };
