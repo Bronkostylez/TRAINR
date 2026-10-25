@@ -1,5 +1,4 @@
 // Planen: Einheit bearbeiten (Ablauf, Check, Packliste, Notizen), Einheiten verwalten, Assistent, Vorlagen.
-import { openWeek } from './week.js';
 import * as store from '../core/store.js';
 import {
   currentPlan, activeTeam, exercise, effective, blockLayout, layoutText, layoutAdvice, totalMinutes, timeline, slotOf, slotMinutes, slotLabel, planAge, planType,
@@ -16,7 +15,7 @@ import { go } from '../ui/router.js';
 import { flip, stagger, pulse } from '../ui/motion.js';
 import { toast, haptic } from '../ui/feedback.js';
 import { undoToast, updatePlan, ensurePlan, duplicatePlan, blankPlan, addExercise, markUsed } from '../ui/actions.js';
-import { openBlockEditor, swapBlock, openAddSheet, changeMinutes, moveBlock, removeBlock, openPauseSheet, pauseLabel, movePause, removePause } from './blocks.js';
+import { openBlockEditor, swapBlock, openAddSheet, changeMinutes, openPauseSheet, pauseLabel, movePause, removePause } from './blocks.js';
 import { materialType } from '../ui/material.js';
 import { openDetail } from './detail.js';
 import { card, filtered } from './library.js';
@@ -70,25 +69,23 @@ export const planView = {
     main.innerHTML = `
       <div class="plan-header">
         <div class="row between"><button class="btn sm" type="button" id="pl-switch" aria-haspopup="dialog">${icon('list')} ${plural(plansOfTeam(s).length, 'Einheit', 'Einheiten')}</button>
-          <div class="row" style="gap:2px"><button class="icon-btn" type="button" id="pl-undo" aria-label="Rückgängig" ${store.canUndo() ? '' : 'disabled'} title="${esc(store.undoLabel())}">${icon('undo')}</button><button class="icon-btn" type="button" id="pl-redo" aria-label="Wiederholen" ${store.canRedo() ? '' : 'disabled'}>${icon('redo')}</button><button class="icon-btn" type="button" id="pl-cal" aria-label="Kalender öffnen" title="Kalender">${icon('calendar')}</button><button class="icon-btn" type="button" id="pl-share" aria-label="Exportieren und teilen">${icon('share')}</button><button class="icon-btn" type="button" id="pl-more" aria-label="Weitere Aktionen">${icon('more')}</button></div></div>
+          <div class="row" style="gap:2px"><button class="icon-btn" type="button" id="pl-share" aria-label="Exportieren und teilen" title="Exportieren und teilen">${icon('share')}</button><button class="icon-btn" type="button" id="pl-more" aria-label="Weitere Aktionen">${icon('more')}</button></div></div>
         <label class="sr-only" for="pl-name">Name der Einheit</label>
         <h1 id="h-planen" class="sr-only">Planen: ${esc(p.name)}</h1>
         <input class="plan-title" id="pl-name" maxlength="80" value="${esc(p.name)}" autocomplete="off">
         <div class="plan-facts">
           <button class="fact" type="button" id="pl-slot">${icon('clock')} ${slot ? esc(slotLabel(slot)) : 'Kein Termin'}</button>
-          <span class="fact" style="padding:0 4px;cursor:default">${icon('users')}<span class="stepper" style="border:0"><button type="button" id="pl-pminus" aria-label="Ein Spieler weniger">−</button><input id="pl-people" type="number" min="1" max="100" value="${p.people}" aria-label="Spieler insgesamt ohne Trainer"><button type="button" id="pl-pplus" aria-label="Ein Spieler mehr">+</button></span></span>
-          <button class="fact" type="button" id="pl-squad" aria-haspopup="dialog" title="Wer ist da: Spieler, Torwart, Trainer">${p.keepers ? `${p.keepers} Torwart · ` : ''}${(p.coaches ?? 1) === 1 ? '1 Trainer' : `${p.coaches} Trainer`}</button>
+          <span class="fact fact-squad"><span class="stepper"><button type="button" id="pl-pminus" aria-label="Ein Spieler weniger">−</button><input id="pl-people" type="number" min="1" max="100" value="${p.people}" aria-label="Spieler insgesamt ohne Trainer"><button type="button" id="pl-pplus" aria-label="Ein Spieler mehr">+</button></span><button type="button" id="pl-squad" aria-haspopup="dialog" title="Wer ist da: Spieler, Torwart, Trainer">Spieler${p.keepers ? ` · ${p.keepers} Torwart` : ''} · ${(p.coaches ?? 1) === 1 ? '1 Trainer' : `${p.coaches} Trainer`}</button></span>
           <button class="fact" type="button" id="pl-focus">${icon('target')} ${esc(p.focus === 'Alle' ? 'Kein Schwerpunkt' : p.focus)}</button>
-          <button class="fact" type="button" id="pl-date" data-ev="${esc(linked?.id || '')}">${icon('calendar')} ${linked ? esc(fmtDate(linked.date, { relative: true })) + (more > 1 ? ` +${more - 1}` : '') : 'Im Kalender eintragen'}</button>
           <button class="fact" type="button" id="pl-pause">${icon('pause')} ${esc(pauseLabel(s, p))}</button>
-          <button class="fact" type="button" id="pl-age">${esc(planAge(s, p))}${p.age ? ' (nur diese Einheit)' : ''}</button>
+          ${linked ? `<button class="fact" type="button" id="pl-date" data-ev="${esc(linked.id)}">${icon('calendar')} ${esc(fmtDate(linked.date, { relative: true })) + (more > 1 ? ` +${more - 1}` : '')}</button>` : ''}
+          ${p.age ? `<button class="fact" type="button" id="pl-age">${esc(planAge(s, p))} (nur diese Einheit)</button>` : ''}
         </div>
         <div class="budget" aria-label="Zeitbudget">
           <div class="budget-bar" aria-hidden="true">${p.blocks.map(b => `<i style="width:${(b.minutes / Math.max(total, avail || 1)) * 100}%" class="${over ? 'over' : ''}"></i>${ps.has(b.id) ? `<i class="pause" style="width:${(ps.get(b.id).minutes / Math.max(total, avail || 1)) * 100}%"></i>` : ''}`).join('')}</div>
           <div class="budget-label"><span>${total} Min geplant</span><span class="${over ? 'block-warn' : ''}">${avail ? (over ? `${total - avail} Min zu lang` : `${avail - total} Min frei von ${avail}`) : 'Kein Zeitrahmen'}</span></div>
         </div>
       </div>
-      <button class="btn block week-entry" id="pl-week" type="button">${icon('calendar')} Wochenplaner <span class="grow"></span>${icon('chevron')}</button>
       <div class="plan-tabs"><div class="seg" role="tablist" aria-label="Bereiche der Einheit">${TABS.map(([k, t]) => `<button type="button" role="tab" data-ptab="${k}" aria-selected="${this.sub === k}" aria-pressed="${this.sub === k}">${t}${k === 'check' ? checkBadge(s, p) : ''}</button>`).join('')}</div></div>
       <div id="pl-body"></div>`;
     this.paintTab(reason);
@@ -103,12 +100,11 @@ export const planView = {
       body.innerHTML = `
         ${p.blocks.length ? `<ol class="blocks" id="pl-blocks" aria-label="Ablauf der Einheit">${tl.map(({ block: b, label, pause }, i) => blockHtml(s, p, b, i, label) + (pause ? pauseHtml(p, pause) : '')).join('')}</ol>` : ''}
         ${fm.list.length ? `<div class="focus-strip" style="margin:10px 0 0" aria-label="Schwerpunkte dieser Einheit"><div class="row between"><strong class="small">Das trainiert ihr</strong><button class="btn ghost sm" type="button" data-ptab="check">Details</button></div>${focusSummary(fm, { mark: p.focus, max: 5 })}</div>` : ''}
-        <div class="drop-zone" id="pl-drop" style="margin-top:10px">${p.blocks.length ? 'Übungen hierher ziehen' : '<strong>Noch leer.</strong> Übungen hinzufügen, hierher ziehen oder den Assistenten fragen.'}</div>
-        <div class="grid-2" style="margin-top:12px">
+        ${p.blocks.length && !$('#plan-side', this.root) ? '' : `<div class="drop-zone" id="pl-drop">${p.blocks.length ? 'Übungen aus der Bibliothek hierher ziehen' : '<strong>Noch leer.</strong> Füge Übungen hinzu oder lass dir vom Assistenten eine Einheit vorschlagen.'}</div>`}
+        <div class="plan-cta">
           <button class="btn primary lg" type="button" id="pl-add">${icon('plus')} Übung hinzufügen</button>
           <button class="btn lg" type="button" id="pl-assist">${icon('sparkles')} Assistent</button>
-        </div>
-        <div class="row" style="margin-top:12px"><button class="btn" type="button" id="pl-train" ${p.blocks.length ? '' : 'disabled'}>${icon('start')} Training starten</button><button class="btn" type="button" id="pl-templates">${icon('template')} Vorlagen</button><button class="btn" type="button" id="pl-board">${icon('board')} Taktikboard</button></div>`;
+        </div>`;
       const list = $('#pl-blocks', body);
       if (list) {
         sortable(list, { onMove: (from, to) => { flip(list, () => {}); updatePlan('Reihenfolge geändert', plan => { const [b] = plan.blocks.splice(from, 1); plan.blocks.splice(to, 0, b); }, { reason: 'order' }); toast('Reihenfolge aktualisiert.'); } });
@@ -116,19 +112,14 @@ export const planView = {
       }
       this.bindDrop(body);
       on(body, 'click', '[data-edit]', (_, b) => openBlockEditor(b.dataset.edit));
+      on(body, 'click', '[data-more]', (_, b) => openBlockEditor(b.dataset.more));
       on(body, 'click', '[data-swap]', (_, b) => swapBlock(b.dataset.swap));
       on(body, 'click', '[data-min]', (_, b) => { changeMinutes(b.dataset.min, Number(b.dataset.d)); haptic('tap'); });
-      on(body, 'click', '[data-move]', (_, b) => { const l = $('#pl-blocks', body); flip(l, () => {}); moveBlock(b.dataset.move, Number(b.dataset.d)); });
-      on(body, 'click', '[data-del]', (_, b) => removeBlock(b.dataset.del));
-      on(body, 'click', '[data-show]', (_, b) => openDetail(b.dataset.show));
       on(body, 'click', '[data-pmove]', (_, b) => { movePause(b.dataset.pmove, Number(b.dataset.d)); haptic('tap'); });
       on(body, 'click', '[data-pdel]', (_, b) => removePause(b.dataset.pdel));
       on(body, 'click', '[data-pedit]', () => openPauseSheet());
       $('#pl-add', body).onclick = openAddSheet;
       $('#pl-assist', body).onclick = () => this.assistant();
-      $('#pl-train', body).onclick = () => go('training', 'start');
-      $('#pl-templates', body).onclick = () => this.templatesSheet();
-      $('#pl-board', body).onclick = () => go('taktik');
     } else if (this.sub === 'check') {
       const items = check(s, p), tl = timeline(s, p);
       body.innerHTML = `
@@ -168,18 +159,15 @@ export const planView = {
     $('#pl-pminus', r).onclick = () => setPeople(p.people - 1);
     $('#pl-pplus', r).onclick = () => setPeople(p.people + 1);
     $('#pl-squad', r).onclick = () => openSquadSheet();
-    $('#pl-undo', r).onclick = () => { const l = store.undo(); if (l) toast(`„${l}“ rückgängig.`); };
-    $('#pl-redo', r).onclick = () => { const l = store.redo(); if (l) toast(`„${l}“ wiederhergestellt.`); };
     $('#pl-switch', r).onclick = () => this.plansSheet();
-    $('#pl-week', r).onclick = openWeek;
-    $('#pl-cal', r).onclick = () => go('kalender');
     $('#pl-share', r).onclick = () => import('../exports/sheet.js').then(m => m.openExport());
     $('#pl-more', r).onclick = () => this.moreSheet();
-    $('#pl-date', r).onclick = ev => (ev.currentTarget.dataset.ev ? openEvent(ev.currentTarget.dataset.ev) : scheduleSheet(p.id));
+    $('#pl-date', r)?.addEventListener('click', ev => openEvent(ev.currentTarget.dataset.ev));
     $('#pl-slot', r).onclick = () => pick('Trainingstag', activeTeam(s).slots.map(x => [String(x.day), slotLabel(x)]), String(p.slot), v => updatePlan('Termin geändert', x => { x.slot = Number(v); }));
     $('#pl-focus', r).onclick = () => openFocusPick({ current: p.focus, hint: neglected(s), onPick: v => updatePlan('Schwerpunkt geändert', x => { x.focus = v; }) });
     $('#pl-pause', r).onclick = () => openPauseSheet();
-    $('#pl-age', r).onclick = () => pick('Altersklasse dieser Einheit', [['', `Wie Mannschaft (${activeTeam(s).age})`], ...AGES.map(a => [a, a])], p.age || '', v => updatePlan('Altersklasse geändert', x => { if (v) x.age = v; else delete x.age; }));
+    $('#pl-age', r)?.addEventListener('click', () => this.ageSheet());
+    this.ageSheet = () => pick('Altersklasse dieser Einheit', [['', `Wie Mannschaft (${activeTeam(s).age})`], ...AGES.map(a => [a, a])], p.age || '', v => updatePlan('Altersklasse geändert', x => { if (v) x.age = v; else delete x.age; }));
     on(r, 'click', '[data-ptab]', (_, b) => { this.sub = b.dataset.ptab; history.replaceState(history.state, '', `#planen/${this.sub}`); $$('[data-ptab]', r).forEach(x => { x.setAttribute('aria-selected', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); }); this.paintTab(); });
   },
 
@@ -253,18 +241,20 @@ export const planView = {
     const s = store.get(), p = currentPlan(s), others = s.teams.filter(t => t.id !== s.activeTeamId);
     openSheet({
       title: 'Einheit', body: `<div class="list">
+        <button class="list-item" type="button" data-a="templates">${icon('template')}<span class="grow"><strong>Vorlagen</strong><small>Aus Vorlage starten oder diese Einheit speichern</small></span></button>
+        <button class="list-item" type="button" data-a="age">${icon('team')}<span class="grow"><strong>Altersklasse: ${esc(planAge(s, p))}</strong><small>${p.age ? 'Nur für diese Einheit geändert' : 'Wie die Mannschaft – für diese Einheit ändern'}</small></span></button>
         <button class="list-item" type="button" data-a="copy">${icon('copy')}<span class="grow"><strong>Duplizieren</strong><small>Kopie dieser Einheit</small></span></button>
         <button class="list-item" type="button" data-a="cal">${icon('calendar')}<span class="grow"><strong>Im Kalender eintragen</strong><small>Einem Trainingstermin zuordnen</small></span></button>
-        <button class="list-item" type="button" data-a="tpl">${icon('template')}<span class="grow"><strong>Als Vorlage speichern</strong><small>Wiederverwenden für jede Mannschaft</small></span></button>
         ${others.map(t => `<button class="list-item" type="button" data-a="team" data-team="${t.id}">${icon('team')}<span class="grow"><strong>Kopie für „${esc(t.name)}“</strong><small>${esc(t.age)} · ${esc(TYPE_SHORT[t.type])}</small></span></button>`).join('')}
         <button class="list-item" type="button" data-a="sharefile">${icon('share')}<span class="grow"><strong>Als Datei teilen</strong><small>Andere TRAINR-Nutzer können sie importieren</small></span></button>
         <button class="list-item" type="button" data-a="clear" ${p.blocks.length ? '' : 'disabled'}>${icon('reset')}<span class="grow"><strong>Alle Blöcke entfernen</strong><small>Rückgängig möglich</small></span></button>
         <button class="list-item" type="button" data-a="del" style="color:var(--danger)">${icon('trash')}<span class="grow"><strong>Einheit löschen</strong></span></button></div>`,
       onMount: sh => on(sh.body, 'click', '[data-a]', async (_, b) => {
         const a = b.dataset.a; sh.close();
+        if (a === 'templates') setTimeout(() => this.templatesSheet(), 220);
+        if (a === 'age') setTimeout(() => this.ageSheet(), 220);
         if (a === 'copy') { if (duplicatePlan(p.id)) undoToast('Kopie erstellt. Original bleibt erhalten.'); }
         if (a === 'cal') setTimeout(() => scheduleSheet(p.id), 220);
-        if (a === 'tpl') { if (duplicatePlan(p.id, { asTemplate: true })) undoToast('Als Vorlage gespeichert.'); }
         if (a === 'team') { const t = s.teams.find(x => x.id === b.dataset.team); const ids = new Map(p.blocks.map(x => [x.id, uid()])); const c = { ...structuredClone(p), id: uid(), teamId: t.id, slot: t.slots[0].day, name: p.name, blocks: p.blocks.map(x => ({ ...x, id: ids.get(x.id) })) }; delete c.age; if (c.pauses) c.pauses = remapPauses(c.pauses, ids); store.update('Kopie für andere Mannschaft', d => { d.plans.push(c); }); undoToast(`Kopie liegt bei „${t.name}“.`); }
         if (a === 'sharefile') import('../exports/share.js').then(m => m.sharePlanFile(p.id));
         if (a === 'clear') { updatePlan('Blöcke entfernt', x => { x.blocks = []; }); undoToast('Alle Blöcke entfernt.'); }
@@ -298,11 +288,9 @@ function blockHtml(s, p, b, i, label) {
     </div>
     <div class="block-actions">
       <span class="stepper"><button type="button" data-min="${b.id}" data-d="-1" aria-label="${esc(e.name)} eine Minute kürzer" ${b.minutes <= 1 ? 'disabled' : ''}>−</button><output aria-live="polite">${b.minutes} Min</output><button type="button" data-min="${b.id}" data-d="1" aria-label="${esc(e.name)} eine Minute länger" ${b.minutes >= 120 ? 'disabled' : ''}>+</button></span>
-      <button class="icon-btn" type="button" data-move="${b.id}" data-d="-1" aria-label="Block ${i + 1} nach oben" ${i === 0 ? 'disabled' : ''}>${icon('up')}</button>
-      <button class="icon-btn" type="button" data-move="${b.id}" data-d="1" aria-label="Block ${i + 1} nach unten" ${i === p.blocks.length - 1 ? 'disabled' : ''}>${icon('down')}</button>
-      <button class="icon-btn" type="button" data-swap="${b.id}" aria-label="${esc(e.name)} tauschen">${icon('swap')}</button>
-      <button class="icon-btn" type="button" data-show="${esc(e.id)}" aria-label="${esc(e.name)} ansehen">${icon('info')}</button>
-      <button class="icon-btn" type="button" data-del="${b.id}" aria-label="${esc(e.name)} entfernen">${icon('trash')}</button>
+      <span class="grow"></span>
+      <button class="icon-btn" type="button" data-swap="${b.id}" aria-label="${esc(e.name)} tauschen" title="Gegen passende Übung tauschen">${icon('swap')}</button>
+      <button class="icon-btn" type="button" data-more="${b.id}" aria-label="${esc(e.name)}: mehr Optionen" title="Spieler, Notiz, Entfernen …">${icon('more')}</button>
     </div>
   </li>`;
 }
@@ -311,7 +299,7 @@ function pauseHtml(p, x) {
   const last = x.index >= p.blocks.length - 2, mine = !!p.pauses?.after;
   return `<li class="pause-row" data-pause="${x.afterId}">
     <span class="pause-ico" aria-hidden="true">${icon('pause')}</span>
-    <button class="pause-main" type="button" data-pedit title="Pausen einstellen"><strong>Trinkpause · ${x.minutes} Min</strong><small>${x.label ? `${x.label} · ` : ''}${esc(x.why)}${mine ? '' : ' · automatisch'}</small></button>
+    <button class="pause-main" type="button" data-pedit title="${esc(x.why)}${mine ? '' : ' · automatisch'}"><strong>Trinkpause · ${x.minutes} Min</strong>${x.label ? `<small>${x.label}</small>` : ''}</button>
     <span class="pause-actions"><button class="icon-btn" type="button" data-pmove="${x.afterId}" data-d="-1" aria-label="Pause früher" ${x.index === 0 ? 'disabled' : ''}>${icon('up')}</button><button class="icon-btn" type="button" data-pmove="${x.afterId}" data-d="1" aria-label="Pause später" ${last ? 'disabled' : ''}>${icon('down')}</button><button class="icon-btn" type="button" data-pdel="${x.afterId}" aria-label="Pause entfernen">${icon('close')}</button></span>
   </li>`;
 }

@@ -60,7 +60,7 @@ test('Pausen-Sheet: Anzahl, Dauer, Vorschau, Kürzen auf Trainingszeit, Keine', 
   await expect(page.locator('#pl-blocks > li.pause-row')).toHaveCount(0);
   expect((await plan(page)).pauses.count).toBe(0);
   // Undo stellt den vorherigen Stand her
-  await page.click('#pl-undo');
+  await page.click('#btn-undo');
   await expect(page.locator('#pl-blocks > li.pause-row')).toHaveCount(n - 1);
   expect(errors).toEqual([]);
 });
@@ -82,12 +82,13 @@ test('Pausen verschieben und entfernen: feste Stellen, folgen dem Block beim Ums
   // Block mit fester Pause nach oben: Pause bleibt hinter „ihrem“ Block
   const owner = moved.pauses.after[0], i = moved.blocks.findIndex(b => b.id === owner);
   if (i > 0) {
-    await page.locator(`#pl-blocks > li.block[data-key="${owner}"] [data-move][data-d="-1"]`).click();
+    await page.locator(`#pl-blocks > li.block[data-key="${owner}"] [data-handle]`).press('ArrowUp');
     await expect.poll(async () => (await pausesOf(page))[0].afterId).toBe(owner);
   }
   // Block mit fester Pause entfernen: Pause rückt zum vorherigen Block
   const now = await plan(page), j = now.blocks.findIndex(b => b.id === owner);
-  await page.locator(`#pl-blocks > li.block[data-key="${owner}"] [data-del]`).click();
+  await page.locator(`#pl-blocks > li.block[data-key="${owner}"] [data-more]`).click();
+  await page.click('#be-del');
   const after = await plan(page);
   if (j > 0) expect(after.pauses.after).toEqual([now.blocks[j - 1].id]); else expect(after.pauses.after).toEqual([]);
   // Pause entfernen

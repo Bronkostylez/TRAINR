@@ -72,4 +72,7 @@ export const MORE = {
   'Eigene Übung geändert': 'Custom exercise changed', 'Eigene Übung angelegt': 'Custom exercise created', 'Eigene Übung aktualisiert. Bestehende Blöcke bleiben erhalten.': 'Custom exercise updated. Existing blocks are kept.',
   '„{}“ gespeichert.': '“{}” saved.',
   'Spieler': 'Player', 'Keeper': 'Keeper', 'Ball': 'Ball', 'Minitor': 'Mini goal', 'Tor': 'Goal',
+  // 21.15
+  'Alles liegt nur in diesem Browser – kein Konto, kein Server, kein Tracking. Browserdaten löschen oder privater Modus entfernt alles, deshalb regelmäßig ein Backup herunterladen.': 'Everything stays in this browser – no account, no server, no tracking. Clearing browser data or private mode removes everything, so download a backup regularly.',
+  'Alles liegt nur in diesem Browser': 'Everything stays in this browser', 'kein Konto, kein Server, kein Tracking. Browserdaten löschen oder privater Modus entfernt alles, deshalb regelmäßig ein Backup herunterladen.': 'no account, no server, no tracking. Clearing browser data or private mode removes everything, so download a backup regularly.',
 };

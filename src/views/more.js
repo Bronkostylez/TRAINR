@@ -132,6 +132,15 @@ export const moreView = {
         <button class="list-item" type="button" data-go-plan="packliste">${icon('cone')}<span class="grow"><strong>Packliste</strong><small>Material der aktuellen Einheit abhaken</small></span>${icon('chevron')}</button>
         <button class="list-item" type="button" id="m-export">${icon('print')}<span class="grow"><strong>Export & Druck</strong><small>PDF, Bild, Text, CSV, Teilen</small></span>${icon('chevron')}</button></div></section>
 
+      <section class="settings-group"><h2>Daten</h2><div class="settings-card">
+        <p class="small muted" style="margin:12px 0">Alles liegt nur in diesem Browser – kein Konto, kein Server, kein Tracking. Browserdaten löschen oder privater Modus entfernt alles, deshalb regelmäßig ein Backup herunterladen.</p>
+        <div class="grid-2" style="margin-bottom:12px"><button class="btn primary" type="button" id="m-backup">${icon('download')} Backup herunterladen</button><button class="btn" type="button" id="m-restore">${icon('upload')} Backup / Datei importieren</button></div>
+        <details class="disclosure" style="margin-bottom:12px"><summary>Weitere Optionen</summary><div class="body">
+          <button class="btn sm danger" type="button" id="m-reset" style="margin-top:8px">${icon('trash')} Alle V21-Daten zurücksetzen</button>
+          <p class="tiny">Lade vorher ein Backup herunter.</p></div></details>
+        <p class="tiny">${s.help.lastBackup ? `Letztes Backup: ${new Date(s.help.lastBackup).toLocaleDateString(locale())}` : 'Noch kein Backup erstellt.'}</p>
+      </div></section>
+
       <section class="settings-group"><h2>Darstellung</h2><div class="settings-card">
         <div class="field"><span>Sprache</span><div class="seg" role="radiogroup" aria-label="Sprache">${[['auto', 'Auto'], ...LANGS.map(l => [l[0], l[1]])].map(([v, t]) => `<button type="button" role="radio" data-lang="${v}"${v === 'auto' ? '' : ' translate="no" lang="' + v + '"'} aria-checked="${(st.lang || 'auto') === v}">${t}</button>`).join('')}</div><small class="tiny">Auto folgt der Gerätesprache. Deine Daten und Übungen bleiben unverändert.</small></div>
         <div class="field"><span>Erscheinungsbild</span>${seg('theme', [['system', 'System'], ['light', 'Hell'], ['dark', 'Dunkel']])}</div>
@@ -146,15 +155,6 @@ export const moreView = {
         ${sw('autoAdvance', 'Automatisch zum nächsten Block', 'Startet 2,5 s nach Blockende den nächsten Block')}
         ${sw('wakeLock', 'Bildschirm anlassen', 'Während der Timer läuft, falls der Browser es erlaubt')}
         <div class="field"><span>Vorwarnung vor Blockende</span>${seg('warnSeconds', [[0, 'Aus'], [10, '10 s'], [30, '30 s'], [60, '60 s']])}</div>
-      </div></section>
-
-      <section class="settings-group"><h2>Daten</h2><div class="settings-card">
-        <p class="small muted" style="margin:12px 0">Einheiten, Kalendertermine, Mannschaften, eigene Übungen, Merkliste, Bewertungen, Notizen, Taktikboards und Einstellungen liegen nur im Speicher dieses Browsers. Kein Tracking, kein Server, keine Spielerdaten. Browserdaten löschen oder privater Modus kann alles entfernen.</p>
-        <div class="grid-2" style="margin-bottom:12px"><button class="btn primary" type="button" id="m-backup">${icon('download')} Backup herunterladen</button><button class="btn" type="button" id="m-restore">${icon('upload')} Backup / Datei importieren</button></div>
-        <details class="disclosure" style="margin-bottom:12px"><summary>Weitere Optionen</summary><div class="body">
-          <button class="btn sm danger" type="button" id="m-reset" style="margin-top:8px">${icon('trash')} Alle V21-Daten zurücksetzen</button>
-          <p class="tiny">Lade vorher ein Backup herunter.</p></div></details>
-        <p class="tiny">${s.help.lastBackup ? `Letztes Backup: ${new Date(s.help.lastBackup).toLocaleDateString(locale())}` : 'Noch kein Backup erstellt.'}</p>
       </div></section>
 
       <section class="settings-group"><h2>Hilfe & Info</h2><div class="list">

@@ -58,7 +58,7 @@ export function openBlockEditor(blockId) {
         <div class="row"><button class="btn sm" type="button" id="be-same">Wie in der Einheit (${p.people})</button><button class="btn sm" type="button" id="be-detail">${icon('info')} Übung ansehen</button>${e.url ? `<a class="btn sm" href="${esc(e.url)}" target="_blank" rel="noopener">${icon('arrow')} Quelle</a>` : ''}</div>
       </form>
       ${alts.length ? `<h3 style="margin:20px 0 8px">Tauschen gegen</h3><div class="stack">${alts.map(x => `<button class="mini-drill" type="button" data-swap="${esc(x.id)}">${drillPitch(x)}<span><strong>${esc(x.name)}</strong><br><small>${esc(foci(x).slice(0, 2).join(' · ') || x.tag)} · ${effective(s, x).minutes} Min</small></span></button>`).join('')}</div>` : ''}
-      <div class="row" style="margin-top:20px"><button class="btn sm" type="button" id="be-dup">${icon('copy')} Duplizieren</button><button class="btn sm danger" type="button" id="be-del">${icon('trash')} Entfernen</button></div>`,
+      <div class="row" style="margin-top:20px"><button class="btn sm" type="button" id="be-up" ${p.blocks[0].id === blockId ? 'disabled' : ''}>${icon('up')} Früher</button><button class="btn sm" type="button" id="be-down" ${p.blocks.at(-1).id === blockId ? 'disabled' : ''}>${icon('down')} Später</button><button class="btn sm" type="button" id="be-dup">${icon('copy')} Duplizieren</button><button class="btn sm danger" type="button" id="be-del">${icon('trash')} Entfernen</button></div>`,
     foot: `<button class="btn" type="button" data-close>Abbrechen</button><button class="btn primary" type="submit" form="be">Speichern</button>`,
     onMount(sh) {
       const f = sh.body.querySelector('#be');
@@ -72,6 +72,8 @@ export function openBlockEditor(blockId) {
       sh.body.querySelector('#be-detail').onclick = () => { sh.close(); import('./detail.js').then(m => m.openDetail(e.id)); };
       on(sh.body, 'click', '[data-swap]', (_, btn) => { sh.close(); swapBlock(blockId, btn.dataset.swap); });
       sh.body.querySelector('#be-dup').onclick = () => { sh.close(); updatePlan('Block dupliziert', plan => { const i = plan.blocks.findIndex(x => x.id === blockId); if (i >= 0 && plan.blocks.length < 100) plan.blocks.splice(i + 1, 0, { ...plan.blocks[i], id: uid() }); }); undoToast('Block dupliziert.'); };
+      sh.body.querySelector('#be-up').onclick = () => { sh.close(); moveBlock(blockId, -1); };
+      sh.body.querySelector('#be-down').onclick = () => { sh.close(); moveBlock(blockId, 1); };
       sh.body.querySelector('#be-del').onclick = () => { sh.close(); removeBlock(blockId); };
       f.onsubmit = ev => {
         ev.preventDefault();
