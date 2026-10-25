@@ -22,7 +22,7 @@ for(const theme of ['dark','light'])for(const width of [360,390,768,1280])test(`
  if(width===390){await page.waitForTimeout(400);await page.screenshot({path:`/downloads/coach-editor-${theme}-390.png`});}
  await page.locator('[name=coachSupport]').uncheck();await expect(page.locator('#be-hint')).not.toContainText('1 Trainer:');await page.click('dialog[open] button[type=submit]');expect((await plan(page)).blocks[0].coachSupport).toBe(false);
  await page.reload();await expect(page.locator('[data-key=strike]')).not.toContainText('1 Trainer:');
- await page.locator('[data-key=strike] [data-show]').click();await expect(page.locator('.coach-role')).toContainText('nicht Torwart, Gegner oder Spieler im Wettkampf');expect(await noOverflow(page)).toBe(true);
+ await page.locator('[data-key=strike] [data-more]').click();await page.click('#be-detail');await expect(page.locator('.coach-role')).toContainText('nicht Torwart, Gegner oder Spieler im Wettkampf');expect(await noOverflow(page)).toBe(true);
  if(width===390){await page.locator('.coach-role').scrollIntoViewIfNeeded();await page.waitForTimeout(400);await page.screenshot({path:`/downloads/coach-detail-${theme}-390.png`});}
  expect(errors).toEqual([]);
 });
